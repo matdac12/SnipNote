@@ -69,13 +69,15 @@ struct CreateNoteView: View {
                                 .font(.system(size: 80))
                                 .foregroundColor(.blue)
                         }
+                        .onTapGesture {
+                            toggleRecording()
+                        }
                     }
                 }
                 
                 Spacer()
                 
-                HStack(spacing: 20) {
-                    
+                HStack {
                     Button("CANCEL") {
                         if let url = currentRecordingURL {
                             audioRecorder.deleteRecording(at: url)
@@ -91,15 +93,6 @@ struct CreateNoteView: View {
                     )
                     
                     Spacer()
-                    
-                    Button(action: toggleRecording) {
-                        Text(audioRecorder.isRecording ? "STOP" : "RECORD")
-                            .font(.system(.body, design: .monospaced, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(audioRecorder.isRecording ? .red : .blue)
-                    }
-                    .disabled(isProcessing)
                 }
                 .padding()
             }

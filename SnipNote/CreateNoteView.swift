@@ -49,6 +49,15 @@ struct CreateNoteView: View {
                                 .fill(.red)
                                 .frame(width: CGFloat(audioRecorder.recordingLevel * 200), height: 4)
                                 .animation(.easeInOut(duration: 0.1), value: audioRecorder.recordingLevel)
+                            
+                            Button("STOP RECORDING") {
+                                toggleRecording()
+                            }
+                            .font(.system(.body, design: .monospaced, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(.red)
+                            .cornerRadius(8)
                         }
                     } else if isProcessing {
                         VStack(spacing: 20) {

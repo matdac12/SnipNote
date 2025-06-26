@@ -31,6 +31,13 @@ struct ContentView: View {
                         .font(.system(.caption, design: .monospaced, weight: .bold))
                 }
                 .badge(pendingActionsCount)
+            
+            SettingsView()
+                .tabItem {
+                    Image(systemName: "gearshape")
+                    Text("SETTINGS")
+                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                }
         }
         .accentColor(.green)
         .preferredColorScheme(.dark)

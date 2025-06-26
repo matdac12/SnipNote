@@ -10,46 +10,106 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Query(sort: \Note.dateCreated, order: .reverse) private var notes: [Note]
+    
+    @State private var showingCreateNote = false
+    @State private var selectedNote: Note?
 
     var body: some View {
         NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+            VStack(spacing: 0) {
+                
+                HStack {
+                    Text("[ SNIP NOTES ]")
+                        .font(.system(.title, design: .monospaced, weight: .bold))
+                        .foregroundColor(.green)
+                    Spacer()
+                    Text("\(notes.count) NOTES")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.secondary)
                 }
-                .onDelete(perform: deleteItems)
+                .padding()
+                .background(.ultraThinMaterial)
+                
+                if notes.isEmpty {
+                    VStack(spacing: 20) {
+                        Spacer()
+                        Text("NO NOTES FOUND")
+                            .font(.system(.title2, design: .monospaced, weight: .bold))
+                            .foregroundColor(.secondary)
+                        Text("TAP + TO CREATE YOUR FIRST NOTE")
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                } else {
+                    List {
+                        ForEach(notes) { note in
+                            NavigationLink(value: note) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(note.title.isEmpty ? "UNTITLED" : note.title.uppercased())
+                                            .font(.system(.body, design: .monospaced, weight: .bold))
+                                            .lineLimit(1)
+                                        Spacer()
+                                        Text(note.dateCreated, style: .date)
+                                            .font(.system(.caption2, design: .monospaced))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Text(note.originalTranscript.prefix(100) + (note.originalTranscript.count > 100 ? "..." : ""))
+                                        .font(.system(.caption, design: .monospaced))
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(2)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        .onDelete(perform: deleteNotes)
+                        .listRowBackground(Color.clear)
+                    }
+                    .listStyle(PlainListStyle())
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .background(.black)
+            .navigationDestination(for: Note.self) { note in
+                NoteDetailView(note: note)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
+                    Button(action: { showingCreateNote = true }) {
+                        Image(systemName: "plus")
+                            .foregroundColor(.green)
+                    }
                 }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                
+                if !notes.isEmpty {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        EditButton()
+                            .foregroundColor(.green)
                     }
                 }
             }
         } detail: {
-            Text("Select an item")
+            VStack {
+                Spacer()
+                Text("SELECT A NOTE")
+                    .font(.system(.title2, design: .monospaced, weight: .bold))
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .background(.black)
+        }
+        .sheet(isPresented: $showingCreateNote) {
+            CreateNoteView()
         }
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
+    private func deleteNotes(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                modelContext.delete(items[index])
+                modelContext.delete(notes[index])
             }
         }
     }
@@ -57,5 +117,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: Note.self, inMemory: true)
 }

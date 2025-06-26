@@ -12,10 +12,16 @@ struct NoteDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var note: Note
     
+    @Query private var allActions: [Action]
+    
     @State private var isEditingTitle = false
     @State private var isEditingSummary = false
     @State private var tempTitle = ""
     @State private var tempSummary = ""
+    
+    private var relatedActions: [Action] {
+        allActions.filter { $0.sourceNoteId == note.id }
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -104,6 +110,42 @@ struct NoteDetailView: View {
                                 .padding()
                                 .background(.ultraThinMaterial)
                                 .cornerRadius(8)
+                        }
+                    }
+                    
+                    if !relatedActions.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("RELATED ACTIONS:")
+                                .font(.system(.headline, design: .monospaced, weight: .bold))
+                                .foregroundColor(.secondary)
+                            
+                            ForEach(relatedActions.sorted(by: { !$0.isCompleted && $1.isCompleted })) { action in
+                                HStack {
+                                    Text("[\(action.priority.rawValue)]")
+                                        .font(.system(.caption2, design: .monospaced, weight: .bold))
+                                        .foregroundColor(action.priority == .high ? .red : action.priority == .medium ? .orange : .green)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 2)
+                                        .background((action.priority == .high ? Color.red : action.priority == .medium ? Color.orange : Color.green).opacity(0.2))
+                                        .cornerRadius(3)
+                                    
+                                    Text(action.title)
+                                        .font(.system(.body, design: .monospaced))
+                                        .foregroundColor(action.isCompleted ? .secondary : .green)
+                                        .strikethrough(action.isCompleted)
+                                        .lineLimit(2)
+                                    
+                                    Spacer()
+                                    
+                                    if action.isCompleted {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(.green)
+                                    }
+                                }
+                                .padding()
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(8)
+                            }
                         }
                     }
                 }

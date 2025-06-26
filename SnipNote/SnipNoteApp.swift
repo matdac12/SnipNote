@@ -14,6 +14,7 @@ struct SnipNoteApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Note.self,
+            Action.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

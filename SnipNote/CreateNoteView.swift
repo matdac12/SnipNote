@@ -148,9 +148,10 @@ struct CreateNoteView: View {
                 
                 let transcript = try await openAIService.transcribeAudio(audioData: audioData)
                 let summary = try await openAIService.summarizeText(transcript)
+                let actionItems = try await openAIService.extractActions(transcript)
                 
                 await MainActor.run {
-                    createNote(transcript: transcript, summary: summary)
+                    createNote(transcript: transcript, summary: summary, actionItems: actionItems)
                     audioRecorder.deleteRecording(at: recordingURL)
                     dismiss()
                 }
@@ -163,7 +164,7 @@ struct CreateNoteView: View {
         }
     }
     
-    private func createNote(transcript: String, summary: String) {
+    private func createNote(transcript: String, summary: String, actionItems: [ActionItem]) {
         let note = Note(
             title: String(transcript.prefix(50)),
             originalTranscript: transcript,
@@ -172,10 +173,33 @@ struct CreateNoteView: View {
         
         modelContext.insert(note)
         
+        // Create Action entities from extracted action items
+        for actionItem in actionItems {
+            let priority: ActionPriority
+            switch actionItem.priority.uppercased() {
+            case "HIGH":
+                priority = .high
+            case "MED", "MEDIUM":
+                priority = .medium
+            case "LOW":
+                priority = .low
+            default:
+                priority = .medium
+            }
+            
+            let action = Action(
+                title: actionItem.action,
+                priority: priority,
+                sourceNoteId: note.id
+            )
+            
+            modelContext.insert(action)
+        }
+        
         do {
             try modelContext.save()
         } catch {
-            print("Error saving note: \(error)")
+            print("Error saving note and actions: \(error)")
         }
     }
 }

@@ -150,6 +150,65 @@ class OpenAIService: ObservableObject {
         
         return response.choices.first?.message.content ?? "No summary generated"
     }
+    
+    func extractActions(_ text: String) async throws -> [ActionItem] {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let prompt = """
+        Extract actionable items from this transcript. For each action item, provide:
+        1. A clear, concise action description
+        2. Priority level (HIGH, MED, LOW)
+        
+        Return ONLY a JSON array with this exact format:
+        [{"action": "action description", "priority": "HIGH|MED|LOW"}]
+        
+        If no actionable items exist, return an empty array: []
+        
+        Transcript: \(text)
+        """
+        
+        let requestBody = ChatRequest(
+            model: "gpt-3.5-turbo",
+            messages: [
+                ChatMessage(role: "system", content: "You extract actionable items from text and return them as JSON. Be precise and only return valid JSON."),
+                ChatMessage(role: "user", content: prompt)
+            ],
+            maxTokens: 300
+        )
+        
+        let jsonData = try JSONEncoder().encode(requestBody)
+        request.httpBody = jsonData
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+        
+        guard let content = response.choices.first?.message.content else {
+            return []
+        }
+        
+        // Parse the JSON response
+        do {
+            let actionData = content.data(using: .utf8) ?? Data()
+            let actions = try JSONDecoder().decode([ActionItem].self, from: actionData)
+            return actions
+        } catch {
+            print("Failed to parse actions JSON: \(error)")
+            return []
+        }
+    }
+}
+
+struct ActionItem: Codable {
+    let action: String
+    let priority: String
 }
 
 struct TranscriptionResponse: Codable {

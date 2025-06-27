@@ -306,12 +306,12 @@ struct CreateMeetingView: View {
                 }
                 
                 // Process AI in background after navigation
-                let title = try await openAIService.generateMeetingTitle(transcript)
+                let overview = try await openAIService.generateMeetingOverview(transcript)
                 let summary = try await openAIService.summarizeMeeting(transcript)
                 let actionItems = try await openAIService.extractActions(transcript)
                 
                 await MainActor.run {
-                    updateMeetingWithAI(title: title, summary: summary, actionItems: actionItems)
+                    updateMeetingWithAI(overview: overview, summary: summary, actionItems: actionItems)
                 }
                 
             } catch {
@@ -328,6 +328,7 @@ struct CreateMeetingView: View {
             location: meetingLocation,
             meetingNotes: meetingNotes,
             audioTranscript: "Transcribing meeting audio...",
+            shortSummary: "Generating overview...",
             aiSummary: "Generating meeting summary...",
             isProcessing: true
         )
@@ -366,7 +367,7 @@ struct CreateMeetingView: View {
         }
     }
     
-    private func updateMeetingWithAI(title: String, summary: String, actionItems: [ActionItem]) {
+    private func updateMeetingWithAI(overview: String, summary: String, actionItems: [ActionItem]) {
         guard let meetingId = createdMeetingId else { return }
         
         let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
@@ -375,11 +376,7 @@ struct CreateMeetingView: View {
             let meetings = try modelContext.fetch(descriptor)
             guard let meeting = meetings.first else { return }
             
-            // Update title if user didn't provide one or it's generic
-            if meeting.name == "Untitled Meeting" || meeting.name.isEmpty {
-                meeting.name = title
-            }
-            
+            meeting.shortSummary = overview
             meeting.aiSummary = summary
             meeting.isProcessing = false
             meeting.dateModified = Date()

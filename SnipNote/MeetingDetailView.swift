@@ -88,6 +88,28 @@ struct MeetingDetailView: View {
                         }
                     }
                     
+                    // Short Overview
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("OVERVIEW:")
+                            .font(.system(.headline, design: .monospaced, weight: .bold))
+                            .foregroundColor(.secondary)
+                        
+                        HStack {
+                            Text(meeting.shortSummary)
+                                .font(.system(.body, design: .monospaced))
+                                .opacity(meeting.isProcessing ? 0.6 : 1.0)
+                            
+                            if meeting.isProcessing {
+                                Spacer()
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(8)
+                    }
+                    
                     // Meeting Summary
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {

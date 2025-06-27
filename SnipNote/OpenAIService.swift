@@ -177,7 +177,7 @@ class OpenAIService: ObservableObject {
         let requestBody = ChatRequest(
             model: "gpt-4.1",
             messages: [
-                ChatMessage(role: "system", content: "You generate concise, descriptive titles for notes. Always respond with exactly 2-3, properly capitalized."),
+                ChatMessage(role: "system", content: "You generate concise, descriptive titles for notes. Always respond with exactly 2-3 words, properly capitalized."),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: 20
@@ -192,7 +192,7 @@ class OpenAIService: ObservableObject {
         return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Untitled Note"
     }
     
-    func generateMeetingTitle(_ text: String) async throws -> String {
+    func generateMeetingOverview(_ text: String) async throws -> String {
         guard let apiKey = apiKey else {
             throw OpenAIError.noAPIKey
         }
@@ -204,14 +204,13 @@ class OpenAIService: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let prompt = """
-        Generate an appropriate title for this meeting transcript in exactly 2-3 words. The title should be professional, descriptive, and capture the main purpose or topic of the meeting.
+        Summarize this meeting transcript in exactly one short, clear sentence. Capture the main topic and key outcome or focus of the meeting.
         
         Examples:
-        - "Weekly Team Sync"
-        - "Project Planning"
-        - "Budget Review"
-        - "Strategy Discussion"
-        - "Client Presentation"
+        - "Team discussed Q4 goals and assigned project leads for upcoming initiatives."
+        - "Budget review meeting where department heads presented spending proposals."
+        - "Weekly standup covering project progress and addressing technical blockers."
+        - "Client presentation meeting to review design mockups and gather feedback."
         
         Meeting Transcript: \(text)
         """
@@ -219,10 +218,10 @@ class OpenAIService: ObservableObject {
         let requestBody = ChatRequest(
             model: "gpt-4.1",
             messages: [
-                ChatMessage(role: "system", content: "You generate concise, professional meeting titles. Always respond with exactly 2-3 words, properly capitalized."),
+                ChatMessage(role: "system", content: "You create concise one-sentence meeting overviews. Always respond with exactly one clear, informative sentence."),
                 ChatMessage(role: "user", content: prompt)
             ],
-            maxTokens: 15
+            maxTokens: 50
         )
         
         let jsonData = try JSONEncoder().encode(requestBody)
@@ -231,7 +230,7 @@ class OpenAIService: ObservableObject {
         let (data, _) = try await URLSession.shared.data(for: request)
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
         
-        return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Team Meeting"
+        return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Meeting discussion on various topics."
     }
     
     func summarizeMeeting(_ text: String) async throws -> String {

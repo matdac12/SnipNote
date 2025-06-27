@@ -15,6 +15,7 @@ final class Meeting {
     var location: String
     var meetingNotes: String // Pre-meeting notes
     var audioTranscript: String
+    var shortSummary: String // One-sentence overview
     var aiSummary: String
     var isProcessing: Bool
     var startTime: Date?
@@ -35,12 +36,13 @@ final class Meeting {
         return formatter.string(from: duration) ?? "0s"
     }
     
-    init(name: String = "", location: String = "", meetingNotes: String = "", audioTranscript: String = "", aiSummary: String = "", isProcessing: Bool = false) {
+    init(name: String = "", location: String = "", meetingNotes: String = "", audioTranscript: String = "", shortSummary: String = "", aiSummary: String = "", isProcessing: Bool = false) {
         self.id = UUID()
         self.name = name
         self.location = location
         self.meetingNotes = meetingNotes
         self.audioTranscript = audioTranscript
+        self.shortSummary = shortSummary
         self.aiSummary = aiSummary
         self.isProcessing = isProcessing
         self.startTime = nil

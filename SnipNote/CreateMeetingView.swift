@@ -7,12 +7,14 @@
 
 import SwiftUI
 import SwiftData
+import AVFoundation
 
 struct CreateMeetingView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     
     var onMeetingCreated: ((Meeting) -> Void)?
+    var importedAudioURL: URL? // For shared audio files
     
     @StateObject private var audioRecorder = AudioRecorder()
     @StateObject private var openAIService = OpenAIService.shared
@@ -32,6 +34,29 @@ struct CreateMeetingView: View {
     // Timer for recording duration display
     @State private var recordingTimer: Timer?
     @State private var recordingDuration: TimeInterval = 0
+    
+    // Computed properties for imported audio mode
+    private var hasImportedAudio: Bool {
+        let hasAudio = importedAudioURL != nil
+        print("🎵 hasImportedAudio: \(hasAudio), URL: \(importedAudioURL?.absoluteString ?? "nil")")
+        return hasAudio
+    }
+    
+    private var importedAudioDuration: TimeInterval {
+        guard let url = importedAudioURL else { 
+            print("❌ No imported audio URL")
+            return 0 
+        }
+        do {
+            let audioFile = try AVAudioFile(forReading: url)
+            let duration = Double(audioFile.length) / audioFile.fileFormat.sampleRate
+            print("🎵 Audio duration calculated: \(duration) seconds")
+            return duration
+        } catch {
+            print("❌ Failed to read audio file: \(error)")
+            return 0
+        }
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -94,7 +119,43 @@ struct CreateMeetingView: View {
                     // Recording Section
                     VStack(spacing: 20) {
                         
-                        if audioRecorder.isRecording {
+                        if hasImportedAudio {
+                            VStack(spacing: 20) {
+                                Text("IMPORTED AUDIO READY")
+                                    .font(.system(.title, design: .monospaced, weight: .bold))
+                                    .foregroundColor(.blue)
+                                
+                                Text("Duration: \(formatDuration(importedAudioDuration))")
+                                    .font(.system(.title2, design: .monospaced, weight: .bold))
+                                    .foregroundColor(.blue)
+                                
+                                Rectangle()
+                                    .fill(.blue)
+                                    .frame(width: 200, height: 4)
+                                    .opacity(0.7)
+                                
+                                if hasFinishedRecording {
+                                    VStack(spacing: 20) {
+                                        Text("PROCESSING MEETING...")
+                                            .font(.system(.title, design: .monospaced, weight: .bold))
+                                            .foregroundColor(.orange)
+                                        
+                                        ProgressView()
+                                            .scaleEffect(1.5)
+                                    }
+                                } else {
+                                    Button("ANALYZE MEETING") {
+                                        analyzeImportedAudio()
+                                    }
+                                    .font(.system(.body, design: .monospaced, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding()
+                                    .background(.blue)
+                                    .cornerRadius(8)
+                                    .disabled(meetingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                }
+                            }
+                        } else if audioRecorder.isRecording {
                             VStack(spacing: 20) {
                                 Text(audioRecorder.isPaused ? "MEETING PAUSED" : "RECORDING MEETING...")
                                     .font(.system(.title, design: .monospaced, weight: .bold))
@@ -191,7 +252,7 @@ struct CreateMeetingView: View {
             Spacer()
             
             // Bottom Cancel Button
-            if !audioRecorder.isRecording && !hasFinishedRecording {
+            if !audioRecorder.isRecording && !hasFinishedRecording && !hasImportedAudio {
                 HStack {
                     Button("CANCEL") {
                         dismiss()
@@ -223,6 +284,21 @@ struct CreateMeetingView: View {
             }
         } message: {
             Text("Enter your OpenAI API key to enable transcription and summarization.")
+        }
+        .onAppear {
+            print("🎵 CreateMeetingView appeared with importedAudioURL: \(importedAudioURL?.absoluteString ?? "nil")")
+            if let url = importedAudioURL {
+                print("🎵 File exists: \(FileManager.default.fileExists(atPath: url.path))")
+                
+                // Use filename as default meeting name if it's empty
+                if meetingName.isEmpty {
+                    let fileName = url.lastPathComponent
+                    // Remove file extension and clean up the name
+                    let nameWithoutExtension = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
+                    meetingName = nameWithoutExtension
+                    print("🎵 Set default meeting name: \(meetingName)")
+                }
+            }
         }
     }
     
@@ -276,6 +352,51 @@ struct CreateMeetingView: View {
         hasFinishedRecording = false
         
         dismiss()
+    }
+    
+    private func analyzeImportedAudio() {
+        guard let audioURL = importedAudioURL else { 
+            print("❌ No audio URL to analyze")
+            return 
+        }
+        
+        print("🎵 Starting analysis of imported audio: \(audioURL)")
+        hasFinishedRecording = true
+        
+        // Create meeting immediately with form data
+        createProcessingMeeting()
+        
+        // Notify parent to handle navigation
+        if let meeting = createdMeeting {
+            onMeetingCreated?(meeting)
+        }
+        
+        Task {
+            do {
+                let audioData = try Data(contentsOf: audioURL)
+                
+                // Get transcript first
+                let transcript = try await openAIService.transcribeAudio(audioData: audioData)
+                
+                await MainActor.run {
+                    updateMeetingWithTranscript(transcript: transcript)
+                }
+                
+                // Process AI in background after navigation
+                let overview = try await openAIService.generateMeetingOverview(transcript)
+                let summary = try await openAIService.summarizeMeeting(transcript)
+                let actionItems = try await openAIService.extractActions(transcript)
+                
+                await MainActor.run {
+                    updateMeetingWithAI(overview: overview, summary: summary, actionItems: actionItems)
+                }
+                
+            } catch {
+                await MainActor.run {
+                    print("Error processing imported audio: \(error)")
+                }
+            }
+        }
     }
     
     private func stopMeetingRecording() {

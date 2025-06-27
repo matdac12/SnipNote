@@ -29,9 +29,22 @@
 		4961E73F2E0D7A0B0099EE31 /* SnipNoteUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SnipNoteUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4961E7F32E0EDACE0099EE31 /* Exceptions for "SnipNote" folder in "SnipNote" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4961E7252E0D7A090099EE31 /* SnipNote */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4961E7282E0D7A090099EE31 /* SnipNote */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4961E7F32E0EDACE0099EE31 /* Exceptions for "SnipNote" folder in "SnipNote" target */,
+			);
 			path = SnipNote;
 			sourceTree = "<group>";
 		};
@@ -401,6 +414,7 @@
 				DEVELOPMENT_TEAM = 5K8R3X2322;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SnipNote/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = SnipNote;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app needs microphone access to record voice notes for transcription and AI summarization.";
@@ -434,6 +448,7 @@
 				DEVELOPMENT_TEAM = 5K8R3X2322;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SnipNote/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = SnipNote;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app needs microphone access to record voice notes for transcription and AI summarization.";

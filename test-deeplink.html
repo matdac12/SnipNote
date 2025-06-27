@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test SnipNote Deep Link</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .button { 
+            display: inline-block; 
+            padding: 15px 30px; 
+            background-color: #007AFF; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>SnipNote Deep Link Test</h1>
+    <p>Click the button below to test opening SnipNote with a sample audio URL:</p>
+    
+    <a href="snipnote://import-audio?audioURL=file:///tmp/test-audio.m4a" class="button">
+        Test SnipNote Import
+    </a>
+    
+    <p><strong>Instructions:</strong></p>
+    <ol>
+        <li>Open this HTML file in Safari on your simulator/device</li>
+        <li>Click the "Test SnipNote Import" button</li>
+        <li>SnipNote should open and navigate to the meeting creation page</li>
+        <li>You should see "IMPORTED AUDIO READY" instead of recording controls</li>
+    </ol>
+    
+    <p><em>Note: The test uses a dummy audio file path. For real integration, the Voice Note app would provide an actual file URL.</em></p>
+</body>
+</html>

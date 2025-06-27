@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct MeetingsView: View {
+    @Binding var deepLinkAudioURL: URL?
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Meeting.dateCreated, order: .reverse) private var meetings: [Meeting]
     
@@ -117,11 +118,14 @@ struct MeetingsView: View {
                 MeetingDetailView(meeting: meeting)
             }
             .navigationDestination(isPresented: $navigateToCreate) {
-                CreateMeetingView { meeting in
-                    createdMeeting = meeting
-                    navigateToCreate = false
-                    navigateToCreatedMeeting = true
-                }
+                CreateMeetingView(
+                    onMeetingCreated: { meeting in
+                        createdMeeting = meeting
+                        navigateToCreate = false
+                        navigateToCreatedMeeting = true
+                    },
+                    importedAudioURL: deepLinkAudioURL
+                )
             }
             .navigationDestination(isPresented: $navigateToCreatedMeeting) {
                 if let meeting = createdMeeting {
@@ -152,6 +156,24 @@ struct MeetingsView: View {
                 Spacer()
             }
             .background(.black)
+        }
+        .onAppear {
+            // Handle deep link when view appears
+            if deepLinkAudioURL != nil {
+                print("🎵 MeetingsView appeared with audio URL: \(deepLinkAudioURL!)")
+                navigateToCreate = true
+            }
+        }
+        .onChange(of: deepLinkAudioURL) { _, newValue in
+            // Handle deep link changes
+            if let audioURL = newValue {
+                print("🎵 Audio URL changed in MeetingsView: \(audioURL)")
+                navigateToCreate = true
+            }
+        }
+        .onChange(of: navigateToCreate) { _, isNavigating in
+            print("🎵 navigateToCreate changed: \(isNavigating), audioURL: \(deepLinkAudioURL?.absoluteString ?? "nil")")
+            // Don't clear the deep link immediately - let CreateMeetingView handle it
         }
     }
 

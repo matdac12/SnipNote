@@ -11,6 +11,8 @@ import AVFoundation
 
 @main
 struct SnipNoteApp: App {
+    @State private var deepLinkAudioURL: URL?
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Note.self,
@@ -28,8 +30,47 @@ struct SnipNoteApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(deepLinkAudioURL: $deepLinkAudioURL)
+                .onOpenURL { url in
+                    handleDeepLink(url)
+                }
         }
         .modelContainer(sharedModelContainer)
+    }
+    
+    private func handleDeepLink(_ url: URL) {
+        print("📱 Deep link received: \(url)")
+        
+        if url.scheme == "snipnote" {
+            if url.host == "import-audio" {
+                if let audioURLString = url.queryParameters["audioURL"],
+                   let audioURL = URL(string: audioURLString) {
+                    print("🎵 Audio URL extracted: \(audioURL)")
+                    // Store the audio URL for the ContentView to handle
+                    deepLinkAudioURL = audioURL
+                } else {
+                    print("❌ Failed to extract audio URL from: \(url)")
+                }
+            }
+        } else if url.isFileURL {
+            // Handle direct file sharing (iOS share sheet)
+            print("📁 Direct file URL: \(url)")
+            deepLinkAudioURL = url
+        }
+    }
+}
+
+extension URL {
+    var queryParameters: [String: String] {
+        guard let components = URLComponents(url: self, resolvingAgainstBaseURL: false),
+              let queryItems = components.queryItems else {
+            return [:]
+        }
+        
+        var parameters: [String: String] = [:]
+        for item in queryItems {
+            parameters[item.name] = item.value
+        }
+        return parameters
     }
 }

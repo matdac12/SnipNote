@@ -32,6 +32,13 @@ struct ContentView: View {
                 }
                 .badge(pendingActionsCount)
             
+            MeetingsView()
+                .tabItem {
+                    Image(systemName: "person.3")
+                    Text("MEETINGS")
+                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                }
+            
             SettingsView()
                 .tabItem {
                     Image(systemName: "gearshape")
@@ -46,5 +53,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Note.self, inMemory: true)
+        .modelContainer(for: [Note.self, Action.self, Meeting.self], inMemory: true)
 }

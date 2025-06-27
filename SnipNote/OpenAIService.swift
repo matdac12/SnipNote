@@ -192,6 +192,99 @@ class OpenAIService: ObservableObject {
         return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Untitled Note"
     }
     
+    func generateMeetingTitle(_ text: String) async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let prompt = """
+        Generate an appropriate title for this meeting transcript in exactly 2-3 words. The title should be professional, descriptive, and capture the main purpose or topic of the meeting.
+        
+        Examples:
+        - "Weekly Team Sync"
+        - "Project Planning"
+        - "Budget Review"
+        - "Strategy Discussion"
+        - "Client Presentation"
+        
+        Meeting Transcript: \(text)
+        """
+        
+        let requestBody = ChatRequest(
+            model: "gpt-4.1",
+            messages: [
+                ChatMessage(role: "system", content: "You generate concise, professional meeting titles. Always respond with exactly 2-3 words, properly capitalized."),
+                ChatMessage(role: "user", content: prompt)
+            ],
+            maxTokens: 15
+        )
+        
+        let jsonData = try JSONEncoder().encode(requestBody)
+        request.httpBody = jsonData
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+        
+        return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Team Meeting"
+    }
+    
+    func summarizeMeeting(_ text: String) async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let prompt = """
+        Please create a comprehensive meeting summary from this transcript. Structure your response with the following sections:
+        
+        ## Key Discussion Points
+        - Main topics discussed
+        - Important insights shared
+        
+        ## Decisions Made
+        - Key decisions reached during the meeting
+        - Who is responsible for what
+        
+        ## Action Items
+        - Tasks assigned with responsible parties
+        - Deadlines mentioned
+        
+        ## Next Steps
+        - Follow-up actions
+        - Future meetings or milestones
+        
+        Meeting Transcript: \(text)
+        """
+        
+        let requestBody = ChatRequest(
+            model: "gpt-4.1",
+            messages: [
+                ChatMessage(role: "system", content: "You are a professional meeting summarizer. Create structured, comprehensive summaries that capture key decisions, action items, and next steps."),
+                ChatMessage(role: "user", content: prompt)
+            ],
+            maxTokens: 800
+        )
+        
+        let jsonData = try JSONEncoder().encode(requestBody)
+        request.httpBody = jsonData
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+        
+        return response.choices.first?.message.content ?? "No meeting summary generated"
+    }
+    
     func extractActions(_ text: String) async throws -> [ActionItem] {
         guard let apiKey = apiKey else {
             throw OpenAIError.noAPIKey

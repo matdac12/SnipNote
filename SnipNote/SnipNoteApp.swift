@@ -15,6 +15,7 @@ struct SnipNoteApp: App {
         let schema = Schema([
             Note.self,
             Action.self,
+            Meeting.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

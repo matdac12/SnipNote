@@ -171,11 +171,12 @@ struct CreateNoteView: View {
                 }
                 
                 // Process AI in background after navigation
+                let title = try await openAIService.generateTitle(transcript)
                 let summary = try await openAIService.summarizeText(transcript)
                 let actionItems = try await openAIService.extractActions(transcript)
                 
                 await MainActor.run {
-                    updateNoteWithAI(summary: summary, actionItems: actionItems)
+                    updateNoteWithAI(title: title, summary: summary, actionItems: actionItems)
                 }
                 
             } catch {
@@ -188,7 +189,7 @@ struct CreateNoteView: View {
     
     private func createProcessingNote() {
         let note = Note(
-            title: "Processing...",
+            title: "Generating Title...",
             originalTranscript: "Transcribing audio...",
             aiSummary: "Generating AI summary...",
             isProcessing: true
@@ -214,7 +215,7 @@ struct CreateNoteView: View {
             let notes = try modelContext.fetch(descriptor)
             guard let note = notes.first else { return }
             
-            note.title = String(transcript.prefix(50))
+            note.title = "Generating Title..."
             note.originalTranscript = transcript
             note.dateModified = Date()
             
@@ -224,7 +225,7 @@ struct CreateNoteView: View {
         }
     }
     
-    private func updateNoteWithAI(summary: String, actionItems: [ActionItem]) {
+    private func updateNoteWithAI(title: String, summary: String, actionItems: [ActionItem]) {
         guard let noteId = createdNoteId else { return }
         
         // Find the note in the model context using the ID
@@ -234,6 +235,7 @@ struct CreateNoteView: View {
             let notes = try modelContext.fetch(descriptor)
             guard let note = notes.first else { return }
             
+            note.title = title
             note.aiSummary = summary
             note.isProcessing = false
             note.dateModified = Date()

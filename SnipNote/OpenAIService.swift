@@ -151,6 +151,47 @@ class OpenAIService: ObservableObject {
         return response.choices.first?.message.content ?? "No summary generated"
     }
     
+    func generateTitle(_ text: String) async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let prompt = """
+        Generate an appropriate title for this note transcript in exactly 3-4 words. The title should be concise, descriptive, and capture the main topic or purpose.
+        
+        Examples:
+        - "Meeting Notes Summary"
+        - "Weekly Project Update"  
+        - "Shopping List Items"
+        - "Travel Planning Ideas"
+        
+        Transcript: \(text)
+        """
+        
+        let requestBody = ChatRequest(
+            model: "gpt-4.1",
+            messages: [
+                ChatMessage(role: "system", content: "You generate concise, descriptive titles for notes. Always respond with exactly 2-3, properly capitalized."),
+                ChatMessage(role: "user", content: prompt)
+            ],
+            maxTokens: 20
+        )
+        
+        let jsonData = try JSONEncoder().encode(requestBody)
+        request.httpBody = jsonData
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+        
+        return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Untitled Note"
+    }
+    
     func extractActions(_ text: String) async throws -> [ActionItem] {
         guard let apiKey = apiKey else {
             throw OpenAIError.noAPIKey

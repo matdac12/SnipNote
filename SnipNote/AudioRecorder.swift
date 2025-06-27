@@ -10,6 +10,7 @@ import AVFoundation
 
 class AudioRecorder: NSObject, ObservableObject {
     @Published var isRecording = false
+    @Published var isPaused = false
     @Published var recordingLevel: Float = 0.0
     
     private var audioRecorder: AVAudioRecorder?
@@ -75,14 +76,44 @@ class AudioRecorder: NSObject, ObservableObject {
         }
     }
     
+    func pauseRecording() {
+        guard let recorder = audioRecorder, isRecording else { return }
+        
+        recorder.pause()
+        isPaused = true
+        stopLevelTimer()
+    }
+    
+    func resumeRecording() {
+        guard let recorder = audioRecorder, isPaused else { return }
+        
+        recorder.record()
+        isPaused = false
+        startLevelTimer()
+    }
+    
     func stopRecording() -> URL? {
         guard let recorder = audioRecorder else { return nil }
         
         recorder.stop()
         isRecording = false
+        isPaused = false
         stopLevelTimer()
         
         return recorder.url
+    }
+    
+    func cancelRecording() {
+        guard let recorder = audioRecorder else { return }
+        
+        let recordingURL = recorder.url
+        recorder.stop()
+        isRecording = false
+        isPaused = false
+        stopLevelTimer()
+        
+        // Delete the recording file
+        deleteRecording(at: recordingURL)
     }
     
     private func startLevelTimer() {

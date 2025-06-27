@@ -96,27 +96,65 @@ struct CreateMeetingView: View {
                         
                         if audioRecorder.isRecording {
                             VStack(spacing: 20) {
-                                Text("RECORDING MEETING...")
+                                Text(audioRecorder.isPaused ? "MEETING PAUSED" : "RECORDING MEETING...")
                                     .font(.system(.title, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.red)
+                                    .foregroundColor(audioRecorder.isPaused ? .orange : .red)
                                 
                                 Text(formatDuration(recordingDuration))
                                     .font(.system(.title2, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.red)
+                                    .foregroundColor(audioRecorder.isPaused ? .orange : .red)
                                 
-                                Rectangle()
-                                    .fill(.red)
-                                    .frame(width: CGFloat(audioRecorder.recordingLevel * 200), height: 4)
-                                    .animation(.easeInOut(duration: 0.1), value: audioRecorder.recordingLevel)
-                                
-                                Button("STOP MEETING") {
-                                    stopMeetingRecording()
+                                if !audioRecorder.isPaused {
+                                    Rectangle()
+                                        .fill(.red)
+                                        .frame(width: CGFloat(audioRecorder.recordingLevel * 200), height: 4)
+                                        .animation(.easeInOut(duration: 0.1), value: audioRecorder.recordingLevel)
+                                } else {
+                                    Rectangle()
+                                        .fill(.orange)
+                                        .frame(width: 200, height: 4)
+                                        .opacity(0.5)
                                 }
-                                .font(.system(.body, design: .monospaced, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(.red)
-                                .cornerRadius(8)
+                                
+                                HStack(spacing: 16) {
+                                    if audioRecorder.isPaused {
+                                        Button("RESUME") {
+                                            resumeMeetingRecording()
+                                        }
+                                        .font(.system(.body, design: .monospaced, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding()
+                                        .background(.green)
+                                        .cornerRadius(8)
+                                    } else {
+                                        Button("PAUSE") {
+                                            pauseMeetingRecording()
+                                        }
+                                        .font(.system(.body, design: .monospaced, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding()
+                                        .background(.orange)
+                                        .cornerRadius(8)
+                                    }
+                                    
+                                    Button("STOP MEETING") {
+                                        stopMeetingRecording()
+                                    }
+                                    .font(.system(.body, design: .monospaced, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding()
+                                    .background(.red)
+                                    .cornerRadius(8)
+                                    
+                                    Button("CANCEL") {
+                                        cancelMeetingRecording()
+                                    }
+                                    .font(.system(.body, design: .monospaced, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding()
+                                    .background(.gray)
+                                    .cornerRadius(8)
+                                }
                             }
                         } else if hasFinishedRecording {
                             VStack(spacing: 20) {
@@ -208,6 +246,36 @@ struct CreateMeetingView: View {
                 recordingDuration = Date().timeIntervalSince(startTime)
             }
         }
+    }
+    
+    private func pauseMeetingRecording() {
+        audioRecorder.pauseRecording()
+        recordingTimer?.invalidate()
+        recordingTimer = nil
+    }
+    
+    private func resumeMeetingRecording() {
+        audioRecorder.resumeRecording()
+        
+        // Restart timer for duration display
+        recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            if let startTime = recordingStartTime {
+                recordingDuration = Date().timeIntervalSince(startTime)
+            }
+        }
+    }
+    
+    private func cancelMeetingRecording() {
+        audioRecorder.cancelRecording()
+        recordingTimer?.invalidate()
+        recordingTimer = nil
+        
+        // Reset state and dismiss
+        recordingStartTime = nil
+        recordingDuration = 0
+        hasFinishedRecording = false
+        
+        dismiss()
     }
     
     private func stopMeetingRecording() {

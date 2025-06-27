@@ -12,6 +12,8 @@ struct CreateNoteView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     
+    var onNoteCreated: ((Note) -> Void)?
+    
     @StateObject private var audioRecorder = AudioRecorder()
     @StateObject private var openAIService = OpenAIService.shared
     
@@ -21,10 +23,13 @@ struct CreateNoteView: View {
     @State private var summary = ""
     @State private var showingAPIKeyAlert = false
     @State private var apiKeyInput = ""
+    @State private var createdNote: Note?
+    @State private var createdNoteId: UUID?
+    @State private var navigateToNote = false
+    @State private var hasFinishedRecording = false
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 
                 HStack {
                     Text("[ NEW NOTE ]")
@@ -59,9 +64,9 @@ struct CreateNoteView: View {
                             .background(.red)
                             .cornerRadius(8)
                         }
-                    } else if isProcessing {
+                    } else if hasFinishedRecording {
                         VStack(spacing: 20) {
-                            Text("PROCESSING...")
+                            Text("CREATING NOTE...")
                                 .font(.system(.title, design: .monospaced, weight: .bold))
                                 .foregroundColor(.orange)
                             
@@ -104,10 +109,10 @@ struct CreateNoteView: View {
                     Spacer()
                 }
                 .padding()
-            }
-            .background(.black)
-            .foregroundColor(.green)
         }
+        .background(.black)
+        .foregroundColor(.green)
+        .navigationBarBackButtonHidden(false)
         .alert("API Key Required", isPresented: $showingAPIKeyAlert) {
             TextField("OpenAI API Key", text: $apiKeyInput)
             Button("Save") {
@@ -142,66 +147,123 @@ struct CreateNoteView: View {
     private func stopRecordingAndProcess() {
         guard let recordingURL = audioRecorder.stopRecording() else { return }
         
-        isProcessing = true
+        // Set state to show "CREATING NOTE..." instead of "TAP TO RECORD"
+        hasFinishedRecording = true
+        
+        // Create note immediately with processing placeholder
+        createProcessingNote()
+        
+        // Notify parent to handle navigation
+        if let note = createdNote {
+            onNoteCreated?(note)
+        }
         
         Task {
             do {
                 let audioData = try Data(contentsOf: recordingURL)
                 
+                // Get transcript first
                 let transcript = try await openAIService.transcribeAudio(audioData: audioData)
+                
+                await MainActor.run {
+                    updateNoteWithTranscript(transcript: transcript)
+                    audioRecorder.deleteRecording(at: recordingURL)
+                }
+                
+                // Process AI in background after navigation
                 let summary = try await openAIService.summarizeText(transcript)
                 let actionItems = try await openAIService.extractActions(transcript)
                 
                 await MainActor.run {
-                    createNote(transcript: transcript, summary: summary, actionItems: actionItems)
-                    audioRecorder.deleteRecording(at: recordingURL)
-                    dismiss()
+                    updateNoteWithAI(summary: summary, actionItems: actionItems)
                 }
+                
             } catch {
                 await MainActor.run {
-                    isProcessing = false
                     print("Error processing audio: \(error)")
                 }
             }
         }
     }
     
-    private func createNote(transcript: String, summary: String, actionItems: [ActionItem]) {
+    private func createProcessingNote() {
         let note = Note(
-            title: String(transcript.prefix(50)),
-            originalTranscript: transcript,
-            aiSummary: summary
+            title: "Processing...",
+            originalTranscript: "Transcribing audio...",
+            aiSummary: "Generating AI summary...",
+            isProcessing: true
         )
         
         modelContext.insert(note)
-        
-        // Create Action entities from extracted action items
-        for actionItem in actionItems {
-            let priority: ActionPriority
-            switch actionItem.priority.uppercased() {
-            case "HIGH":
-                priority = .high
-            case "MED", "MEDIUM":
-                priority = .medium
-            case "LOW":
-                priority = .low
-            default:
-                priority = .medium
-            }
-            
-            let action = Action(
-                title: actionItem.action,
-                priority: priority,
-                sourceNoteId: note.id
-            )
-            
-            modelContext.insert(action)
-        }
+        createdNote = note
+        createdNoteId = note.id
         
         do {
             try modelContext.save()
         } catch {
-            print("Error saving note and actions: \(error)")
+            print("Error saving note: \(error)")
+        }
+    }
+    
+    private func updateNoteWithTranscript(transcript: String) {
+        guard let noteId = createdNoteId else { return }
+        
+        let descriptor = FetchDescriptor<Note>(predicate: #Predicate { $0.id == noteId })
+        
+        do {
+            let notes = try modelContext.fetch(descriptor)
+            guard let note = notes.first else { return }
+            
+            note.title = String(transcript.prefix(50))
+            note.originalTranscript = transcript
+            note.dateModified = Date()
+            
+            try modelContext.save()
+        } catch {
+            print("Error updating note with transcript: \(error)")
+        }
+    }
+    
+    private func updateNoteWithAI(summary: String, actionItems: [ActionItem]) {
+        guard let noteId = createdNoteId else { return }
+        
+        // Find the note in the model context using the ID
+        let descriptor = FetchDescriptor<Note>(predicate: #Predicate { $0.id == noteId })
+        
+        do {
+            let notes = try modelContext.fetch(descriptor)
+            guard let note = notes.first else { return }
+            
+            note.aiSummary = summary
+            note.isProcessing = false
+            note.dateModified = Date()
+            
+            // Create Action entities from extracted action items
+            for actionItem in actionItems {
+                let priority: ActionPriority
+                switch actionItem.priority.uppercased() {
+                case "HIGH":
+                    priority = .high
+                case "MED", "MEDIUM":
+                    priority = .medium
+                case "LOW":
+                    priority = .low
+                default:
+                    priority = .medium
+                }
+                
+                let action = Action(
+                    title: actionItem.action,
+                    priority: priority,
+                    sourceNoteId: note.id
+                )
+                
+                modelContext.insert(action)
+            }
+            
+            try modelContext.save()
+        } catch {
+            print("Error updating note with AI: \(error)")
         }
     }
 }

@@ -75,11 +75,17 @@ struct NoteDetailView: View {
                             
                             Spacer()
                             
-                            Button("EDIT") {
-                                startEditingSummary()
+                            if !note.isProcessing {
+                                Button("EDIT") {
+                                    startEditingSummary()
+                                }
+                                .font(.system(.caption, design: .monospaced, weight: .bold))
+                                .foregroundColor(.blue)
+                            } else {
+                                Text("PROCESSING...")
+                                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                                    .foregroundColor(.orange)
                             }
-                            .font(.system(.caption, design: .monospaced, weight: .bold))
-                            .foregroundColor(.blue)
                         }
                         
                         if isEditingSummary {
@@ -105,20 +111,54 @@ struct NoteDetailView: View {
                                     }
                                 )
                         } else {
-                            Text(note.aiSummary)
-                                .font(.system(.body, design: .monospaced))
-                                .padding()
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(8)
+                            HStack {
+                                Text(note.aiSummary)
+                                    .font(.system(.body, design: .monospaced))
+                                    .opacity(note.isProcessing ? 0.6 : 1.0)
+                                
+                                if note.isProcessing {
+                                    Spacer()
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                }
+                            }
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(8)
                         }
                     }
                     
-                    if !relatedActions.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
                             Text("RELATED ACTIONS:")
                                 .font(.system(.headline, design: .monospaced, weight: .bold))
                                 .foregroundColor(.secondary)
                             
+                            Spacer()
+                            
+                            if note.isProcessing {
+                                Text("EXTRACTING...")
+                                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        
+                        if note.isProcessing {
+                            HStack {
+                                Text("Extracting actionable items from your note...")
+                                    .font(.system(.body, design: .monospaced))
+                                    .foregroundColor(.secondary)
+                                    .opacity(0.6)
+                                
+                                Spacer()
+                                
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            }
+                            .padding()
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(8)
+                        } else if !relatedActions.isEmpty {
                             ForEach(relatedActions.sorted(by: { !$0.isCompleted && $1.isCompleted })) { action in
                                 HStack {
                                     Text("[\(action.priority.rawValue)]")
@@ -146,6 +186,13 @@ struct NoteDetailView: View {
                                 .background(.ultraThinMaterial)
                                 .cornerRadius(8)
                             }
+                        } else {
+                            Text("No actionable items found in this note")
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .padding()
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(8)
                         }
                     }
                 }
@@ -154,6 +201,18 @@ struct NoteDetailView: View {
         }
         .background(.black)
         .foregroundColor(.green)
+        .navigationBarBackButtonHidden(false)
+        .toolbar {
+            if note.isProcessing {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("GO TO NOTES") {
+                        // Navigation will happen automatically via back button
+                    }
+                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                    .foregroundColor(.blue)
+                }
+            }
+        }
         .onAppear {
             tempTitle = note.title
             tempSummary = note.aiSummary

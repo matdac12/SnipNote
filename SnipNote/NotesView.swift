@@ -14,6 +14,9 @@ struct NotesView: View {
     
     @State private var showingCreateNote = false
     @State private var selectedNote: Note?
+    @State private var navigateToCreate = false
+    @State private var createdNote: Note?
+    @State private var navigateToCreatedNote = false
 
     var body: some View {
         NavigationSplitView {
@@ -51,6 +54,17 @@ struct NotesView: View {
                                         Text(note.title.isEmpty ? "UNTITLED" : note.title.uppercased())
                                             .font(.system(.body, design: .monospaced, weight: .bold))
                                             .lineLimit(1)
+                                        
+                                        if note.isProcessing {
+                                            Text("PROCESSING...")
+                                                .font(.system(.caption2, design: .monospaced, weight: .bold))
+                                                .foregroundColor(.orange)
+                                                .padding(.horizontal, 4)
+                                                .padding(.vertical, 2)
+                                                .background(.orange.opacity(0.2))
+                                                .cornerRadius(3)
+                                        }
+                                        
                                         Spacer()
                                         Text(note.dateCreated, style: .date)
                                             .font(.system(.caption2, design: .monospaced))
@@ -63,6 +77,13 @@ struct NotesView: View {
                                         .lineLimit(2)
                                 }
                                 .padding(.vertical, 4)
+                                .opacity(note.isProcessing ? 0.6 : 1.0)
+                                .overlay(
+                                    note.isProcessing ? 
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(.orange.opacity(0.5), lineWidth: 1)
+                                    : nil
+                                )
                             }
                         }
                         .onDelete(perform: deleteNotes)
@@ -76,9 +97,21 @@ struct NotesView: View {
             .navigationDestination(for: Note.self) { note in
                 NoteDetailView(note: note)
             }
+            .navigationDestination(isPresented: $navigateToCreate) {
+                CreateNoteView { note in
+                    createdNote = note
+                    navigateToCreate = false
+                    navigateToCreatedNote = true
+                }
+            }
+            .navigationDestination(isPresented: $navigateToCreatedNote) {
+                if let note = createdNote {
+                    NoteDetailView(note: note)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingCreateNote = true }) {
+                    Button(action: { navigateToCreate = true }) {
                         Image(systemName: "plus")
                             .foregroundColor(.green)
                     }
@@ -100,9 +133,6 @@ struct NotesView: View {
                 Spacer()
             }
             .background(.black)
-        }
-        .sheet(isPresented: $showingCreateNote) {
-            CreateNoteView()
         }
     }
 

@@ -134,7 +134,7 @@ class OpenAIService: ObservableObject {
         """
         
         let requestBody = ChatRequest(
-            model: "gpt-3.5-turbo",
+            model: "gpt-4.1",
             messages: [
                 ChatMessage(role: "system", content: "You are a helpful assistant that summarizes spoken notes into actionable insights."),
                 ChatMessage(role: "user", content: prompt)
@@ -176,7 +176,7 @@ class OpenAIService: ObservableObject {
         """
         
         let requestBody = ChatRequest(
-            model: "gpt-3.5-turbo",
+            model: "gpt-4.1",
             messages: [
                 ChatMessage(role: "system", content: "You extract actionable items from text and return them as JSON. Be precise and only return valid JSON."),
                 ChatMessage(role: "user", content: prompt)

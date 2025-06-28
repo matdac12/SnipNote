@@ -27,6 +27,14 @@ struct ContentView: View {
                 }
                 .tag(0)
             
+            MeetingsView(deepLinkAudioURL: $deepLinkAudioURL)
+                .tabItem {
+                    Image(systemName: "person.3")
+                    Text("MEETINGS")
+                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                }
+                .tag(1)
+            
             ActionsView()
                 .tabItem {
                     Image(systemName: "checklist")
@@ -34,14 +42,6 @@ struct ContentView: View {
                         .font(.system(.caption, design: .monospaced, weight: .bold))
                 }
                 .badge(pendingActionsCount)
-                .tag(1)
-            
-            MeetingsView(deepLinkAudioURL: $deepLinkAudioURL)
-                .tabItem {
-                    Image(systemName: "person.3")
-                    Text("MEETINGS")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                }
                 .tag(2)
             
             SettingsView()
@@ -57,7 +57,7 @@ struct ContentView: View {
         .onChange(of: deepLinkAudioURL) { _, newValue in
             if newValue != nil {
                 // Switch to Meetings tab when audio is shared
-                selectedTab = 2
+                selectedTab = 1
             }
         }
     }

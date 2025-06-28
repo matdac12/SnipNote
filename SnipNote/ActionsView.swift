@@ -41,9 +41,11 @@ struct ActionsView: View {
             var groupTitle = "Unknown Source"
             
             if let note = allNotes.first(where: { $0.id == sourceId }) {
-                groupTitle = note.title.isEmpty ? "Untitled Note" : note.title
+                let noteTitle = note.title.isEmpty ? "Untitled Note" : note.title
+                groupTitle = "N • \(noteTitle)"
             } else if let meeting = allMeetings.first(where: { $0.id == sourceId }) {
-                groupTitle = meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
+                let meetingName = meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
+                groupTitle = "M • \(meetingName)"
             }
             
             if grouped[groupTitle] == nil {

@@ -123,6 +123,8 @@ struct MeetingsView: View {
                         createdMeeting = meeting
                         navigateToCreate = false
                         navigateToCreatedMeeting = true
+                        // Clear deep link after meeting is created
+                        deepLinkAudioURL = nil
                     },
                     importedAudioURL: deepLinkAudioURL
                 )
@@ -161,7 +163,20 @@ struct MeetingsView: View {
             // Handle deep link when view appears
             if deepLinkAudioURL != nil {
                 print("🎵 MeetingsView appeared with audio URL: \(deepLinkAudioURL!)")
-                navigateToCreate = true
+                // Use a small delay to ensure view is fully loaded
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    navigateToCreate = true
+                }
+            }
+        }
+        .task {
+            // Also handle deep link in task (runs after view is fully loaded)
+            if deepLinkAudioURL != nil && !navigateToCreate {
+                print("🎵 MeetingsView task with audio URL: \(deepLinkAudioURL!)")
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                await MainActor.run {
+                    navigateToCreate = true
+                }
             }
         }
         .onChange(of: deepLinkAudioURL) { _, newValue in

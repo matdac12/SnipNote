@@ -11,24 +11,48 @@ import SwiftData
 struct ActionsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allActions: [Action]
+    @Query private var allNotes: [Note]
+    @Query private var allMeetings: [Meeting]
     
-    @State private var filter: ActionFilter = .all
+    @State private var filter: ActionFilter = .toDo
+    @State private var expandedSections: Set<String> = []
+    @State private var allExpanded: Bool = false
     
     enum ActionFilter: String, CaseIterable {
-        case all = "ALL"
-        case pending = "PENDING"
+        case toDo = "TO DO"
         case completed = "COMPLETED"
     }
     
     private var filteredActions: [Action] {
         switch filter {
-        case .all:
-            return allActions
-        case .pending:
+        case .toDo:
             return allActions.filter { !$0.isCompleted }
         case .completed:
             return allActions.filter { $0.isCompleted }
         }
+    }
+    
+    private var groupedActions: [String: [Action]] {
+        var grouped: [String: [Action]] = [:]
+        
+        for action in filteredActions {
+            guard let sourceId = action.sourceNoteId else { continue }
+            
+            var groupTitle = "Unknown Source"
+            
+            if let note = allNotes.first(where: { $0.id == sourceId }) {
+                groupTitle = note.title.isEmpty ? "Untitled Note" : note.title
+            } else if let meeting = allMeetings.first(where: { $0.id == sourceId }) {
+                groupTitle = meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
+            }
+            
+            if grouped[groupTitle] == nil {
+                grouped[groupTitle] = []
+            }
+            grouped[groupTitle]?.append(action)
+        }
+        
+        return grouped
     }
     
     private var pendingCount: Int {
@@ -58,22 +82,53 @@ struct ActionsView: View {
             .padding()
             .background(.ultraThinMaterial)
             
-            HStack(spacing: 16) {
-                ForEach(ActionFilter.allCases, id: \.self) { filterOption in
-                    Button(filterOption.rawValue) {
-                        filter = filterOption
+            VStack(spacing: 8) {
+                // Filter buttons
+                HStack(spacing: 16) {
+                    ForEach(ActionFilter.allCases, id: \.self) { filterOption in
+                        Button(filterOption.rawValue) {
+                            filter = filterOption
+                        }
+                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .foregroundColor(filter == filterOption ? .black : .green)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(filter == filterOption ? .green : .clear)
+                        .overlay(
+                            Rectangle()
+                                .stroke(.green, lineWidth: 1)
+                        )
                     }
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                    .foregroundColor(filter == filterOption ? .black : .green)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(filter == filterOption ? .green : .clear)
+                    Spacer()
+                }
+                
+                // Expand All button
+                HStack {
+                    Button(allExpanded ? "COLLAPSE ALL" : "EXPAND ALL") {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            allExpanded.toggle()
+                            if allExpanded {
+                                // Expand all sections
+                                expandedSections = Set(groupedActions.keys)
+                            } else {
+                                // Collapse all sections
+                                expandedSections.removeAll()
+                            }
+                        }
+                    }
+                    .font(.system(.caption2, design: .monospaced, weight: .bold))
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.orange.opacity(0.1))
                     .overlay(
                         Rectangle()
-                            .stroke(.green, lineWidth: 1)
+                            .stroke(.orange, lineWidth: 1)
                     )
+                    .cornerRadius(4)
+                    
+                    Spacer()
                 }
-                Spacer()
             }
             .padding()
             
@@ -83,37 +138,65 @@ struct ActionsView: View {
                     Text("NO ACTIONS FOUND")
                         .font(.system(.title2, design: .monospaced, weight: .bold))
                         .foregroundColor(.secondary)
-                    Text(filter == .all ? "CREATE NOTES TO GENERATE ACTIONS" : "NO \(filter.rawValue) ACTIONS")
+                    Text("NO \(filter.rawValue) ACTIONS")
                         .font(.system(.caption, design: .monospaced))
                         .foregroundColor(.secondary)
                     Spacer()
                 }
             } else {
                 List {
-                    ForEach(filteredActions.sorted(by: { 
-                        if $0.isCompleted != $1.isCompleted {
-                            return !$0.isCompleted && $1.isCompleted
+                    ForEach(groupedActions.keys.sorted(), id: \.self) { groupTitle in
+                        // Group header (always visible as separate row)
+                        ExpandableGroupHeaderView(
+                            title: groupTitle,
+                            actionCount: groupedActions[groupTitle]?.count ?? 0,
+                            isExpanded: expandedSections.contains(groupTitle),
+                            onTap: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    if expandedSections.contains(groupTitle) {
+                                        expandedSections.remove(groupTitle)
+                                    } else {
+                                        expandedSections.insert(groupTitle)
+                                    }
+                                    // Update allExpanded state based on current sections
+                                    allExpanded = expandedSections.count == groupedActions.count
+                                }
+                            }
+                        )
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
+                        
+                        // Expandable actions (only show if expanded, each as separate row)
+                        if expandedSections.contains(groupTitle) {
+                            ForEach(groupedActions[groupTitle]?.sorted(by: { 
+                                if $0.isCompleted != $1.isCompleted {
+                                    return !$0.isCompleted && $1.isCompleted
+                                }
+                                return $0.dateCreated > $1.dateCreated
+                            }) ?? []) { action in
+                                ActionRowView(action: action)
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
+                                    .listRowInsets(EdgeInsets(top: 2, leading: 32, bottom: 2, trailing: 16))
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        Button {
+                                            completeAction(action)
+                                        } label: {
+                                            Image(systemName: action.isCompleted ? "arrow.uturn.backward" : "checkmark")
+                                        }
+                                        .tint(.green)
+                                    }
+                                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                        Button {
+                                            deleteAction(action)
+                                        } label: {
+                                            Image(systemName: "trash")
+                                        }
+                                        .tint(.red)
+                                    }
+                            }
                         }
-                        return $0.dateCreated > $1.dateCreated
-                    })) { action in
-                        ActionRowView(action: action)
-                            .listRowBackground(Color.clear)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button {
-                                    completeAction(action)
-                                } label: {
-                                    Image(systemName: action.isCompleted ? "arrow.uturn.backward" : "checkmark")
-                                }
-                                .tint(.green)
-                            }
-                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                Button {
-                                    deleteAction(action)
-                                } label: {
-                                    Image(systemName: "trash")
-                                }
-                                .tint(.red)
-                            }
                     }
                 }
                 .listStyle(PlainListStyle())
@@ -149,6 +232,43 @@ struct ActionsView: View {
                 print("Error deleting action: \(error)")
             }
         }
+    }
+    
+}
+
+struct ExpandableGroupHeaderView: View {
+    let title: String
+    let actionCount: Int
+    let isExpanded: Bool
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title.uppercased())
+                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .foregroundColor(.green)
+                        .lineLimit(1)
+                    
+                    Text("\(actionCount) ACTION\(actionCount == 1 ? "" : "S")")
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    .font(.system(.caption, weight: .bold))
+                    .foregroundColor(.green)
+                    .rotationEffect(.degrees(isExpanded ? 0 : 0))
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(.ultraThinMaterial)
+            .cornerRadius(8)
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

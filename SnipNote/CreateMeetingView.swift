@@ -35,10 +35,8 @@ struct CreateMeetingView: View {
     @State private var recordingTimer: Timer?
     @State private var recordingDuration: TimeInterval = 0
     
-    // Progress tracking for large file processing
+    // Processing state
     @State private var isProcessingAudio = false
-    @State private var processingProgress: AudioChunkerProgress?
-    @State private var showCancelAlert = false
     
     // Computed properties for imported audio mode
     private var hasImportedAudio: Bool {
@@ -141,44 +139,12 @@ struct CreateMeetingView: View {
                                 
                                 if hasFinishedRecording || isProcessingAudio {
                                     VStack(spacing: 20) {
-                                        if let progress = processingProgress {
-                                            VStack(spacing: 12) {
-                                                Text(progress.currentStage.uppercased())
-                                                    .font(.system(.title2, design: .monospaced, weight: .bold))
-                                                    .foregroundColor(.orange)
-                                                
-                                                Text("CHUNK \(progress.currentChunk) OF \(progress.totalChunks)")
-                                                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                                                    .foregroundColor(.secondary)
-                                                
-                                                ProgressView(value: progress.percentComplete, total: 100.0)
-                                                    .progressViewStyle(LinearProgressViewStyle())
-                                                    .scaleEffect(y: 2.0)
-                                                
-                                                Text("\(Int(progress.percentComplete))% COMPLETE")
-                                                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                                                    .foregroundColor(.secondary)
-                                                
-                                                Button("CANCEL") {
-                                                    showCancelAlert = true
-                                                }
-                                                .font(.system(.caption, design: .monospaced, weight: .bold))
-                                                .foregroundColor(.red)
-                                                .padding(.horizontal)
-                                                .padding(.vertical, 4)
-                                                .background(.ultraThinMaterial)
-                                                .cornerRadius(4)
-                                            }
-                                        } else {
-                                            VStack(spacing: 12) {
-                                                Text("PROCESSING MEETING...")
-                                                    .font(.system(.title, design: .monospaced, weight: .bold))
-                                                    .foregroundColor(.orange)
-                                                
-                                                ProgressView()
-                                                    .scaleEffect(1.5)
-                                            }
-                                        }
+                                        Text("PROCESSING MEETING...")
+                                            .font(.system(.title, design: .monospaced, weight: .bold))
+                                            .foregroundColor(.orange)
+                                        
+                                        ProgressView()
+                                            .scaleEffect(1.5)
                                     }
                                 } else {
                                     Button("ANALYZE MEETING") {
@@ -322,16 +288,6 @@ struct CreateMeetingView: View {
         } message: {
             Text("Enter your OpenAI API key to enable transcription and summarization.")
         }
-        .alert("Cancel Processing", isPresented: $showCancelAlert) {
-            Button("Yes, Cancel", role: .destructive) {
-                isProcessingAudio = false
-                processingProgress = nil
-                dismiss()
-            }
-            Button("Continue Processing", role: .cancel) { }
-        } message: {
-            Text("Are you sure you want to cancel audio processing? This will stop the current transcription and return to the previous screen.")
-        }
         .onAppear {
             print("🎵 CreateMeetingView appeared with importedAudioURL: \(importedAudioURL?.absoluteString ?? "nil")")
             if let url = importedAudioURL {
@@ -420,54 +376,22 @@ struct CreateMeetingView: View {
         
         Task {
             do {
-                // Check file size and show appropriate message
-                let fileSize = try AudioChunker.getFileSize(url: audioURL)
-                let fileSizeMB = Double(fileSize) / (1024 * 1024)
-                print("🎵 Audio file size: \(String(format: "%.1f", fileSizeMB)) MB")
-                
-                // Show initial progress with file size info
-                await MainActor.run {
-                    let estimatedChunks = try? AudioChunker.estimateChunkCount(url: audioURL)
-                    processingProgress = AudioChunkerProgress(
-                        currentChunk: 1,
-                        totalChunks: estimatedChunks ?? 1,
-                        currentStage: "Preparing \(String(format: "%.1f", fileSizeMB))MB file for processing",
-                        percentComplete: 5
-                    )
-                }
-                
-                // Use the new chunked transcription method with progress tracking
+                // Use the chunked transcription method
                 let transcript = try await openAIService.transcribeAudioFromURL(
                     audioURL: audioURL,
-                    progressCallback: { progress in
-                        Task { @MainActor in
-                            self.processingProgress = progress
-                        }
-                    }
+                    progressCallback: { _ in }
                 )
                 
                 await MainActor.run {
-                    processingProgress = AudioChunkerProgress(
-                        currentChunk: 1,
-                        totalChunks: 1,
-                        currentStage: "Generating meeting insights",
-                        percentComplete: 90
-                    )
                     updateMeetingWithTranscript(transcript: transcript)
                 }
                 
-                // Process AI in background after navigation
+                // Process AI analysis
                 let overview = try await openAIService.generateMeetingOverview(transcript)
                 let summary = try await openAIService.summarizeMeeting(transcript)
                 let actionItems = try await openAIService.extractActions(transcript)
                 
                 await MainActor.run {
-                    processingProgress = AudioChunkerProgress(
-                        currentChunk: 1,
-                        totalChunks: 1,
-                        currentStage: "Processing complete",
-                        percentComplete: 100
-                    )
                     updateMeetingWithAI(overview: overview, summary: summary, actionItems: actionItems)
                     isProcessingAudio = false
                 }
@@ -475,21 +399,6 @@ struct CreateMeetingView: View {
             } catch {
                 await MainActor.run {
                     print("Error processing imported audio: \(error)")
-                    
-                    // Show specific error message based on error type
-                    let errorMessage: String
-                    if let chunkerError = error as? AudioChunker.ChunkerError {
-                        errorMessage = chunkerError.localizedDescription
-                    } else {
-                        errorMessage = "Processing failed: \(error.localizedDescription)"
-                    }
-                    
-                    processingProgress = AudioChunkerProgress(
-                        currentChunk: 1,
-                        totalChunks: 1,
-                        currentStage: errorMessage,
-                        percentComplete: 0
-                    )
                     isProcessingAudio = false
                 }
             }

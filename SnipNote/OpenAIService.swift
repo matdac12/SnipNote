@@ -110,14 +110,8 @@ class OpenAIService: ObservableObject {
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        // Log the raw response for debugging
-        if let responseString = String(data: data, encoding: .utf8) {
-            print("🎵 OpenAI API Response: \(responseString)")
-        }
-        
         // Check HTTP status code
         if let httpResponse = response as? HTTPURLResponse {
-            print("🎵 HTTP Status Code: \(httpResponse.statusCode)")
             if httpResponse.statusCode != 200 {
                 throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(String(data: data, encoding: .utf8) ?? "Unknown error")")
             }
@@ -200,25 +194,22 @@ class OpenAIService: ObservableObject {
                 percentComplete: 30.0 + (Double(index) / Double(totalChunks)) * 70.0
             ))
             
-            print("🎵 Transcribing chunk \(chunkNumber)/\(totalChunks) (size: \(chunk.data.count) bytes)")
+            print("🎵 Transcribing chunk \(chunkNumber)/\(totalChunks)")
             
             do {
                 let chunkTranscript = try await transcribeAudio(audioData: chunk.data)
                 transcripts.append(chunkTranscript)
-                
                 print("🎵 Chunk \(chunkNumber) transcribed successfully")
                 
             } catch {
-                print("🎵 Error transcribing chunk \(chunkNumber): \(error)")
-                
                 // Retry once before giving up
+                print("🎵 Retrying chunk \(chunkNumber)...")
                 do {
-                    print("🎵 Retrying chunk \(chunkNumber)...")
                     let retryTranscript = try await transcribeAudio(audioData: chunk.data)
                     transcripts.append(retryTranscript)
                     print("🎵 Chunk \(chunkNumber) retry successful")
                 } catch {
-                    print("🎵 Retry failed for chunk \(chunkNumber): \(error)")
+                    print("🎵 Chunk \(chunkNumber) failed after retry")
                     transcripts.append("[Transcription failed for chunk \(chunkNumber) after retry]")
                 }
             }
@@ -456,25 +447,17 @@ class OpenAIService: ObservableObject {
             return []
         }
         
-        // Log the raw response for debugging
-        print("🎵 Raw actions response: \(content)")
-        
         // Clean the content to extract just the JSON
         let cleanedContent = cleanJSONContent(content)
-        print("🎵 Cleaned actions JSON: \(cleanedContent)")
         
         // Parse the JSON response
         do {
             guard let actionData = cleanedContent.data(using: .utf8) else {
-                print("🎵 Failed to convert cleaned content to data")
                 return []
             }
             let actions = try JSONDecoder().decode([ActionItem].self, from: actionData)
-            print("🎵 Successfully parsed \(actions.count) actions")
             return actions
         } catch {
-            print("🎵 Failed to parse actions JSON: \(error)")
-            print("🎵 Attempted to parse: \(cleanedContent)")
             return []
         }
     }

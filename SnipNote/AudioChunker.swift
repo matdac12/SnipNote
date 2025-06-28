@@ -182,14 +182,9 @@ class AudioChunker {
                 endTime: chunkWithOverlap
             )
             
-            // Validate chunk size (should be under 25MB for OpenAI)
+            // Log chunk creation
             let chunkSizeMB = Double(chunkData.count) / (1024 * 1024)
-            print("🎵 Chunk \(chunkIndex + 1) size: \(String(format: "%.1f", chunkSizeMB)) MB")
-            
-            if chunkData.count > 25 * 1024 * 1024 {
-                print("⚠️ Warning: Chunk \(chunkIndex + 1) exceeds 25MB (\(String(format: "%.1f", chunkSizeMB)) MB)")
-                // Continue anyway - the API will reject it and we'll handle the error
-            }
+            print("🎵 Chunk \(chunkIndex + 1) created: \(String(format: "%.1f", chunkSizeMB)) MB")
             
             let chunk = AudioChunk(
                 data: chunkData,
@@ -260,7 +255,6 @@ class AudioChunker {
         do {
             try await exportSession.export(to: tempURL, as: .m4a)
         } catch {
-            print("🎵 Export error: \(error)")
             throw ChunkerError.chunkingFailed
         }
         

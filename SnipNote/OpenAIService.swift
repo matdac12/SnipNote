@@ -7,6 +7,7 @@
 
 import Foundation
 import Security
+import AVFoundation
 
 class OpenAIService: ObservableObject {
     static let shared = OpenAIService()
@@ -89,6 +90,7 @@ class OpenAIService: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 120.0 // 2 minute timeout for each chunk
         
         let boundary = UUID().uuidString
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
@@ -106,9 +108,135 @@ class OpenAIService: ObservableObject {
         
         request.httpBody = body
         
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let response = try JSONDecoder().decode(TranscriptionResponse.self, from: data)
-        return response.text
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        // Log the raw response for debugging
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("🎵 OpenAI API Response: \(responseString)")
+        }
+        
+        // Check HTTP status code
+        if let httpResponse = response as? HTTPURLResponse {
+            print("🎵 HTTP Status Code: \(httpResponse.statusCode)")
+            if httpResponse.statusCode != 200 {
+                throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(String(data: data, encoding: .utf8) ?? "Unknown error")")
+            }
+        }
+        
+        let transcriptionResponse = try JSONDecoder().decode(TranscriptionResponse.self, from: data)
+        return transcriptionResponse.text
+    }
+    
+    func transcribeAudioFromURL(
+        audioURL: URL,
+        progressCallback: @escaping (AudioChunkerProgress) -> Void
+    ) async throws -> String {
+        // Validate audio file first
+        try AudioChunker.validateAudioFile(url: audioURL)
+        
+        // Check if file needs chunking
+        let needsChunking = try AudioChunker.needsChunking(url: audioURL)
+        
+        if !needsChunking {
+            // For small files, use direct processing
+            progressCallback(AudioChunkerProgress(
+                currentChunk: 1,
+                totalChunks: 1,
+                currentStage: "Processing audio file",
+                percentComplete: 50.0
+            ))
+            
+            let audioData = try Data(contentsOf: audioURL)
+            let transcript = try await transcribeAudio(audioData: audioData)
+            
+            progressCallback(AudioChunkerProgress(
+                currentChunk: 1,
+                totalChunks: 1,
+                currentStage: "Transcription complete",
+                percentComplete: 100.0
+            ))
+            
+            return transcript
+        } else {
+            // For large files, use chunked processing
+            return try await transcribeAudioInChunks(
+                audioURL: audioURL,
+                progressCallback: progressCallback
+            )
+        }
+    }
+    
+    private func transcribeAudioInChunks(
+        audioURL: URL,
+        progressCallback: @escaping (AudioChunkerProgress) -> Void
+    ) async throws -> String {
+        
+        // Create chunks
+        let chunks = try await AudioChunker.createChunks(
+            from: audioURL,
+            progressCallback: { chunkProgress in
+                // Update progress for chunking phase (0-30%)
+                let adjustedProgress = AudioChunkerProgress(
+                    currentChunk: chunkProgress.currentChunk,
+                    totalChunks: chunkProgress.totalChunks,
+                    currentStage: chunkProgress.currentStage,
+                    percentComplete: chunkProgress.percentComplete * 0.3
+                )
+                progressCallback(adjustedProgress)
+            }
+        )
+        
+        var transcripts: [String] = []
+        let totalChunks = chunks.count
+        
+        // Process each chunk
+        for (index, chunk) in chunks.enumerated() {
+            let chunkNumber = index + 1
+            
+            progressCallback(AudioChunkerProgress(
+                currentChunk: chunkNumber,
+                totalChunks: totalChunks,
+                currentStage: "Transcribing chunk \(chunkNumber) of \(totalChunks)",
+                percentComplete: 30.0 + (Double(index) / Double(totalChunks)) * 70.0
+            ))
+            
+            print("🎵 Transcribing chunk \(chunkNumber)/\(totalChunks) (size: \(chunk.data.count) bytes)")
+            
+            do {
+                let chunkTranscript = try await transcribeAudio(audioData: chunk.data)
+                transcripts.append(chunkTranscript)
+                
+                print("🎵 Chunk \(chunkNumber) transcribed successfully")
+                
+            } catch {
+                print("🎵 Error transcribing chunk \(chunkNumber): \(error)")
+                
+                // Retry once before giving up
+                do {
+                    print("🎵 Retrying chunk \(chunkNumber)...")
+                    let retryTranscript = try await transcribeAudio(audioData: chunk.data)
+                    transcripts.append(retryTranscript)
+                    print("🎵 Chunk \(chunkNumber) retry successful")
+                } catch {
+                    print("🎵 Retry failed for chunk \(chunkNumber): \(error)")
+                    transcripts.append("[Transcription failed for chunk \(chunkNumber) after retry]")
+                }
+            }
+        }
+        
+        progressCallback(AudioChunkerProgress(
+            currentChunk: totalChunks,
+            totalChunks: totalChunks,
+            currentStage: "Combining transcripts",
+            percentComplete: 100.0
+        ))
+        
+        // Combine all transcripts
+        let fullTranscript = transcripts
+            .filter { !$0.isEmpty && !$0.contains("[Transcription failed") }
+            .joined(separator: " ")
+        
+        return fullTranscript
     }
     
     func summarizeText(_ text: String) async throws -> String {
@@ -163,7 +291,7 @@ class OpenAIService: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let prompt = """
-        Generate an appropriate title for this note transcript in exactly 3-4 words. The title should be concise, descriptive, and capture the main topic or purpose.
+        Generate an appropriate title for this note transcript in exactly 2-3 words. The title should be concise, descriptive, and capture the main topic or purpose.
         
         Examples:
         - "Meeting Notes Summary"
@@ -324,18 +452,53 @@ class OpenAIService: ObservableObject {
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
         
         guard let content = response.choices.first?.message.content else {
+            print("🎵 No content in actions response")
             return []
         }
         
+        // Log the raw response for debugging
+        print("🎵 Raw actions response: \(content)")
+        
+        // Clean the content to extract just the JSON
+        let cleanedContent = cleanJSONContent(content)
+        print("🎵 Cleaned actions JSON: \(cleanedContent)")
+        
         // Parse the JSON response
         do {
-            let actionData = content.data(using: .utf8) ?? Data()
+            guard let actionData = cleanedContent.data(using: .utf8) else {
+                print("🎵 Failed to convert cleaned content to data")
+                return []
+            }
             let actions = try JSONDecoder().decode([ActionItem].self, from: actionData)
+            print("🎵 Successfully parsed \(actions.count) actions")
             return actions
         } catch {
-            print("Failed to parse actions JSON: \(error)")
+            print("🎵 Failed to parse actions JSON: \(error)")
+            print("🎵 Attempted to parse: \(cleanedContent)")
             return []
         }
+    }
+    
+    private func cleanJSONContent(_ content: String) -> String {
+        // Remove common prefixes and suffixes that OpenAI might add
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Look for the start and end of JSON array
+        if let startIndex = trimmed.firstIndex(of: "["),
+           let endIndex = trimmed.lastIndex(of: "]") {
+            let jsonString = String(trimmed[startIndex...endIndex])
+            return jsonString
+        }
+        
+        // If no brackets found, check if it's a simple "no actions" response
+        if trimmed.lowercased().contains("no action") || 
+           trimmed.lowercased().contains("empty") ||
+           trimmed.isEmpty {
+            return "[]"
+        }
+        
+        // Return original if we can't clean it
+        return trimmed
     }
 }
 
@@ -376,4 +539,5 @@ enum OpenAIError: Error {
     case noAPIKey
     case transcriptionFailed
     case summarizationFailed
+    case apiError(String)
 }

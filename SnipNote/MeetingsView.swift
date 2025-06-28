@@ -89,7 +89,14 @@ struct MeetingsView: View {
                                         }
                                     }
                                     
-                                    if !meeting.meetingNotes.isEmpty {
+                                    // Show overview/summary preview
+                                    if !meeting.shortSummary.isEmpty {
+                                        Text(meeting.shortSummary)
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(2)
+                                    } else if !meeting.meetingNotes.isEmpty {
+                                        // Fallback to meeting notes if no summary yet
                                         Text(meeting.meetingNotes.prefix(80) + (meeting.meetingNotes.count > 80 ? "..." : ""))
                                             .font(.system(.caption, design: .monospaced))
                                             .foregroundColor(.secondary)

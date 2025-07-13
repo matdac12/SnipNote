@@ -227,6 +227,8 @@ struct ActionsView: View {
     
     private func completeAction(_ action: Action) {
         withAnimation {
+            let wasCompleted = action.isCompleted
+            
             if action.isCompleted {
                 action.uncomplete()
             } else {
@@ -235,6 +237,18 @@ struct ActionsView: View {
             
             do {
                 try modelContext.save()
+                
+                // Track action completion status change
+                Task {
+                    if !wasCompleted && action.isCompleted {
+                        // Action was just completed
+                        await UsageTracker.shared.trackActionsCompleted(count: 1)
+                    } else if wasCompleted && !action.isCompleted {
+                        // Action was uncompleted (subtract from completed count)
+                        await UsageTracker.shared.trackActionsCompleted(count: -1)
+                    }
+                }
+                
                 // Update notifications after action completion changes
                 Task { @MainActor in
                     NotificationService.shared.scheduleNotification(with: allActions)

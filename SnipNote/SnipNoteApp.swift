@@ -33,7 +33,7 @@ struct SnipNoteApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(deepLinkAudioURL: $deepLinkAudioURL, shouldNavigateToActions: $shouldNavigateToActions)
+            AuthenticationView(deepLinkAudioURL: $deepLinkAudioURL, shouldNavigateToActions: $shouldNavigateToActions)
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }

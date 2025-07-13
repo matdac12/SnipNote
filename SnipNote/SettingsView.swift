@@ -13,10 +13,14 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var notificationService = NotificationService.shared
     @Query private var actions: [Action]
+    @EnvironmentObject var authManager: AuthenticationManager
     
     @State private var showingPermissionAlert = false
     @State private var permissionStatus: UNAuthorizationStatus = .notDetermined
     @State private var showingTimeSheet = false
+    @State private var showingLogoutConfirmation = false
+    @State private var usageStats: UsageStats?
+    @State private var isLoadingStats = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -115,6 +119,81 @@ struct SettingsView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text("USAGE")
+                                .font(.system(.headline, design: .monospaced, weight: .bold))
+                                .foregroundColor(.secondary)
+                            
+                            Spacer()
+                            
+                            if isLoadingStats {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                            }
+                        }
+                        
+                        VStack(spacing: 12) {
+                            if let stats = usageStats {
+                                StatRow(label: "Notes Created", value: "\(stats.totalNotes)")
+                                StatRow(label: "Notes Transcribed", value: "\(stats.totalNotesTranscribed)")
+                                StatRow(label: "Meetings Created", value: "\(stats.totalMeetings)")
+                                StatRow(label: "Meetings Transcribed", value: "\(stats.totalMeetingsTranscribed)")
+                                StatRow(label: "Total Recording Time", value: "\(stats.formattedTranscriptionTime)")
+                                StatRow(label: "AI Summaries", value: "\(stats.totalAiSummaries)")
+                                StatRow(label: "Actions Extracted", value: "\(stats.totalAiActionsExtracted)")
+                            } else {
+                                HStack {
+                                    Spacer()
+                                    Text("Loading usage data...")
+                                        .font(.system(.body, design: .monospaced))
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(8)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("ACCOUNT")
+                            .font(.system(.headline, design: .monospaced, weight: .bold))
+                            .foregroundColor(.secondary)
+                        
+                        VStack(spacing: 12) {
+                            if let email = authManager.currentUser?.email {
+                                HStack {
+                                    Text("Email")
+                                        .font(.system(.body, design: .monospaced))
+                                    
+                                    Spacer()
+                                    
+                                    Text(email)
+                                        .font(.system(.body, design: .monospaced, weight: .bold))
+                                        .foregroundColor(.green)
+                                }
+                            }
+                            
+                            Button(action: { showingLogoutConfirmation = true }) {
+                                HStack {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                    Text("LOG OUT")
+                                        .font(.system(.body, design: .monospaced, weight: .bold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(.red.opacity(0.2))
+                                .foregroundColor(.red)
+                                .cornerRadius(8)
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(8)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 16) {
                         Text("ABOUT")
                             .font(.system(.headline, design: .monospaced, weight: .bold))
                             .foregroundColor(.secondary)
@@ -158,9 +237,20 @@ struct SettingsView: View {
         } message: {
             Text("Please enable notifications in Settings to receive daily reminders about your high priority actions.")
         }
+        .alert("Log Out", isPresented: $showingLogoutConfirmation) {
+            Button("Log Out", role: .destructive) {
+                Task {
+                    try? await authManager.signOut()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to log out? You'll need to sign in again to use the app.")
+        }
         .onAppear {
             checkPermissionStatus()
             updateNotifications()
+            fetchUsageStats()
         }
     }
     
@@ -218,6 +308,17 @@ struct SettingsView: View {
     private func updateNotifications() {
         guard notificationService.isNotificationEnabled else { return }
         notificationService.scheduleNotification(with: actions)
+    }
+    
+    private func fetchUsageStats() {
+        isLoadingStats = true
+        Task {
+            let stats = await UsageTracker.shared.getMyUsageStats()
+            await MainActor.run {
+                self.usageStats = stats
+                self.isLoadingStats = false
+            }
+        }
     }
 }
 

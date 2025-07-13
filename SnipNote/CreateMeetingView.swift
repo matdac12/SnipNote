@@ -391,6 +391,12 @@ struct CreateMeetingView: View {
         // Create meeting immediately with form data
         createProcessingMeeting()
         
+        // Track meeting creation (without transcription yet)
+        Task {
+            let duration = Int(importedAudioDuration)
+            await UsageTracker.shared.trackMeetingCreated(transcribed: false, meetingSeconds: duration)
+        }
+        
         // Notify parent to handle navigation
         if let meeting = createdMeeting {
             onMeetingCreated?(meeting)
@@ -404,6 +410,10 @@ struct CreateMeetingView: View {
                     progressCallback: { _ in }
                 )
                 
+                // Track successful transcription
+                let duration = Int(importedAudioDuration)
+                await UsageTracker.shared.trackMeetingCreated(transcribed: true, meetingSeconds: duration)
+                
                 await MainActor.run {
                     updateMeetingWithTranscript(transcript: transcript)
                 }
@@ -412,6 +422,12 @@ struct CreateMeetingView: View {
                 let overview = try await openAIService.generateMeetingOverview(transcript)
                 let summary = try await openAIService.summarizeMeeting(transcript)
                 let actionItems = try await openAIService.extractActions(transcript)
+                
+                // Track AI usage
+                await UsageTracker.shared.trackAIUsage(
+                    summaries: 1,
+                    actionsExtracted: actionItems.count
+                )
                 
                 await MainActor.run {
                     updateMeetingWithAI(overview: overview, summary: summary, actionItems: actionItems)
@@ -437,6 +453,12 @@ struct CreateMeetingView: View {
         // Create meeting immediately with form data
         createProcessingMeeting()
         
+        // Track meeting creation (without transcription yet)
+        Task {
+            let duration = Int(recordingDuration)
+            await UsageTracker.shared.trackMeetingCreated(transcribed: false, meetingSeconds: duration)
+        }
+        
         // Notify parent to handle navigation
         if let meeting = createdMeeting {
             onMeetingCreated?(meeting)
@@ -449,6 +471,10 @@ struct CreateMeetingView: View {
                 // Get transcript first
                 let transcript = try await openAIService.transcribeAudio(audioData: audioData)
                 
+                // Track successful transcription
+                let duration = Int(recordingDuration)
+                await UsageTracker.shared.trackMeetingCreated(transcribed: true, meetingSeconds: duration)
+                
                 await MainActor.run {
                     updateMeetingWithTranscript(transcript: transcript)
                     audioRecorder.deleteRecording(at: recordingURL)
@@ -458,6 +484,12 @@ struct CreateMeetingView: View {
                 let overview = try await openAIService.generateMeetingOverview(transcript)
                 let summary = try await openAIService.summarizeMeeting(transcript)
                 let actionItems = try await openAIService.extractActions(transcript)
+                
+                // Track AI usage
+                await UsageTracker.shared.trackAIUsage(
+                    summaries: 1,
+                    actionsExtracted: actionItems.count
+                )
                 
                 await MainActor.run {
                     updateMeetingWithAI(overview: overview, summary: summary, actionItems: actionItems)
@@ -554,6 +586,13 @@ struct CreateMeetingView: View {
             }
             
             try modelContext.save()
+            
+            // Track action creation
+            if !actionItems.isEmpty {
+                Task {
+                    await UsageTracker.shared.trackActionsCreated(count: actionItems.count)
+                }
+            }
             
             // Update notifications after creating new actions
             Task { @MainActor in

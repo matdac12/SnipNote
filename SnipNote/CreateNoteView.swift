@@ -153,6 +153,11 @@ struct CreateNoteView: View {
         // Create note immediately with processing placeholder
         createProcessingNote()
         
+        // Track note creation (without transcription yet)
+        Task {
+            await UsageTracker.shared.trackNoteCreated(transcribed: false)
+        }
+        
         // Notify parent to handle navigation
         if let note = createdNote {
             onNoteCreated?(note)
@@ -165,6 +170,9 @@ struct CreateNoteView: View {
                 // Get transcript first
                 let transcript = try await openAIService.transcribeAudio(audioData: audioData)
                 
+                // Track successful transcription
+                await UsageTracker.shared.trackNoteCreated(transcribed: true)
+                
                 await MainActor.run {
                     updateNoteWithTranscript(transcript: transcript)
                     audioRecorder.deleteRecording(at: recordingURL)
@@ -174,6 +182,12 @@ struct CreateNoteView: View {
                 let title = try await openAIService.generateTitle(transcript)
                 let summary = try await openAIService.summarizeText(transcript)
                 let actionItems = try await openAIService.extractActions(transcript)
+                
+                // Track AI usage
+                await UsageTracker.shared.trackAIUsage(
+                    summaries: 1,
+                    actionsExtracted: actionItems.count
+                )
                 
                 await MainActor.run {
                     updateNoteWithAI(title: title, summary: summary, actionItems: actionItems)
@@ -264,6 +278,13 @@ struct CreateNoteView: View {
             }
             
             try modelContext.save()
+            
+            // Track action creation
+            if !actionItems.isEmpty {
+                Task {
+                    await UsageTracker.shared.trackActionsCreated(count: actionItems.count)
+                }
+            }
             
             // Update notifications after creating new actions
             Task { @MainActor in

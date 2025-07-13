@@ -13,6 +13,8 @@ import UserNotifications
 @main
 struct SnipNoteApp: App {
     @State private var deepLinkAudioURL: URL?
+    @State private var shouldNavigateToActions = false
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -31,13 +33,17 @@ struct SnipNoteApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(deepLinkAudioURL: $deepLinkAudioURL)
+            ContentView(deepLinkAudioURL: $deepLinkAudioURL, shouldNavigateToActions: $shouldNavigateToActions)
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
                 .onAppear {
                     Task {
                         await refreshNotificationsAndBadge()
+                    }
+                    // Set up the navigation handler in app delegate
+                    appDelegate.onNavigateToActions = {
+                        shouldNavigateToActions = true
                     }
                 }
         }
@@ -100,5 +106,30 @@ extension URL {
             parameters[item.name] = item.value
         }
         return parameters
+    }
+}
+
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    var onNavigateToActions: (() -> Void)?
+    
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        UNUserNotificationCenter.current().delegate = self
+        return true
+    }
+    
+    // Handle notification when app is in foreground
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound, .badge])
+    }
+    
+    // Handle notification tap
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        let userInfo = response.notification.request.content.userInfo
+        
+        if let navigateTo = userInfo["navigateTo"] as? String, navigateTo == "actions" {
+            onNavigateToActions?()
+        }
+        
+        completionHandler()
     }
 }

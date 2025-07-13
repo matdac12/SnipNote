@@ -267,7 +267,8 @@ class OpenAIService: ObservableObject {
         let (data, _) = try await URLSession.shared.data(for: request)
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
         
-        return response.choices.first?.message.content ?? "No summary generated"
+        let content = response.choices.first?.message.content ?? "No summary generated"
+        return stripMarkdown(content)
     }
     
     func generateTitle(_ text: String) async throws -> String {
@@ -308,7 +309,8 @@ class OpenAIService: ObservableObject {
         let (data, _) = try await URLSession.shared.data(for: request)
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
         
-        return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Untitled Note"
+        let content = response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Untitled Note"
+        return stripMarkdown(content)
     }
     
     func generateMeetingOverview(_ text: String) async throws -> String {
@@ -349,7 +351,8 @@ class OpenAIService: ObservableObject {
         let (data, _) = try await URLSession.shared.data(for: request)
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
         
-        return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Meeting discussion on various topics."
+        let content = response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Meeting discussion on various topics."
+        return stripMarkdown(content)
     }
     
     func summarizeMeeting(_ text: String) async throws -> String {
@@ -364,25 +367,15 @@ class OpenAIService: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let prompt = """
-        Please create a comprehensive meeting summary from this transcript. Structure your response with the following sections:
-        
+        Summarize the following meeting transcript under these headings. Do not include an introduction; start directly with the summary.
+
         ## Key Discussion Points
-        - Main topics discussed
-        - Important insights shared
-        
         ## Decisions Made
-        - Key decisions reached during the meeting
-        - Who is responsible for what
-        
         ## Action Items
-        - Tasks assigned with responsible parties
-        - Deadlines mentioned
-        
         ## Next Steps
-        - Follow-up actions
-        - Future meetings or milestones
-        
-        Meeting Transcript: \(text)
+
+        Meeting Transcript:
+        \(text)
         """
         
         let requestBody = ChatRequest(
@@ -400,7 +393,8 @@ class OpenAIService: ObservableObject {
         let (data, _) = try await URLSession.shared.data(for: request)
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
         
-        return response.choices.first?.message.content ?? "No meeting summary generated"
+        let content = response.choices.first?.message.content ?? "No meeting summary generated"
+        return stripMarkdown(content)
     }
     
     func extractActions(_ text: String) async throws -> [ActionItem] {
@@ -517,10 +511,50 @@ class OpenAIService: ObservableObject {
            let firstChoice = choices.first,
            let message = firstChoice["message"] as? [String: Any],
            let content = message["content"] as? String {
-            return content.trimmingCharacters(in: .whitespacesAndNewlines)
+            return stripMarkdown(content.trimmingCharacters(in: .whitespacesAndNewlines))
         }
         
         throw OpenAIError.apiError("Failed to generate report")
+    }
+    
+    private func stripMarkdown(_ text: String) -> String {
+        var cleaned = text
+        
+        // Remove bold markers (must be done before single asterisk removal)
+        cleaned = cleaned.replacingOccurrences(of: "**", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "__", with: "")
+        
+        // Remove italic markers
+        cleaned = cleaned.replacingOccurrences(of: "*", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "_", with: "")
+        
+        // Remove markdown headers at start of lines
+        let lines = cleaned.components(separatedBy: .newlines)
+        let cleanedLines = lines.map { line in
+            var cleanLine = line
+            // Remove headers
+            if cleanLine.hasPrefix("### ") {
+                cleanLine = String(cleanLine.dropFirst(4))
+            } else if cleanLine.hasPrefix("## ") {
+                cleanLine = String(cleanLine.dropFirst(3))
+            } else if cleanLine.hasPrefix("# ") {
+                cleanLine = String(cleanLine.dropFirst(2))
+            }
+            // Convert markdown bullets to nice bullets
+            if cleanLine.hasPrefix("- ") {
+                cleanLine = "• " + String(cleanLine.dropFirst(2))
+            }
+            return cleanLine
+        }
+        cleaned = cleanedLines.joined(separator: "\n")
+        
+        // Remove backticks
+        cleaned = cleaned.replacingOccurrences(of: "`", with: "")
+        
+        // Clean up any extra whitespace
+        cleaned = cleaned.replacingOccurrences(of: "  ", with: " ")
+        
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     private func cleanJSONContent(_ content: String) -> String {

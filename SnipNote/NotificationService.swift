@@ -60,6 +60,8 @@ class NotificationService: ObservableObject {
         content.body = createNotificationBody(for: highPriorityActions)
         content.sound = .default
         content.badge = NSNumber(value: highPriorityActions.count)
+        content.categoryIdentifier = "ACTIONS_NOTIFICATION"
+        content.userInfo = ["navigateTo": "actions"]
         
         // Create trigger for daily notification
         let calendar = Calendar.current

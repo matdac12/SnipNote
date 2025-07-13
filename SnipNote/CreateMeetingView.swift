@@ -38,6 +38,9 @@ struct CreateMeetingView: View {
     // Processing state
     @State private var isProcessingAudio = false
     
+    // Focus state for notes field
+    @FocusState private var isNotesFieldFocused: Bool
+    
     // Computed properties for imported audio mode
     private var hasImportedAudio: Bool {
         let hasAudio = importedAudioURL != nil
@@ -106,10 +109,29 @@ struct CreateMeetingView: View {
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Notes")
-                                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.secondary)
+                                HStack {
+                                    Text("Notes")
+                                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                                        .foregroundColor(.secondary)
+                                    
+                                    Spacer()
+                                    
+                                    if isNotesFieldFocused {
+                                        Button(action: {
+                                            // Dismiss keyboard
+                                            isNotesFieldFocused = false
+                                        }) {
+                                            Image(systemName: "keyboard.chevron.compact.down")
+                                                .font(.system(.caption))
+                                                .foregroundColor(.green)
+                                        }
+                                        .transition(.opacity)
+                                    }
+                                }
+                                .animation(.easeInOut(duration: 0.2), value: isNotesFieldFocused)
+                                
                                 TextEditor(text: $meetingNotes)
+                                    .focused($isNotesFieldFocused)
                                     .font(.system(.body, design: .monospaced))
                                     .padding()
                                     .background(.ultraThinMaterial)

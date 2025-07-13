@@ -19,6 +19,7 @@ struct MeetingDetailView: View {
     @State private var tempName = ""
     @State private var tempSummary = ""
     @State private var showingTranscript = false
+    @State private var showingExportMenu = false
     
     private var relatedActions: [Action] {
         allActions.filter { $0.sourceNoteId == meeting.id }
@@ -286,11 +287,35 @@ struct MeetingDetailView: View {
                     .font(.system(.caption, design: .monospaced, weight: .bold))
                     .foregroundColor(.blue)
                 }
+            } else if !meeting.audioTranscript.isEmpty {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingExportMenu = true
+                    }) {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(.body))
+                            .foregroundColor(.green)
+                    }
+                }
             }
         }
         .onAppear {
             tempName = meeting.name
             tempSummary = meeting.aiSummary
+        }
+        .confirmationDialog("Export Meeting", isPresented: $showingExportMenu) {
+            Button("Export Transcript") {
+                exportTranscript()
+            }
+            Button("Export Summary") {
+                exportSummary()
+            }
+            Button("Export All") {
+                exportAll()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Choose what to export")
         }
     }
     
@@ -325,6 +350,127 @@ struct MeetingDetailView: View {
             try modelContext.save()
         } catch {
             print("Error saving meeting summary: \(error)")
+        }
+    }
+    
+    // MARK: - Export Functions
+    
+    private func exportTranscript() {
+        let content = formatTranscriptExport()
+        shareContent(content, filename: "meeting_transcript_\(meeting.name.replacingOccurrences(of: " ", with: "_")).txt")
+    }
+    
+    private func exportSummary() {
+        let content = formatSummaryExport()
+        shareContent(content, filename: "meeting_summary_\(meeting.name.replacingOccurrences(of: " ", with: "_")).txt")
+    }
+    
+    private func exportAll() {
+        let content = formatCompleteExport()
+        shareContent(content, filename: "meeting_complete_\(meeting.name.replacingOccurrences(of: " ", with: "_")).txt")
+    }
+    
+    private func formatTranscriptExport() -> String {
+        var content = "[MEETING TRANSCRIPT]\n"
+        content += "Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)\n"
+        content += "Date: \(meeting.dateCreated.formatted(date: .abbreviated, time: .shortened))\n"
+        if meeting.duration > 0 {
+            content += "Duration: \(meeting.durationFormatted)\n"
+        }
+        if !meeting.location.isEmpty {
+            content += "Location: \(meeting.location)\n"
+        }
+        content += "\n--- TRANSCRIPT ---\n"
+        content += meeting.audioTranscript
+        
+        return content
+    }
+    
+    private func formatSummaryExport() -> String {
+        var content = "[MEETING SUMMARY]\n"
+        content += "Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)\n"
+        content += "Date: \(meeting.dateCreated.formatted(date: .abbreviated, time: .shortened))\n"
+        
+        content += "\n--- OVERVIEW ---\n"
+        content += meeting.shortSummary
+        
+        content += "\n\n--- DETAILED SUMMARY ---\n"
+        content += meeting.aiSummary
+        
+        if !relatedActions.isEmpty {
+            content += "\n\n--- ACTION ITEMS ---\n"
+            for action in relatedActions.sorted(by: { 
+                if $0.priority.rawValue != $1.priority.rawValue {
+                    return $0.priority == .high || ($0.priority == .medium && $1.priority == .low)
+                }
+                return !$0.isCompleted && $1.isCompleted
+            }) {
+                let status = action.isCompleted ? "✓" : "•"
+                content += "\(status) [\(action.priority.rawValue.uppercased())] \(action.title)\n"
+            }
+        }
+        
+        return content
+    }
+    
+    private func formatCompleteExport() -> String {
+        var content = "[MEETING EXPORT]\n"
+        content += "Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)\n"
+        content += "Date: \(meeting.dateCreated.formatted(date: .abbreviated, time: .shortened))\n"
+        if meeting.duration > 0 {
+            content += "Duration: \(meeting.durationFormatted)\n"
+        }
+        if !meeting.location.isEmpty {
+            content += "Location: \(meeting.location)\n"
+        }
+        
+        if !meeting.meetingNotes.isEmpty {
+            content += "\n--- MEETING NOTES ---\n"
+            content += meeting.meetingNotes
+        }
+        
+        content += "\n\n--- OVERVIEW ---\n"
+        content += meeting.shortSummary
+        
+        content += "\n\n--- DETAILED SUMMARY ---\n"
+        content += meeting.aiSummary
+        
+        if !relatedActions.isEmpty {
+            content += "\n\n--- ACTION ITEMS ---\n"
+            for action in relatedActions.sorted(by: { 
+                if $0.priority.rawValue != $1.priority.rawValue {
+                    return $0.priority == .high || ($0.priority == .medium && $1.priority == .low)
+                }
+                return !$0.isCompleted && $1.isCompleted
+            }) {
+                let status = action.isCompleted ? "✓" : "•"
+                content += "\(status) [\(action.priority.rawValue.uppercased())] \(action.title)\n"
+            }
+        }
+        
+        content += "\n\n--- FULL TRANSCRIPT ---\n"
+        content += meeting.audioTranscript
+        
+        return content
+    }
+    
+    private func shareContent(_ content: String, filename: String) {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        
+        do {
+            try content.write(to: tempURL, atomically: true, encoding: .utf8)
+            
+            let activityVC = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first,
+               let rootVC = window.rootViewController {
+                activityVC.popoverPresentationController?.sourceView = rootVC.view
+                activityVC.popoverPresentationController?.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                rootVC.present(activityVC, animated: true)
+            }
+        } catch {
+            print("Error sharing content: \(error)")
         }
     }
 }

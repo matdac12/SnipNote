@@ -76,16 +76,10 @@ struct SnipNoteApp: App {
             let context = sharedModelContainer.mainContext
             let allActions = try context.fetch(descriptor)
             
-            // Check if there are any high priority incomplete actions
-            let highPriorityCount = allActions.filter { $0.priority == .high && !$0.isCompleted }.count
-            
-            if highPriorityCount == 0 {
-                // Clear the badge if no high priority actions
-                try? await UNUserNotificationCenter.current().setBadgeCount(0)
-            }
-            
             // Reschedule notifications based on current actions
             NotificationService.shared.scheduleNotification(with: allActions)
+            // Update badge immediately based on current actions
+            await NotificationService.shared.updateBadgeCount(with: allActions)
         } catch {
             print("Error refreshing notifications: \(error)")
             // If there's an error, clear the badge to be safe

@@ -110,4 +110,13 @@ class NotificationService: ObservableObject {
     func cancelAllNotifications() {
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [notificationIdentifier])
     }
+    
+    func updateBadgeCount(with actions: [Action]) async {
+        let highPriorityCount = actions.filter { $0.priority == .high && !$0.isCompleted }.count
+        do {
+            try await UNUserNotificationCenter.current().setBadgeCount(highPriorityCount)
+        } catch {
+            print("Error updating badge count: \(error)")
+        }
+    }
 }

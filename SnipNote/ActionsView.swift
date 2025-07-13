@@ -18,6 +18,9 @@ struct ActionsView: View {
     @State private var filter: ActionFilter = .toDo
     @State private var expandedSections: Set<String> = []
     @State private var allExpanded: Bool = false
+    @State private var showingReport = false
+    @State private var reportContent = ""
+    @State private var isGeneratingReport = false
     
     enum ActionFilter: String, CaseIterable {
         case toDo = "TO DO"
@@ -58,10 +61,6 @@ struct ActionsView: View {
         return grouped
     }
     
-    private var pendingCount: Int {
-        allActions.filter { !$0.isCompleted }.count
-    }
-    
     var body: some View {
         VStack(spacing: 0) {
             
@@ -72,15 +71,29 @@ struct ActionsView: View {
                 
                 Spacer()
                 
-                if pendingCount > 0 {
-                    Text("\(pendingCount) PENDING")
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(.orange)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(.orange.opacity(0.2))
-                        .cornerRadius(4)
+                Button(action: {
+                    generateReport()
+                }) {
+                    HStack(spacing: 6) {
+                        if isGeneratingReport {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .progressViewStyle(CircularProgressViewStyle(tint: .gray))
+                        }
+                        Text("REPORT")
+                    }
                 }
+                .font(.system(.caption, design: .monospaced, weight: .bold))
+                .foregroundColor(isGeneratingReport ? .gray : .green)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(isGeneratingReport ? .gray.opacity(0.2) : .green.opacity(0.2))
+                .overlay(
+                    Rectangle()
+                        .stroke(isGeneratingReport ? .gray : .green, lineWidth: 1)
+                )
+                .cornerRadius(4)
+                .disabled(isGeneratingReport || allActions.isEmpty)
             }
             .padding()
             .background(.ultraThinMaterial)
@@ -207,6 +220,9 @@ struct ActionsView: View {
             }
         }
         .background(.black)
+        .sheet(isPresented: $showingReport) {
+            ActionsReportView(reportContent: reportContent)
+        }
     }
     
     private func completeAction(_ action: Action) {
@@ -222,6 +238,8 @@ struct ActionsView: View {
                 // Update notifications after action completion changes
                 Task { @MainActor in
                     NotificationService.shared.scheduleNotification(with: allActions)
+                    // Also update badge immediately
+                    await NotificationService.shared.updateBadgeCount(with: allActions)
                 }
             } catch {
                 print("Error updating action: \(error)")
@@ -240,16 +258,63 @@ struct ActionsView: View {
                     // Need to fetch remaining actions after deletion
                     let remainingActions = allActions.filter { $0.id != action.id }
                     NotificationService.shared.scheduleNotification(with: remainingActions)
-                    
-                    // Clear badge if no high priority actions remain
-                    let highPriorityCount = remainingActions.filter { $0.priority == .high && !$0.isCompleted }.count
-                    if highPriorityCount == 0 {
-                        try? await UNUserNotificationCenter.current().setBadgeCount(0)
-                    }
+                    // Update badge immediately based on remaining actions
+                    await NotificationService.shared.updateBadgeCount(with: remainingActions)
                 }
             } catch {
                 print("Error deleting action: \(error)")
             }
+        }
+    }
+    
+    private func generateReport() {
+        isGeneratingReport = true
+        
+        Task {
+            do {
+                // Prepare data for report generation
+                var actionsData: [String: [(action: String, priority: String, isCompleted: Bool)]] = [:]
+                
+                for (groupTitle, actions) in groupedActions {
+                    actionsData[groupTitle] = actions.map { action in
+                        (action: action.title, 
+                         priority: action.priority.rawValue,
+                         isCompleted: action.isCompleted)
+                    }
+                }
+                
+                // Also include completed actions for a comprehensive report
+                let allGroupedActions = Dictionary(grouping: allActions) { action -> String in
+                    guard let sourceId = action.sourceNoteId else { return "Unknown Source" }
+                    
+                    if let note = allNotes.first(where: { $0.id == sourceId }) {
+                        let noteTitle = note.title.isEmpty ? "Untitled Note" : note.title
+                        return "N • \(noteTitle)"
+                    } else if let meeting = allMeetings.first(where: { $0.id == sourceId }) {
+                        let meetingName = meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
+                        return "M • \(meetingName)"
+                    }
+                    return "Unknown Source"
+                }
+                
+                var allActionsData: [String: [(action: String, priority: String, isCompleted: Bool)]] = [:]
+                for (groupTitle, actions) in allGroupedActions {
+                    allActionsData[groupTitle] = actions.map { action in
+                        (action: action.title, 
+                         priority: action.priority.rawValue,
+                         isCompleted: action.isCompleted)
+                    }
+                }
+                
+                reportContent = try await OpenAIService.shared.generateActionsReport(groupedActions: allActionsData)
+                showingReport = true
+            } catch {
+                print("Error generating report: \(error)")
+                reportContent = "Failed to generate report. Please try again."
+                showingReport = true
+            }
+            
+            isGeneratingReport = false
         }
     }
     

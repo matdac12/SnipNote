@@ -271,6 +271,8 @@ struct CreateNoteView: View {
                 let descriptor = FetchDescriptor<Action>()
                 if let allActions = try? modelContext.fetch(descriptor) {
                     NotificationService.shared.scheduleNotification(with: allActions)
+                    // Also update badge immediately
+                    await NotificationService.shared.updateBadgeCount(with: allActions)
                 }
             }
         } catch {

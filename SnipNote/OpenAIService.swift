@@ -462,6 +462,73 @@ class OpenAIService: ObservableObject {
         }
     }
     
+    func generateActionsReport(groupedActions: [String: [(action: String, priority: String, isCompleted: Bool)]]) async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Format the actions data for the prompt
+        var promptContent = "Generate a comprehensive report for the following actions grouped by their source (notes or meetings):\n\n"
+        
+        let pendingCount = groupedActions.values.flatMap { $0 }.filter { !$0.isCompleted }.count
+        let completedCount = groupedActions.values.flatMap { $0 }.filter { $0.isCompleted }.count
+        
+        promptContent += "SUMMARY: \(pendingCount) pending actions, \(completedCount) completed actions\n\n"
+        
+        for (source, actions) in groupedActions.sorted(by: { $0.key < $1.key }) {
+            promptContent += "\(source):\n"
+            for action in actions {
+                let status = action.isCompleted ? "✓" : "○"
+                promptContent += "  \(status) [\(action.priority.uppercased())] \(action.action)\n"
+            }
+            promptContent += "\n"
+        }
+        
+        let systemPrompt = """
+        You are an AI assistant helping to analyze and prioritize tasks. Generate a comprehensive report that includes:
+        1. Executive Summary: Overview of pending vs completed actions
+        2. Priority Analysis: Breakdown by priority levels with recommendations
+        3. Source Analysis: Insights about actions from different notes/meetings
+        4. Action Plan: Suggested order of execution based on priority and context
+        5. Key Insights: Any patterns or recommendations you notice
+        
+        Format the report in a clear, actionable way. Use markdown formatting.
+        Keep the tone professional but conversational.
+        """
+        
+        let messages: [[String: String]] = [
+            ["role": "system", "content": systemPrompt],
+            ["role": "user", "content": promptContent]
+        ]
+        
+        let requestBody: [String: Any] = [
+            "model": "gpt-4-turbo-preview",
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": 1500
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        
+        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let choices = json["choices"] as? [[String: Any]],
+           let firstChoice = choices.first,
+           let message = firstChoice["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return content.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        throw OpenAIError.apiError("Failed to generate report")
+    }
+    
     private func cleanJSONContent(_ content: String) -> String {
         // Remove common prefixes and suffixes that OpenAI might add
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)

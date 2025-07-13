@@ -491,15 +491,9 @@ class OpenAIService: ObservableObject {
         }
         
         let systemPrompt = """
-        You are an AI assistant helping to analyze and prioritize tasks. Generate a comprehensive report that includes:
-        1. Executive Summary: Overview of pending vs completed actions
-        2. Priority Analysis: Breakdown by priority levels with recommendations
-        3. Source Analysis: Insights about actions from different notes/meetings
-        4. Action Plan: Suggested order of execution based on priority and context
-        5. Key Insights: Any patterns or recommendations you notice
-        
-        Format the report in a clear, actionable way. Use markdown formatting.
-        Keep the tone professional but conversational.
+        You are an AI assistant that analyzes a list of tasks and outputs only the task names, grouped by priority level.  
+        For each priority (High, Medium, Low), list the task names one per line under the heading “High Priority:”, “Medium Priority:”, and “Low Priority:”, with no additional commentary.  
+        Finally, include a minimal action plan, where you might suggest the order of the tasks.
         """
         
         let messages: [[String: String]] = [
@@ -508,7 +502,7 @@ class OpenAIService: ObservableObject {
         ]
         
         let requestBody: [String: Any] = [
-            "model": "gpt-4-turbo-preview",
+            "model": "gpt-4.1-mini",
             "messages": messages,
             "temperature": 0.7,
             "max_tokens": 1500

@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import AVFoundation
+import UserNotifications
 
 @main
 struct SnipNoteApp: App {
@@ -34,6 +35,11 @@ struct SnipNoteApp: App {
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
+                .onAppear {
+                    Task {
+                        await refreshNotificationsAndBadge()
+                    }
+                }
         }
         .modelContainer(sharedModelContainer)
     }
@@ -56,6 +62,34 @@ struct SnipNoteApp: App {
             // Handle direct file sharing (iOS share sheet)
             print("📁 Direct file URL: \(url)")
             deepLinkAudioURL = url
+        }
+    }
+    
+    @MainActor
+    private func refreshNotificationsAndBadge() async {
+        // Clear all pending notifications first
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
+        // Fetch all actions from the model container
+        let descriptor = FetchDescriptor<Action>()
+        do {
+            let context = sharedModelContainer.mainContext
+            let allActions = try context.fetch(descriptor)
+            
+            // Check if there are any high priority incomplete actions
+            let highPriorityCount = allActions.filter { $0.priority == .high && !$0.isCompleted }.count
+            
+            if highPriorityCount == 0 {
+                // Clear the badge if no high priority actions
+                try? await UNUserNotificationCenter.current().setBadgeCount(0)
+            }
+            
+            // Reschedule notifications based on current actions
+            NotificationService.shared.scheduleNotification(with: allActions)
+        } catch {
+            print("Error refreshing notifications: \(error)")
+            // If there's an error, clear the badge to be safe
+            try? await UNUserNotificationCenter.current().setBadgeCount(0)
         }
     }
 }

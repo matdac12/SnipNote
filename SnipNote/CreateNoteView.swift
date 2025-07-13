@@ -264,6 +264,15 @@ struct CreateNoteView: View {
             }
             
             try modelContext.save()
+            
+            // Update notifications after creating new actions
+            Task { @MainActor in
+                // Fetch all actions to update notifications
+                let descriptor = FetchDescriptor<Action>()
+                if let allActions = try? modelContext.fetch(descriptor) {
+                    NotificationService.shared.scheduleNotification(with: allActions)
+                }
+            }
         } catch {
             print("Error updating note with AI: \(error)")
         }

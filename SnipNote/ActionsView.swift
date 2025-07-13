@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 struct ActionsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -218,6 +219,10 @@ struct ActionsView: View {
             
             do {
                 try modelContext.save()
+                // Update notifications after action completion changes
+                Task { @MainActor in
+                    NotificationService.shared.scheduleNotification(with: allActions)
+                }
             } catch {
                 print("Error updating action: \(error)")
             }
@@ -230,6 +235,18 @@ struct ActionsView: View {
             
             do {
                 try modelContext.save()
+                // Update notifications after action deletion
+                Task { @MainActor in
+                    // Need to fetch remaining actions after deletion
+                    let remainingActions = allActions.filter { $0.id != action.id }
+                    NotificationService.shared.scheduleNotification(with: remainingActions)
+                    
+                    // Clear badge if no high priority actions remain
+                    let highPriorityCount = remainingActions.filter { $0.priority == .high && !$0.isCompleted }.count
+                    if highPriorityCount == 0 {
+                        try? await UNUserNotificationCenter.current().setBadgeCount(0)
+                    }
+                }
             } catch {
                 print("Error deleting action: \(error)")
             }

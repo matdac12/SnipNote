@@ -15,6 +15,7 @@ struct ActionsView: View {
     @Query private var allNotes: [Note]
     @Query private var allMeetings: [Meeting]
     @EnvironmentObject var themeManager: ThemeManager
+    @AppStorage("showNotesTab") private var showNotesTab = false
     
     @State private var filter: ActionFilter = .toDo
     @State private var expandedSections: Set<String> = []
@@ -44,19 +45,27 @@ struct ActionsView: View {
             guard let sourceId = action.sourceNoteId else { continue }
             
             var groupTitle = "Unknown Source"
+            var shouldInclude = true
             
             if let note = allNotes.first(where: { $0.id == sourceId }) {
-                let noteTitle = note.title.isEmpty ? "Untitled Note" : note.title
-                groupTitle = "N • \(noteTitle)"
+                // Skip note actions if Notes tab is hidden
+                if !showNotesTab {
+                    shouldInclude = false
+                } else {
+                    let noteTitle = note.title.isEmpty ? "Untitled Note" : note.title
+                    groupTitle = "N • \(noteTitle)"
+                }
             } else if let meeting = allMeetings.first(where: { $0.id == sourceId }) {
                 let meetingName = meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
                 groupTitle = "M • \(meetingName)"
             }
             
-            if grouped[groupTitle] == nil {
-                grouped[groupTitle] = []
+            if shouldInclude {
+                if grouped[groupTitle] == nil {
+                    grouped[groupTitle] = []
+                }
+                grouped[groupTitle]?.append(action)
             }
-            grouped[groupTitle]?.append(action)
         }
         
         return grouped

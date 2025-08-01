@@ -16,6 +16,7 @@ struct SettingsView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @EnvironmentObject var themeManager: ThemeManager
     
+    @AppStorage("showNotesTab") private var showNotesTab = false
     @State private var showingPermissionAlert = false
     @State private var permissionStatus: UNAuthorizationStatus = .notDetermined
     @State private var showingTimeSheet = false
@@ -64,6 +65,39 @@ struct SettingsView: View {
                             Text(themeManager.themeType == .light ? "Clean and modern interface for everyday use" : "Terminal-style interface for power users")
                                 .themedCaption()
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding()
+                        .background(themeManager.currentTheme.materialStyle)
+                        .cornerRadius(themeManager.currentTheme.cornerRadius)
+                    }
+                    
+                    // FEATURES SECTION
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("FEATURES")
+                            .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        
+                        VStack(spacing: 12) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Notes")
+                                        .themedBody()
+                                        .fontWeight(.bold)
+                                    Text("Enable note-taking functionality")
+                                        .themedCaption()
+                                }
+                                
+                                Spacer()
+                                
+                                Toggle("", isOn: $showNotesTab)
+                                    .toggleStyle(SwitchToggleStyle(tint: themeManager.currentTheme.accentColor))
+                            }
+                            
+                            if !showNotesTab {
+                                Text("Notes tab is hidden. You can still access meetings and actions.")
+                                    .themedCaption()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
                         }
                         .padding()
                         .background(themeManager.currentTheme.materialStyle)

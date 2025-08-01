@@ -11,59 +11,71 @@ import SwiftData
 struct ContentView: View {
     @Binding var deepLinkAudioURL: URL?
     @Query private var actions: [Action]
+    @Query private var notes: [Note]
     @State private var selectedTab = 0
     @Binding var shouldNavigateToActions: Bool
     @EnvironmentObject var themeManager: ThemeManager
+    @AppStorage("showNotesTab") private var showNotesTab = false
     
     private var pendingActionsCount: Int {
-        actions.filter { !$0.isCompleted }.count
+        if showNotesTab {
+            return actions.filter { !$0.isCompleted }.count
+        } else {
+            // Filter out actions from notes when Notes tab is hidden
+            let noteIds = Set(notes.map { $0.id })
+            return actions.filter { action in
+                !action.isCompleted && !(action.sourceNoteId != nil && noteIds.contains(action.sourceNoteId!))
+            }.count
+        }
     }
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            NotesView()
-                .tabItem {
-                    Image(systemName: "note.text")
-                    Text("NOTES")
-                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                }
-                .tag(0)
+            if showNotesTab {
+                NotesView()
+                    .tabItem {
+                        Image(systemName: "note.text")
+                        Text(themeManager.currentTheme.headerStyle == .brackets ? "NOTES" : "Notes")
+                            .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    }
+                    .tag(0)
+            }
             
             MeetingsView(deepLinkAudioURL: $deepLinkAudioURL)
                 .tabItem {
                     Image(systemName: "person.3")
-                    Text("MEETINGS")
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "MEETINGS" : "Meetings")
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 }
-                .tag(1)
+                .tag(showNotesTab ? 1 : 0)
             
             ActionsView()
                 .tabItem {
                     Image(systemName: "checklist")
-                    Text("ACTIONS")
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "ACTIONS" : "Actions")
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 }
                 .badge(pendingActionsCount)
-                .tag(2)
+                .tag(showNotesTab ? 2 : 1)
             
             SettingsView()
                 .tabItem {
                     Image(systemName: "gearshape")
-                    Text("SETTINGS")
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "SETTINGS" : "Settings")
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 }
-                .tag(3)
+                .tag(showNotesTab ? 3 : 2)
         }
         .onChange(of: deepLinkAudioURL) { _, newValue in
             if newValue != nil {
                 // Switch to Meetings tab when audio is shared
-                selectedTab = 1
+                selectedTab = showNotesTab ? 1 : 0
             }
         }
         .onChange(of: shouldNavigateToActions) { _, newValue in
             if newValue {
                 // Navigate to Actions tab when notification is tapped
-                selectedTab = 2
+                selectedTab = showNotesTab ? 2 : 1
                 shouldNavigateToActions = false
             }
         }

@@ -15,56 +15,57 @@ struct LoginView: View {
     @State private var isSignUp = false
     
     @ObservedObject var authManager: AuthenticationManager
+    @EnvironmentObject var themeManager: ThemeManager
     
     var body: some View {
         VStack(spacing: 30) {
             VStack(spacing: 10) {
                 Image(systemName: "note.text")
                     .font(.system(size: 60))
-                    .foregroundColor(.green)
+                    .foregroundColor(themeManager.currentTheme.accentColor)
                 
                 Text("SNIPNOTE")
-                    .font(.system(.largeTitle, design: .monospaced, weight: .bold))
-                    .foregroundColor(.white)
+                    .font(.system(.largeTitle, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.textColor)
                 
                 Text(isSignUp ? "Create Account" : "Sign In")
-                    .font(.system(.headline, design: .monospaced))
-                    .foregroundColor(.gray)
+                    .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
             }
             .padding(.top, 60)
             
             VStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("EMAIL")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .foregroundColor(.gray)
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "EMAIL" : "Email")
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     
                     TextField("", text: $email)
                         .textFieldStyle(PlainTextFieldStyle())
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
                         .padding()
-                        .background(Color.black)
+                        .background(themeManager.currentTheme.secondaryBackgroundColor)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius)
+                                .stroke(themeManager.currentTheme.secondaryTextColor.opacity(0.3), lineWidth: 1)
                         )
                         .autocapitalization(.none)
                         .keyboardType(.emailAddress)
                 }
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("PASSWORD")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .foregroundColor(.gray)
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "PASSWORD" : "Password")
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     
                     SecureField("", text: $password)
                         .textFieldStyle(PlainTextFieldStyle())
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
                         .padding()
-                        .background(Color.black)
+                        .background(themeManager.currentTheme.secondaryBackgroundColor)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius)
+                                .stroke(themeManager.currentTheme.secondaryTextColor.opacity(0.3), lineWidth: 1)
                         )
                 }
             }
@@ -72,8 +73,8 @@ struct LoginView: View {
             
             if !errorMessage.isEmpty {
                 Text(errorMessage)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundColor(.red)
+                    .themedCaption()
+                    .foregroundColor(themeManager.currentTheme.destructiveColor)
                     .padding(.horizontal, 30)
                     .multilineTextAlignment(.center)
             }
@@ -87,18 +88,18 @@ struct LoginView: View {
                     HStack {
                         if isLoading {
                             ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                                .progressViewStyle(CircularProgressViewStyle(tint: themeManager.currentTheme.backgroundColor))
                                 .scaleEffect(0.8)
                         } else {
-                            Text(isSignUp ? "CREATE ACCOUNT" : "SIGN IN")
-                                .font(.system(.body, design: .monospaced, weight: .bold))
+                            Text(isSignUp ? (themeManager.currentTheme.headerStyle == .brackets ? "CREATE ACCOUNT" : "Create Account") : (themeManager.currentTheme.headerStyle == .brackets ? "SIGN IN" : "Sign In"))
+                                .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         }
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.green)
-                    .foregroundColor(.black)
-                    .cornerRadius(8)
+                    .background(themeManager.currentTheme.accentColor)
+                    .foregroundColor(themeManager.currentTheme.backgroundColor)
+                    .cornerRadius(themeManager.currentTheme.cornerRadius)
                 }
                 .disabled(isLoading || email.isEmpty || password.isEmpty)
                 .opacity((isLoading || email.isEmpty || password.isEmpty) ? 0.6 : 1.0)
@@ -110,8 +111,8 @@ struct LoginView: View {
                     }
                 }) {
                     Text(isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up")
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(.green)
+                        .themedCaption()
+                        .foregroundColor(themeManager.currentTheme.accentColor)
                 }
             }
             .padding(.horizontal, 30)
@@ -119,8 +120,7 @@ struct LoginView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(UIColor.systemBackground))
-        .preferredColorScheme(.dark)
+        .themedBackground()
     }
     
     @MainActor

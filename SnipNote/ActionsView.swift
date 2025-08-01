@@ -14,6 +14,7 @@ struct ActionsView: View {
     @Query private var allActions: [Action]
     @Query private var allNotes: [Note]
     @Query private var allMeetings: [Meeting]
+    @EnvironmentObject var themeManager: ThemeManager
     
     @State private var filter: ActionFilter = .toDo
     @State private var expandedSections: Set<String> = []
@@ -65,9 +66,8 @@ struct ActionsView: View {
         VStack(spacing: 0) {
             
             HStack {
-                Text("[ ACTIONS ]")
-                    .font(.system(.title, design: .monospaced, weight: .bold))
-                    .foregroundColor(.green)
+                Text(themeManager.currentTheme.headerStyle == .brackets ? "[ ACTIONS ]" : "Actions")
+                    .themedTitle()
                 
                 Spacer()
                 
@@ -80,23 +80,23 @@ struct ActionsView: View {
                                 .scaleEffect(0.7)
                                 .progressViewStyle(CircularProgressViewStyle(tint: .gray))
                         }
-                        Text("REPORT")
+                        Text(themeManager.currentTheme.headerStyle == .brackets ? "REPORT" : "Report")
                     }
                 }
-                .font(.system(.caption, design: .monospaced, weight: .bold))
-                .foregroundColor(isGeneratingReport ? .gray : .green)
+                .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(isGeneratingReport ? themeManager.currentTheme.secondaryTextColor : themeManager.currentTheme.accentColor)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(isGeneratingReport ? .gray.opacity(0.2) : .green.opacity(0.2))
+                .background(isGeneratingReport ? themeManager.currentTheme.secondaryTextColor.opacity(0.2) : themeManager.currentTheme.accentColor.opacity(0.2))
                 .overlay(
                     Rectangle()
-                        .stroke(isGeneratingReport ? .gray : .green, lineWidth: 1)
+                        .stroke(isGeneratingReport ? themeManager.currentTheme.secondaryTextColor : themeManager.currentTheme.accentColor, lineWidth: 1)
                 )
-                .cornerRadius(4)
+                .cornerRadius(themeManager.currentTheme.cornerRadius / 2)
                 .disabled(isGeneratingReport || allActions.isEmpty)
             }
             .padding()
-            .background(.ultraThinMaterial)
+            .background(themeManager.currentTheme.materialStyle)
             
             VStack(spacing: 8) {
                 // Filter buttons
@@ -105,14 +105,14 @@ struct ActionsView: View {
                         Button(filterOption.rawValue) {
                             filter = filterOption
                         }
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .foregroundColor(filter == filterOption ? .black : .green)
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(filter == filterOption ? themeManager.currentTheme.backgroundColor : themeManager.currentTheme.accentColor)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(filter == filterOption ? .green : .clear)
+                        .background(filter == filterOption ? themeManager.currentTheme.accentColor : .clear)
                         .overlay(
                             Rectangle()
-                                .stroke(.green, lineWidth: 1)
+                                .stroke(themeManager.currentTheme.accentColor, lineWidth: 1)
                         )
                     }
                     Spacer()
@@ -120,7 +120,7 @@ struct ActionsView: View {
                 
                 // Expand All button
                 HStack {
-                    Button(allExpanded ? "COLLAPSE ALL" : "EXPAND ALL") {
+                    Button(themeManager.currentTheme.headerStyle == .brackets ? (allExpanded ? "COLLAPSE ALL" : "EXPAND ALL") : (allExpanded ? "Collapse All" : "Expand All")) {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             allExpanded.toggle()
                             if allExpanded {
@@ -132,16 +132,16 @@ struct ActionsView: View {
                             }
                         }
                     }
-                    .font(.system(.caption2, design: .monospaced, weight: .bold))
-                    .foregroundColor(.orange)
+                    .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.warningColor)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(.orange.opacity(0.1))
+                    .background(themeManager.currentTheme.warningColor.opacity(0.1))
                     .overlay(
                         Rectangle()
-                            .stroke(.orange, lineWidth: 1)
+                            .stroke(themeManager.currentTheme.warningColor, lineWidth: 1)
                     )
-                    .cornerRadius(4)
+                    .cornerRadius(themeManager.currentTheme.cornerRadius / 2)
                     
                     Spacer()
                 }
@@ -151,12 +151,11 @@ struct ActionsView: View {
             if filteredActions.isEmpty {
                 VStack(spacing: 20) {
                     Spacer()
-                    Text("NO ACTIONS FOUND")
-                        .font(.system(.title2, design: .monospaced, weight: .bold))
-                        .foregroundColor(.secondary)
-                    Text("NO \(filter.rawValue) ACTIONS")
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(.secondary)
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "NO ACTIONS FOUND" : "No actions found")
+                        .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "NO \(filter.rawValue) ACTIONS" : "No \(filter.rawValue.lowercased()) actions")
+                        .themedCaption()
                     Spacer()
                 }
             } else {
@@ -201,7 +200,7 @@ struct ActionsView: View {
                                         } label: {
                                             Image(systemName: action.isCompleted ? "arrow.uturn.backward" : "checkmark")
                                         }
-                                        .tint(.green)
+                                        .tint(themeManager.currentTheme.accentColor)
                                     }
                                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                         Button {
@@ -209,7 +208,7 @@ struct ActionsView: View {
                                         } label: {
                                             Image(systemName: "trash")
                                         }
-                                        .tint(.red)
+                                        .tint(themeManager.currentTheme.destructiveColor)
                                     }
                             }
                         }
@@ -219,7 +218,7 @@ struct ActionsView: View {
                 .scrollContentBackground(.hidden)
             }
         }
-        .background(.black)
+        .themedBackground()
         .sheet(isPresented: $showingReport) {
             ActionsReportView(reportContent: reportContent)
         }
@@ -339,32 +338,32 @@ struct ExpandableGroupHeaderView: View {
     let actionCount: Int
     let isExpanded: Bool
     let onTap: () -> Void
+    @EnvironmentObject var themeManager: ThemeManager
     
     var body: some View {
         Button(action: onTap) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title.uppercased())
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .foregroundColor(.green)
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? title.uppercased() : title)
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.accentColor)
                         .lineLimit(1)
                     
-                    Text("\(actionCount) ACTION\(actionCount == 1 ? "" : "S")")
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundColor(.secondary)
+                    Text("\(actionCount) \(themeManager.currentTheme.headerStyle == .brackets ? "ACTION\(actionCount == 1 ? "" : "S")" : "action\(actionCount == 1 ? "" : "s")" )")
+                        .themedCaption()
                 }
                 
                 Spacer()
                 
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                     .font(.system(.caption, weight: .bold))
-                    .foregroundColor(.green)
+                    .foregroundColor(themeManager.currentTheme.accentColor)
                     .rotationEffect(.degrees(isExpanded ? 0 : 0))
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 12)
-            .background(.ultraThinMaterial)
-            .cornerRadius(8)
+            .background(themeManager.currentTheme.materialStyle)
+            .cornerRadius(themeManager.currentTheme.cornerRadius)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -372,13 +371,14 @@ struct ExpandableGroupHeaderView: View {
 
 struct ActionRowView: View {
     let action: Action
+    @EnvironmentObject var themeManager: ThemeManager
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 
-                Text("[\(action.priority.rawValue)]")
-                    .font(.system(.caption2, design: .monospaced, weight: .bold))
+                Text(themeManager.currentTheme.headerStyle == .brackets ? "[\(action.priority.rawValue)]" : action.priority.rawValue)
+                    .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                     .foregroundColor(priorityColor)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -388,27 +388,25 @@ struct ActionRowView: View {
                 Spacer()
                 
                 if action.isCompleted {
-                    Text("✓ COMPLETED")
-                        .font(.system(.caption2, design: .monospaced, weight: .bold))
-                        .foregroundColor(.green)
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "✓ COMPLETED" : "✓ Completed")
+                        .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.accentColor)
                 } else {
                     Text(action.dateCreated, style: .date)
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .themedCaption()
                 }
             }
             
             Text(action.title)
-                .font(.system(.body, design: .monospaced))
-                .foregroundColor(action.isCompleted ? .secondary : .green)
+                .themedBody()
+                .foregroundColor(action.isCompleted ? themeManager.currentTheme.secondaryTextColor : themeManager.currentTheme.accentColor)
                 .strikethrough(action.isCompleted)
                 .lineLimit(3)
                 .multilineTextAlignment(.leading)
             
             if action.isCompleted, let completedDate = action.dateCompleted {
                 Text("Completed \(completedDate, style: .date)")
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .themedCaption()
             }
         }
         .padding(.vertical, 8)
@@ -416,9 +414,9 @@ struct ActionRowView: View {
     
     private var priorityColor: Color {
         switch action.priority {
-        case .high: return .red
-        case .medium: return .orange
-        case .low: return .green
+        case .high: return themeManager.currentTheme.destructiveColor
+        case .medium: return themeManager.currentTheme.warningColor
+        case .low: return themeManager.currentTheme.accentColor
         }
     }
 }

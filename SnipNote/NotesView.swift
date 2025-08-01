@@ -11,6 +11,7 @@ import SwiftData
 struct NotesView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Note.dateCreated, order: .reverse) private var notes: [Note]
+    @EnvironmentObject var themeManager: ThemeManager
     
     @State private var showingCreateNote = false
     @State private var selectedNote: Note?
@@ -23,26 +24,24 @@ struct NotesView: View {
             VStack(spacing: 0) {
                 
                 HStack {
-                    Text("[ NOTES ]")
-                        .font(.system(.title, design: .monospaced, weight: .bold))
-                        .foregroundColor(.green)
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "[ NOTES ]" : "Notes")
+                        .themedTitle()
                     Spacer()
-                    Text("\(notes.count) NOTES")
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(.secondary)
+                    Text("\(notes.count) \(themeManager.currentTheme.headerStyle == .brackets ? "NOTES" : "notes")")
+                        .themedCaption()
                 }
                 .padding()
-                .background(.ultraThinMaterial)
+                .background(themeManager.currentTheme.materialStyle)
                 
                 if notes.isEmpty {
                     VStack(spacing: 20) {
                         Spacer()
-                        Text("NO NOTES FOUND")
-                            .font(.system(.title2, design: .monospaced, weight: .bold))
-                            .foregroundColor(.secondary)
-                        Text("TAP + TO CREATE YOUR FIRST NOTE")
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(.secondary)
+                        Text(themeManager.currentTheme.headerStyle == .brackets ? "NO NOTES FOUND" : "No notes found")
+                            .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        Text(themeManager.currentTheme.headerStyle == .brackets ? "TAP + TO CREATE YOUR FIRST NOTE" : "Tap + to create your first note")
+                            .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         Spacer()
                     }
                 } else {
@@ -51,37 +50,38 @@ struct NotesView: View {
                             NavigationLink(value: note) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
-                                        Text(note.title.isEmpty ? "UNTITLED" : note.title.uppercased())
-                                            .font(.system(.body, design: .monospaced, weight: .bold))
+                                        Text(note.title.isEmpty ? (themeManager.currentTheme.headerStyle == .brackets ? "UNTITLED" : "Untitled") : (themeManager.currentTheme.headerStyle == .brackets ? note.title.uppercased() : note.title))
+                                            .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                            .foregroundColor(themeManager.currentTheme.textColor)
                                             .lineLimit(1)
                                         
                                         if note.isProcessing {
-                                            Text("PROCESSING...")
-                                                .font(.system(.caption2, design: .monospaced, weight: .bold))
-                                                .foregroundColor(.orange)
+                                            Text(themeManager.currentTheme.headerStyle == .brackets ? "PROCESSING..." : "Processing...")
+                                                .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                                .foregroundColor(themeManager.currentTheme.warningColor)
                                                 .padding(.horizontal, 4)
                                                 .padding(.vertical, 2)
-                                                .background(.orange.opacity(0.2))
+                                                .background(themeManager.currentTheme.warningColor.opacity(0.2))
                                                 .cornerRadius(3)
                                         }
                                         
                                         Spacer()
                                         Text(note.dateCreated, style: .date)
-                                            .font(.system(.caption2, design: .monospaced))
-                                            .foregroundColor(.secondary)
+                                            .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                     }
                                     
                                     Text(note.originalTranscript.prefix(100) + (note.originalTranscript.count > 100 ? "..." : ""))
-                                        .font(.system(.caption, design: .monospaced))
-                                        .foregroundColor(.secondary)
+                                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                         .lineLimit(2)
                                 }
                                 .padding(.vertical, 4)
                                 .opacity(note.isProcessing ? 0.6 : 1.0)
                                 .overlay(
                                     note.isProcessing ? 
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(.orange.opacity(0.5), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius)
+                                        .stroke(themeManager.currentTheme.warningColor.opacity(0.5), lineWidth: 1)
                                     : nil
                                 )
                             }
@@ -93,7 +93,7 @@ struct NotesView: View {
                     .scrollContentBackground(.hidden)
                 }
             }
-            .background(.black)
+            .themedBackground()
             .navigationDestination(for: Note.self) { note in
                 NoteDetailView(note: note)
             }
@@ -113,26 +113,26 @@ struct NotesView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { navigateToCreate = true }) {
                         Image(systemName: "plus")
-                            .foregroundColor(.green)
+                            .foregroundColor(themeManager.currentTheme.accentColor)
                     }
                 }
                 
                 if !notes.isEmpty {
                     ToolbarItem(placement: .navigationBarLeading) {
                         EditButton()
-                            .foregroundColor(.green)
+                            .foregroundColor(themeManager.currentTheme.accentColor)
                     }
                 }
             }
         } detail: {
             VStack {
                 Spacer()
-                Text("SELECT A NOTE")
-                    .font(.system(.title2, design: .monospaced, weight: .bold))
-                    .foregroundColor(.secondary)
+                Text(themeManager.currentTheme.headerStyle == .brackets ? "SELECT A NOTE" : "Select a note")
+                    .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                 Spacer()
             }
-            .background(.black)
+            .themedBackground()
         }
     }
 

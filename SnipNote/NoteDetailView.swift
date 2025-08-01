@@ -11,6 +11,7 @@ import SwiftData
 struct NoteDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var note: Note
+    @EnvironmentObject var themeManager: ThemeManager
     
     @Query private var allActions: [Action]
     
@@ -29,14 +30,14 @@ struct NoteDetailView: View {
             HStack {
                 if isEditingTitle {
                     TextField("Title", text: $tempTitle)
-                        .font(.system(.title2, design: .monospaced, weight: .bold))
+                        .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .textFieldStyle(PlainTextFieldStyle())
                         .onSubmit {
                             saveTitle()
                         }
                 } else {
-                    Text("[ \(note.title.isEmpty ? "UNTITLED" : note.title.uppercased()) ]")
-                        .font(.system(.title2, design: .monospaced, weight: .bold))
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "[ \(note.title.isEmpty ? "UNTITLED" : note.title.uppercased()) ]" : (note.title.isEmpty ? "Untitled" : note.title))
+                        .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .lineLimit(1)
                         .onTapGesture {
                             startEditingTitle()
@@ -46,11 +47,10 @@ struct NoteDetailView: View {
                 Spacer()
                 
                 Text(note.dateCreated, style: .date)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .themedCaption()
             }
             .padding()
-            .background(.ultraThinMaterial)
+            .background(themeManager.currentTheme.materialStyle)
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -63,7 +63,7 @@ struct NoteDetailView: View {
                         Text(note.originalTranscript)
                             .font(.system(.body, design: .monospaced))
                             .padding()
-                            .background(.ultraThinMaterial)
+                            .background(themeManager.currentTheme.materialStyle)
                             .cornerRadius(8)
                     }
                     
@@ -92,7 +92,7 @@ struct NoteDetailView: View {
                             TextEditor(text: $tempSummary)
                                 .font(.system(.body, design: .monospaced))
                                 .padding()
-                                .background(.ultraThinMaterial)
+                                .background(themeManager.currentTheme.materialStyle)
                                 .cornerRadius(8)
                                 .frame(minHeight: 200)
                                 .overlay(
@@ -123,7 +123,7 @@ struct NoteDetailView: View {
                                 }
                             }
                             .padding()
-                            .background(.ultraThinMaterial)
+                            .background(themeManager.currentTheme.materialStyle)
                             .cornerRadius(8)
                         }
                     }
@@ -156,7 +156,7 @@ struct NoteDetailView: View {
                                     .scaleEffect(0.8)
                             }
                             .padding()
-                            .background(.ultraThinMaterial)
+                            .background(themeManager.currentTheme.materialStyle)
                             .cornerRadius(8)
                         } else if !relatedActions.isEmpty {
                             ForEach(relatedActions.sorted(by: { !$0.isCompleted && $1.isCompleted })) { action in
@@ -179,11 +179,11 @@ struct NoteDetailView: View {
                                     
                                     if action.isCompleted {
                                         Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.green)
+                                            .foregroundColor(themeManager.currentTheme.accentColor)
                                     }
                                 }
                                 .padding()
-                                .background(.ultraThinMaterial)
+                                .background(themeManager.currentTheme.materialStyle)
                                 .cornerRadius(8)
                             }
                         } else {
@@ -191,7 +191,7 @@ struct NoteDetailView: View {
                                 .font(.system(.body, design: .monospaced))
                                 .foregroundColor(.secondary)
                                 .padding()
-                                .background(.ultraThinMaterial)
+                                .background(themeManager.currentTheme.materialStyle)
                                 .cornerRadius(8)
                         }
                     }
@@ -199,8 +199,8 @@ struct NoteDetailView: View {
                 .padding()
             }
         }
-        .background(.black)
-        .foregroundColor(.green)
+        .themedBackground()
+        .foregroundColor(themeManager.currentTheme.accentColor)
         .navigationBarBackButtonHidden(false)
         .toolbar {
             if note.isProcessing {

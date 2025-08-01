@@ -11,6 +11,7 @@ import SwiftData
 struct MeetingDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var meeting: Meeting
+    @EnvironmentObject var themeManager: ThemeManager
     
     @Query private var allActions: [Action]
     
@@ -27,295 +28,384 @@ struct MeetingDetailView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            
-            // Meeting Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    if isEditingName {
-                        TextField("Meeting Name", text: $tempName)
-                            .font(.system(.title2, design: .monospaced, weight: .bold))
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .onSubmit {
-                                saveName()
-                            }
-                    } else {
-                        Text("[ \(meeting.name.isEmpty ? "UNTITLED MEETING" : meeting.name.uppercased()) ]")
-                            .font(.system(.title2, design: .monospaced, weight: .bold))
-                            .lineLimit(1)
-                            .onTapGesture {
-                                startEditingName()
-                            }
-                    }
-                    
-                    HStack {
-                        if !meeting.location.isEmpty {
-                            Text("📍 \(meeting.location)")
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        if meeting.duration > 0 {
-                            Text("⏱️ \(meeting.durationFormatted)")
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-                
-                Spacer()
-                
-                Text(meeting.dateCreated, style: .date)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundColor(.secondary)
-            }
-            .padding()
-            .background(.ultraThinMaterial)
+            meetingHeaderView
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    
-                    // Pre-meeting Notes (if any)
                     if !meeting.meetingNotes.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("MEETING NOTES:")
-                                .font(.system(.headline, design: .monospaced, weight: .bold))
-                                .foregroundColor(.secondary)
-                            
-                            Text(meeting.meetingNotes)
-                                .font(.system(.body, design: .monospaced))
-                                .padding()
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(8)
-                        }
+                        meetingNotesSection
                     }
                     
-                    // Short Overview
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("OVERVIEW:")
-                            .font(.system(.headline, design: .monospaced, weight: .bold))
-                            .foregroundColor(.secondary)
-                        
-                        HStack {
-                            Text(meeting.shortSummary)
-                                .font(.system(.body, design: .monospaced))
-                                .opacity(meeting.isProcessing ? 0.6 : 1.0)
-                            
-                            if meeting.isProcessing {
-                                Spacer()
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            }
-                        }
-                        .padding()
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(8)
-                    }
-                    
-                    // Meeting Summary
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("MEETING SUMMARY:")
-                                .font(.system(.headline, design: .monospaced, weight: .bold))
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            if !meeting.isProcessing {
-                                Button("EDIT") {
-                                    startEditingSummary()
-                                }
-                                .font(.system(.caption, design: .monospaced, weight: .bold))
-                                .foregroundColor(.blue)
-                            } else {
-                                Text("PROCESSING...")
-                                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.orange)
-                            }
-                        }
-                        
-                        if isEditingSummary {
-                            TextEditor(text: $tempSummary)
-                                .font(.system(.body, design: .monospaced))
-                                .padding()
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(8)
-                                .frame(minHeight: 300)
-                                .overlay(
-                                    VStack {
-                                        HStack {
-                                            Spacer()
-                                            Button("SAVE") {
-                                                saveSummary()
-                                            }
-                                            .font(.system(.caption, design: .monospaced, weight: .bold))
-                                            .foregroundColor(.green)
-                                            .padding(.top, 8)
-                                            .padding(.trailing, 8)
-                                        }
-                                        Spacer()
-                                    }
-                                )
-                        } else {
-                            HStack {
-                                Text(meeting.aiSummary)
-                                    .font(.system(.body, design: .monospaced))
-                                    .opacity(meeting.isProcessing ? 0.6 : 1.0)
-                                
-                                if meeting.isProcessing {
-                                    Spacer()
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                }
-                            }
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(8)
-                        }
-                    }
-                    
-                    // Transcript Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("FULL TRANSCRIPT:")
-                                .font(.system(.headline, design: .monospaced, weight: .bold))
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Button(showingTranscript ? "HIDE" : "SHOW") {
-                                withAnimation {
-                                    showingTranscript.toggle()
-                                }
-                            }
-                            .font(.system(.caption, design: .monospaced, weight: .bold))
-                            .foregroundColor(.blue)
-                        }
-                        
-                        if showingTranscript {
-                            ScrollView {
-                                Text(meeting.audioTranscript)
-                                    .font(.system(.body, design: .monospaced))
-                                    .padding()
-                                    .background(.ultraThinMaterial)
-                                    .cornerRadius(8)
-                            }
-                            .frame(maxHeight: 300)
-                        }
-                    }
-                    
-                    // Related Actions
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("MEETING ACTIONS:")
-                                .font(.system(.headline, design: .monospaced, weight: .bold))
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            if meeting.isProcessing {
-                                Text("EXTRACTING...")
-                                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.orange)
-                            }
-                        }
-                        
-                        if meeting.isProcessing {
-                            HStack {
-                                Text("Extracting action items from meeting...")
-                                    .font(.system(.body, design: .monospaced))
-                                    .foregroundColor(.secondary)
-                                    .opacity(0.6)
-                                
-                                Spacer()
-                                
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            }
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(8)
-                        } else if !relatedActions.isEmpty {
-                            ForEach(relatedActions.sorted(by: { !$0.isCompleted && $1.isCompleted })) { action in
-                                HStack {
-                                    Text("[\(action.priority.rawValue)]")
-                                        .font(.system(.caption2, design: .monospaced, weight: .bold))
-                                        .foregroundColor(action.priority == .high ? .red : action.priority == .medium ? .orange : .green)
-                                        .padding(.horizontal, 4)
-                                        .padding(.vertical, 2)
-                                        .background((action.priority == .high ? Color.red : action.priority == .medium ? Color.orange : Color.green).opacity(0.2))
-                                        .cornerRadius(3)
-                                    
-                                    Text(action.title)
-                                        .font(.system(.body, design: .monospaced))
-                                        .foregroundColor(action.isCompleted ? .secondary : .green)
-                                        .strikethrough(action.isCompleted)
-                                        .lineLimit(2)
-                                    
-                                    Spacer()
-                                    
-                                    if action.isCompleted {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.green)
-                                    }
-                                }
-                                .padding()
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(8)
-                            }
-                        } else {
-                            Text("No action items found in this meeting")
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundColor(.secondary)
-                                .padding()
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(8)
-                        }
-                    }
+                    overviewSection
+                    summarySection
+                    transcriptSection
+                    actionsSection
                 }
                 .padding()
             }
         }
-        .background(.black)
-        .foregroundColor(.green)
+        .themedBackground()
+        .foregroundColor(themeManager.currentTheme.accentColor)
         .navigationBarBackButtonHidden(false)
         .toolbar {
-            if meeting.isProcessing {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("GO TO MEETINGS") {
-                        // Navigation will happen automatically via back button
-                    }
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                    .foregroundColor(.blue)
-                }
-            } else if !meeting.audioTranscript.isEmpty {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingExportMenu = true
-                    }) {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.system(.body))
-                            .foregroundColor(.green)
-                    }
-                }
-            }
+            toolbarContent
         }
         .onAppear {
             tempName = meeting.name
             tempSummary = meeting.aiSummary
         }
-        .confirmationDialog("Export Meeting", isPresented: $showingExportMenu) {
-            Button("Export Transcript") {
-                exportTranscript()
+        .sheet(isPresented: $showingExportMenu) {
+            exportMenuSheet
+        }
+    }
+    
+    // MARK: - Header View
+    
+    private var meetingHeaderView: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                if isEditingName {
+                    TextField("Meeting Name", text: $tempName)
+                        .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .onSubmit {
+                            saveName()
+                        }
+                } else {
+                    Text(getMeetingTitle())
+                        .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .lineLimit(1)
+                        .onTapGesture {
+                            startEditingName()
+                        }
+                }
+                
+                HStack {
+                    if !meeting.location.isEmpty {
+                        Text("📍 \(meeting.location)")
+                            .themedCaption()
+                    }
+                    
+                    if meeting.duration > 0 {
+                        Text("⏱️ \(meeting.durationFormatted)")
+                            .themedCaption()
+                    }
+                }
             }
-            Button("Export Summary") {
-                exportSummary()
+            
+            Spacer()
+            
+            Text(meeting.dateCreated, style: .date)
+                .themedCaption()
+        }
+        .padding()
+        .background(themeManager.currentTheme.materialStyle)
+    }
+    
+    // MARK: - Content Sections
+    
+    private var meetingNotesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionHeader(title: "MEETING NOTES:", alternateTitle: "Meeting Notes:")
+            
+            Text(meeting.meetingNotes)
+                .themedBody()
+                .padding()
+                .background(themeManager.currentTheme.materialStyle)
+                .cornerRadius(themeManager.currentTheme.cornerRadius)
+        }
+    }
+    
+    private var overviewSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionHeader(title: "OVERVIEW:", alternateTitle: "Overview:")
+            
+            HStack {
+                Text(meeting.shortSummary)
+                    .themedBody()
+                    .opacity(meeting.isProcessing ? 0.6 : 1.0)
+                
+                if meeting.isProcessing {
+                    Spacer()
+                    ProgressView()
+                        .scaleEffect(0.8)
+                }
             }
-            Button("Export All") {
-                exportAll()
+            .padding()
+            .background(themeManager.currentTheme.materialStyle)
+            .cornerRadius(themeManager.currentTheme.cornerRadius)
+        }
+    }
+    
+    private var summarySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                sectionHeader(title: "MEETING SUMMARY:", alternateTitle: "Meeting Summary:")
+                
+                Spacer()
+                
+                if !meeting.isProcessing {
+                    editButton
+                } else {
+                    processingLabel
+                }
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Choose what to export")
+            
+            if isEditingSummary {
+                summaryEditor
+            } else {
+                summaryDisplay
+            }
+        }
+    }
+    
+    private var transcriptSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                sectionHeader(title: "FULL TRANSCRIPT:", alternateTitle: "Full Transcript:")
+                
+                Spacer()
+                
+                Button(showingTranscript ? "HIDE" : "SHOW") {
+                    withAnimation {
+                        showingTranscript.toggle()
+                    }
+                }
+                .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(themeManager.currentTheme.accentColor)
+            }
+            
+            if showingTranscript {
+                ScrollView {
+                    Text(meeting.audioTranscript)
+                        .themedBody()
+                        .padding()
+                        .background(themeManager.currentTheme.materialStyle)
+                        .cornerRadius(themeManager.currentTheme.cornerRadius)
+                }
+                .frame(maxHeight: 300)
+            }
+        }
+    }
+    
+    private var actionsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                sectionHeader(title: "MEETING ACTIONS:", alternateTitle: "Meeting Actions:")
+                
+                Spacer()
+                
+                if meeting.isProcessing {
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "EXTRACTING..." : "Extracting...")
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.warningColor)
+                }
+            }
+            
+            if meeting.isProcessing {
+                processingActionsView
+            } else if !relatedActions.isEmpty {
+                ForEach(relatedActions.sorted(by: { !$0.isCompleted && $1.isCompleted })) { action in
+                    actionRow(for: action)
+                }
+            } else {
+                noActionsView
+            }
+        }
+    }
+    
+    // MARK: - Helper Views
+    
+    private func sectionHeader(title: String, alternateTitle: String) -> some View {
+        Text(themeManager.currentTheme.headerStyle == .brackets ? title : alternateTitle)
+            .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+    }
+    
+    private var editButton: some View {
+        Button(themeManager.currentTheme.headerStyle == .brackets ? "EDIT" : "Edit") {
+            startEditingSummary()
+        }
+        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+        .foregroundColor(themeManager.currentTheme.accentColor)
+    }
+    
+    private var processingLabel: some View {
+        Text(themeManager.currentTheme.headerStyle == .brackets ? "PROCESSING..." : "Processing...")
+            .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+            .foregroundColor(themeManager.currentTheme.warningColor)
+    }
+    
+    private var summaryEditor: some View {
+        TextEditor(text: $tempSummary)
+            .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+            .padding()
+            .background(themeManager.currentTheme.materialStyle)
+            .cornerRadius(themeManager.currentTheme.cornerRadius)
+            .frame(minHeight: 300)
+            .overlay(
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(themeManager.currentTheme.headerStyle == .brackets ? "SAVE" : "Save") {
+                            saveSummary()
+                        }
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.accentColor)
+                        .padding(.top, 8)
+                        .padding(.trailing, 8)
+                    }
+                    Spacer()
+                }
+            )
+    }
+    
+    private var summaryDisplay: some View {
+        HStack {
+            Text(meeting.aiSummary)
+                .themedBody()
+                .opacity(meeting.isProcessing ? 0.6 : 1.0)
+            
+            if meeting.isProcessing {
+                Spacer()
+                ProgressView()
+                    .scaleEffect(0.8)
+            }
+        }
+        .padding()
+        .background(themeManager.currentTheme.materialStyle)
+        .cornerRadius(themeManager.currentTheme.cornerRadius)
+    }
+    
+    private var processingActionsView: some View {
+        HStack {
+            Text("Extracting action items from meeting...")
+                .themedBody()
+                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                .opacity(0.6)
+            
+            Spacer()
+            
+            ProgressView()
+                .scaleEffect(0.8)
+        }
+        .padding()
+        .background(themeManager.currentTheme.materialStyle)
+        .cornerRadius(themeManager.currentTheme.cornerRadius)
+    }
+    
+    private func actionRow(for action: Action) -> some View {
+        HStack {
+            Text(themeManager.currentTheme.headerStyle == .brackets ? "[\(action.priority.rawValue)]" : action.priority.rawValue)
+                .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(priorityColor(for: action))
+                .padding(.horizontal, 4)
+                .padding(.vertical, 2)
+                .background(priorityColor(for: action).opacity(0.2))
+                .cornerRadius(3)
+            
+            Text(action.title)
+                .themedBody()
+                .foregroundColor(action.isCompleted ? themeManager.currentTheme.secondaryTextColor : themeManager.currentTheme.accentColor)
+                .strikethrough(action.isCompleted)
+                .lineLimit(2)
+            
+            Spacer()
+            
+            if action.isCompleted {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(themeManager.currentTheme.accentColor)
+            }
+        }
+        .padding()
+        .background(themeManager.currentTheme.materialStyle)
+        .cornerRadius(themeManager.currentTheme.cornerRadius)
+    }
+    
+    private var noActionsView: some View {
+        Text("No action items found in this meeting")
+            .themedBody()
+            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+            .padding()
+            .background(themeManager.currentTheme.materialStyle)
+            .cornerRadius(themeManager.currentTheme.cornerRadius)
+    }
+    
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        if meeting.isProcessing {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(themeManager.currentTheme.headerStyle == .brackets ? "GO TO MEETINGS" : "Go to Meetings") {
+                    // Navigation will happen automatically via back button
+                }
+                .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(themeManager.currentTheme.accentColor)
+            }
+        } else if !meeting.audioTranscript.isEmpty {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showingExportMenu = true
+                }) {
+                    Image(systemName: "square.and.arrow.down")
+                        .font(.system(.body))
+                        .foregroundColor(themeManager.currentTheme.accentColor)
+                }
+            }
+        }
+    }
+    
+    private var exportMenuSheet: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                Text("Export Meeting")
+                    .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                
+                Button(action: {
+                    sharePlainText()
+                    showingExportMenu = false
+                }) {
+                    HStack {
+                        Image(systemName: "doc.text")
+                        Text("Export as Plain Text")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(themeManager.currentTheme.materialStyle)
+                    .cornerRadius(themeManager.currentTheme.cornerRadius)
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .themedBackground()
+            .navigationBarTitle("Export Options", displayMode: .inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        showingExportMenu = false
+                    }
+                    .foregroundColor(themeManager.currentTheme.accentColor)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func getMeetingTitle() -> String {
+        let meetingTitle = meeting.name.isEmpty ? "UNTITLED MEETING" : meeting.name.uppercased()
+        if themeManager.currentTheme.headerStyle == .brackets {
+            return "[ \(meetingTitle) ]"
+        } else {
+            return meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
+        }
+    }
+    
+    private func priorityColor(for action: Action) -> Color {
+        switch action.priority {
+        case .high: return themeManager.currentTheme.destructiveColor
+        case .medium: return themeManager.currentTheme.warningColor
+        case .low: return themeManager.currentTheme.accentColor
         }
     }
     
@@ -332,7 +422,7 @@ struct MeetingDetailView: View {
         do {
             try modelContext.save()
         } catch {
-            print("Error saving meeting name: \(error)")
+            print("Error saving name: \(error)")
         }
     }
     
@@ -349,118 +439,35 @@ struct MeetingDetailView: View {
         do {
             try modelContext.save()
         } catch {
-            print("Error saving meeting summary: \(error)")
+            print("Error saving summary: \(error)")
         }
     }
     
-    // MARK: - Export Functions
-    
-    private func exportTranscript() {
-        let content = formatTranscriptExport()
-        shareContent(content, filename: "meeting_transcript_\(meeting.name.replacingOccurrences(of: " ", with: "_")).txt")
-    }
-    
-    private func exportSummary() {
-        let content = formatSummaryExport()
-        shareContent(content, filename: "meeting_summary_\(meeting.name.replacingOccurrences(of: " ", with: "_")).txt")
-    }
-    
-    private func exportAll() {
-        let content = formatCompleteExport()
-        shareContent(content, filename: "meeting_complete_\(meeting.name.replacingOccurrences(of: " ", with: "_")).txt")
-    }
-    
-    private func formatTranscriptExport() -> String {
-        var content = "[MEETING TRANSCRIPT]\n"
-        content += "Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)\n"
-        content += "Date: \(meeting.dateCreated.formatted(date: .abbreviated, time: .shortened))\n"
-        if meeting.duration > 0 {
-            content += "Duration: \(meeting.durationFormatted)\n"
-        }
-        if !meeting.location.isEmpty {
-            content += "Location: \(meeting.location)\n"
-        }
-        content += "\n--- TRANSCRIPT ---\n"
-        content += meeting.audioTranscript
+    private func sharePlainText() {
+        let content = """
+        Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
+        Date: \(meeting.dateCreated.formatted())
+        Location: \(meeting.location.isEmpty ? "N/A" : meeting.location)
+        Duration: \(meeting.durationFormatted)
         
-        return content
-    }
-    
-    private func formatSummaryExport() -> String {
-        var content = "[MEETING SUMMARY]\n"
-        content += "Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)\n"
-        content += "Date: \(meeting.dateCreated.formatted(date: .abbreviated, time: .shortened))\n"
+        Notes:
+        \(meeting.meetingNotes.isEmpty ? "N/A" : meeting.meetingNotes)
         
-        content += "\n--- OVERVIEW ---\n"
-        content += meeting.shortSummary
+        Summary:
+        \(meeting.aiSummary.isEmpty ? "N/A" : meeting.aiSummary)
         
-        content += "\n\n--- DETAILED SUMMARY ---\n"
-        content += meeting.aiSummary
+        Transcript:
+        \(meeting.audioTranscript.isEmpty ? "N/A" : meeting.audioTranscript)
         
-        if !relatedActions.isEmpty {
-            content += "\n\n--- ACTION ITEMS ---\n"
-            for action in relatedActions.sorted(by: { 
-                if $0.priority.rawValue != $1.priority.rawValue {
-                    return $0.priority == .high || ($0.priority == .medium && $1.priority == .low)
-                }
-                return !$0.isCompleted && $1.isCompleted
-            }) {
-                let status = action.isCompleted ? "✓" : "•"
-                content += "\(status) [\(action.priority.rawValue.uppercased())] \(action.title)\n"
-            }
-        }
-        
-        return content
-    }
-    
-    private func formatCompleteExport() -> String {
-        var content = "[MEETING EXPORT]\n"
-        content += "Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)\n"
-        content += "Date: \(meeting.dateCreated.formatted(date: .abbreviated, time: .shortened))\n"
-        if meeting.duration > 0 {
-            content += "Duration: \(meeting.durationFormatted)\n"
-        }
-        if !meeting.location.isEmpty {
-            content += "Location: \(meeting.location)\n"
-        }
-        
-        if !meeting.meetingNotes.isEmpty {
-            content += "\n--- MEETING NOTES ---\n"
-            content += meeting.meetingNotes
-        }
-        
-        content += "\n\n--- OVERVIEW ---\n"
-        content += meeting.shortSummary
-        
-        content += "\n\n--- DETAILED SUMMARY ---\n"
-        content += meeting.aiSummary
-        
-        if !relatedActions.isEmpty {
-            content += "\n\n--- ACTION ITEMS ---\n"
-            for action in relatedActions.sorted(by: { 
-                if $0.priority.rawValue != $1.priority.rawValue {
-                    return $0.priority == .high || ($0.priority == .medium && $1.priority == .low)
-                }
-                return !$0.isCompleted && $1.isCompleted
-            }) {
-                let status = action.isCompleted ? "✓" : "•"
-                content += "\(status) [\(action.priority.rawValue.uppercased())] \(action.title)\n"
-            }
-        }
-        
-        content += "\n\n--- FULL TRANSCRIPT ---\n"
-        content += meeting.audioTranscript
-        
-        return content
-    }
-    
-    private func shareContent(_ content: String, filename: String) {
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        Actions:
+        \(relatedActions.isEmpty ? "No actions" : relatedActions.map { action in "- [\(action.priority.rawValue)] \(action.title)" }.joined(separator: "\n"))
+        """
         
         do {
-            try content.write(to: tempURL, atomically: true, encoding: .utf8)
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("meeting-\(meeting.name.isEmpty ? "untitled" : meeting.name).txt")
+            try content.write(to: url, atomically: true, encoding: String.Encoding.utf8)
             
-            let activityVC = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
+            let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
             
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                let window = windowScene.windows.first,

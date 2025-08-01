@@ -10,6 +10,7 @@ import SwiftUI
 struct ActionsReportView: View {
     let reportContent: String
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var themeManager: ThemeManager
     @State private var showingCopyConfirmation = false
     
     var body: some View {
@@ -17,38 +18,38 @@ struct ActionsReportView: View {
             VStack(spacing: 0) {
                 // Header
                 HStack {
-                    Text("[ ACTIONS REPORT ]")
-                        .font(.system(.title2, design: .monospaced, weight: .bold))
-                        .foregroundColor(.green)
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "[ ACTIONS REPORT ]" : "Actions Report")
+                        .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.accentColor)
                     
                     Spacer()
                     
-                    Button("CLOSE") {
+                    Button(themeManager.currentTheme.headerStyle == .brackets ? "CLOSE" : "Close") {
                         dismiss()
                     }
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                    .foregroundColor(.green)
+                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.accentColor)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .overlay(
                         Rectangle()
-                            .stroke(.green, lineWidth: 1)
+                            .stroke(themeManager.currentTheme.accentColor, lineWidth: 1)
                     )
                 }
                 .padding()
-                .background(.ultraThinMaterial)
+                .background(themeManager.currentTheme.materialStyle)
                 
                 // Report Content
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         Text(reportContent)
-                            .font(.system(.body, design: .monospaced))
-                            .foregroundColor(.green)
+                            .themedBody()
+                            .foregroundColor(themeManager.currentTheme.textColor)
                             .padding()
                             .textSelection(.enabled)
                     }
                 }
-                .background(.black)
+                .themedBackground()
                 
                 // Footer with Copy button
                 HStack {
@@ -65,30 +66,30 @@ struct ActionsReportView: View {
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: showingCopyConfirmation ? "checkmark" : "doc.on.doc")
-                            Text(showingCopyConfirmation ? "COPIED!" : "COPY REPORT")
+                            Text(showingCopyConfirmation ? (themeManager.currentTheme.headerStyle == .brackets ? "COPIED!" : "Copied!") : (themeManager.currentTheme.headerStyle == .brackets ? "COPY REPORT" : "Copy Report"))
                         }
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .foregroundColor(.green)
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.accentColor)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(.green.opacity(0.2))
+                        .background(themeManager.currentTheme.accentColor.opacity(0.2))
                         .overlay(
                             Rectangle()
-                                .stroke(.green, lineWidth: 1)
+                                .stroke(themeManager.currentTheme.accentColor, lineWidth: 1)
                         )
-                        .cornerRadius(4)
+                        .cornerRadius(themeManager.currentTheme.cornerRadius / 2)
                     }
                     
                     Spacer()
                 }
                 .padding()
-                .background(.ultraThinMaterial)
+                .background(themeManager.currentTheme.materialStyle)
             }
-            .background(.black)
+            .themedBackground()
             .navigationBarHidden(true)
         }
         .presentationDetents([.large])
-        .presentationBackground(.black)
+        .presentationBackground(themeManager.currentTheme.backgroundColor)
     }
 }
 

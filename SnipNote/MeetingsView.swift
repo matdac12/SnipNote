@@ -12,6 +12,7 @@ struct MeetingsView: View {
     @Binding var deepLinkAudioURL: URL?
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Meeting.dateCreated, order: .reverse) private var meetings: [Meeting]
+    @EnvironmentObject var themeManager: ThemeManager
     
     @State private var showingCreateMeeting = false
     @State private var selectedMeeting: Meeting?
@@ -24,26 +25,23 @@ struct MeetingsView: View {
             VStack(spacing: 0) {
                 
                 HStack {
-                    Text("[ MEETINGS ]")
-                        .font(.system(.title, design: .monospaced, weight: .bold))
-                        .foregroundColor(.green)
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "[ MEETINGS ]" : "Meetings")
+                        .themedTitle()
                     Spacer()
-                    Text("\(meetings.count) MEETINGS")
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(.secondary)
+                    Text("\(meetings.count) \(themeManager.currentTheme.headerStyle == .brackets ? "MEETINGS" : "meetings")")
+                        .themedCaption()
                 }
                 .padding()
-                .background(.ultraThinMaterial)
+                .background(themeManager.currentTheme.materialStyle)
                 
                 if meetings.isEmpty {
                     VStack(spacing: 20) {
                         Spacer()
-                        Text("NO MEETINGS FOUND")
-                            .font(.system(.title2, design: .monospaced, weight: .bold))
-                            .foregroundColor(.secondary)
-                        Text("TAP + TO CREATE YOUR FIRST MEETING")
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(.secondary)
+                        Text(themeManager.currentTheme.headerStyle == .brackets ? "NO MEETINGS FOUND" : "No meetings yet")
+                            .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        Text(themeManager.currentTheme.headerStyle == .brackets ? "TAP + TO CREATE YOUR FIRST MEETING" : "Tap + to create your first meeting")
+                            .themedCaption()
                         Spacer()
                     }
                 } else {
@@ -52,31 +50,31 @@ struct MeetingsView: View {
                             NavigationLink(value: meeting) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
-                                        Text(meeting.name.isEmpty ? "UNTITLED MEETING" : meeting.name.uppercased())
-                                            .font(.system(.body, design: .monospaced, weight: .bold))
+                                        Text(meeting.name.isEmpty ? (themeManager.currentTheme.headerStyle == .brackets ? "UNTITLED MEETING" : "Untitled Meeting") : (themeManager.currentTheme.headerStyle == .brackets ? meeting.name.uppercased() : meeting.name))
+                                            .themedBody()
+                                            .fontWeight(.bold)
                                             .lineLimit(1)
                                         
                                         if meeting.isProcessing {
-                                            Text("PROCESSING...")
-                                                .font(.system(.caption2, design: .monospaced, weight: .bold))
-                                                .foregroundColor(.orange)
+                                            Text(themeManager.currentTheme.headerStyle == .brackets ? "PROCESSING..." : "Processing...")
+                                                .themedCaption()
+                                                .fontWeight(.bold)
+                                                .foregroundColor(themeManager.currentTheme.warningColor)
                                                 .padding(.horizontal, 4)
                                                 .padding(.vertical, 2)
-                                                .background(.orange.opacity(0.2))
+                                                .background(themeManager.currentTheme.warningColor.opacity(0.2))
                                                 .cornerRadius(3)
                                         }
                                         
                                         Spacer()
                                         Text(meeting.dateCreated, style: .date)
-                                            .font(.system(.caption2, design: .monospaced))
-                                            .foregroundColor(.secondary)
+                                            .themedCaption()
                                     }
                                     
                                     HStack {
                                         if !meeting.location.isEmpty {
                                             Text("📍 \(meeting.location)")
-                                                .font(.system(.caption, design: .monospaced))
-                                                .foregroundColor(.secondary)
+                                                .themedCaption()
                                                 .lineLimit(1)
                                         }
                                         
@@ -84,22 +82,19 @@ struct MeetingsView: View {
                                         
                                         if meeting.duration > 0 {
                                             Text("⏱️ \(meeting.durationFormatted)")
-                                                .font(.system(.caption, design: .monospaced))
-                                                .foregroundColor(.secondary)
+                                                .themedCaption()
                                         }
                                     }
                                     
                                     // Show overview/summary preview
                                     if !meeting.shortSummary.isEmpty {
                                         Text(meeting.shortSummary)
-                                            .font(.system(.caption, design: .monospaced))
-                                            .foregroundColor(.secondary)
+                                            .themedCaption()
                                             .lineLimit(2)
                                     } else if !meeting.meetingNotes.isEmpty {
                                         // Fallback to meeting notes if no summary yet
                                         Text(meeting.meetingNotes.prefix(80) + (meeting.meetingNotes.count > 80 ? "..." : ""))
-                                            .font(.system(.caption, design: .monospaced))
-                                            .foregroundColor(.secondary)
+                                            .themedCaption()
                                             .lineLimit(2)
                                     }
                                 }
@@ -107,8 +102,8 @@ struct MeetingsView: View {
                                 .opacity(meeting.isProcessing ? 0.6 : 1.0)
                                 .overlay(
                                     meeting.isProcessing ? 
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(.orange.opacity(0.5), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius)
+                                        .stroke(themeManager.currentTheme.warningColor.opacity(0.5), lineWidth: 1)
                                     : nil
                                 )
                             }
@@ -120,7 +115,7 @@ struct MeetingsView: View {
                     .scrollContentBackground(.hidden)
                 }
             }
-            .background(.black)
+            .themedBackground()
             .navigationDestination(for: Meeting.self) { meeting in
                 MeetingDetailView(meeting: meeting)
             }
@@ -145,26 +140,26 @@ struct MeetingsView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { navigateToCreate = true }) {
                         Image(systemName: "plus")
-                            .foregroundColor(.green)
+                            .foregroundColor(themeManager.currentTheme.accentColor)
                     }
                 }
                 
                 if !meetings.isEmpty {
                     ToolbarItem(placement: .navigationBarLeading) {
                         EditButton()
-                            .foregroundColor(.green)
+                            .foregroundColor(themeManager.currentTheme.accentColor)
                     }
                 }
             }
         } detail: {
             VStack {
                 Spacer()
-                Text("SELECT A MEETING")
-                    .font(.system(.title2, design: .monospaced, weight: .bold))
-                    .foregroundColor(.secondary)
+                Text(themeManager.currentTheme.headerStyle == .brackets ? "SELECT A MEETING" : "Select a meeting")
+                    .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                 Spacer()
             }
-            .background(.black)
+            .themedBackground()
         }
         .onAppear {
             // Handle deep link when view appears

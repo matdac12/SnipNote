@@ -13,6 +13,7 @@ struct ContentView: View {
     @Query private var actions: [Action]
     @State private var selectedTab = 0
     @Binding var shouldNavigateToActions: Bool
+    @EnvironmentObject var themeManager: ThemeManager
     
     private var pendingActionsCount: Int {
         actions.filter { !$0.isCompleted }.count
@@ -24,7 +25,7 @@ struct ContentView: View {
                 .tabItem {
                     Image(systemName: "note.text")
                     Text("NOTES")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 }
                 .tag(0)
             
@@ -32,7 +33,7 @@ struct ContentView: View {
                 .tabItem {
                     Image(systemName: "person.3")
                     Text("MEETINGS")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 }
                 .tag(1)
             
@@ -40,7 +41,7 @@ struct ContentView: View {
                 .tabItem {
                     Image(systemName: "checklist")
                     Text("ACTIONS")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 }
                 .badge(pendingActionsCount)
                 .tag(2)
@@ -49,12 +50,10 @@ struct ContentView: View {
                 .tabItem {
                     Image(systemName: "gearshape")
                     Text("SETTINGS")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 }
                 .tag(3)
         }
-        .accentColor(.green)
-        .preferredColorScheme(.dark)
         .onChange(of: deepLinkAudioURL) { _, newValue in
             if newValue != nil {
                 // Switch to Meetings tab when audio is shared

@@ -12,6 +12,7 @@ import AVFoundation
 struct CreateMeetingView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var themeManager: ThemeManager
     
     var onMeetingCreated: ((Meeting) -> Void)?
     var importedAudioURL: URL? // For shared audio files
@@ -68,51 +69,51 @@ struct CreateMeetingView: View {
         VStack(spacing: 0) {
             
             HStack {
-                Text("[ NEW MEETING ]")
-                    .font(.system(.title2, design: .monospaced, weight: .bold))
-                    .foregroundColor(.primary)
+                Text(themeManager.currentTheme.headerStyle == .brackets ? "[ NEW MEETING ]" : "New Meeting")
+                    .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.textColor)
                 Spacer()
             }
             .padding()
-            .background(.ultraThinMaterial)
+            .background(themeManager.currentTheme.materialStyle)
             
             ScrollView {
                 VStack(spacing: 20) {
                     
                     // Meeting Details Form
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("MEETING DETAILS")
-                            .font(.system(.headline, design: .monospaced, weight: .bold))
-                            .foregroundColor(.secondary)
+                        Text(themeManager.currentTheme.headerStyle == .brackets ? "MEETING DETAILS" : "Meeting Details")
+                            .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         
                         VStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Meeting Name")
-                                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.secondary)
+                                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                 TextField("Enter meeting name", text: $meetingName)
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
                                     .padding()
-                                    .background(.ultraThinMaterial)
-                                    .cornerRadius(8)
+                                    .background(themeManager.currentTheme.materialStyle)
+                                    .cornerRadius(themeManager.currentTheme.cornerRadius)
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Location")
-                                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.secondary)
+                                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                 TextField("Enter meeting location", text: $meetingLocation)
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
                                     .padding()
-                                    .background(.ultraThinMaterial)
-                                    .cornerRadius(8)
+                                    .background(themeManager.currentTheme.materialStyle)
+                                    .cornerRadius(themeManager.currentTheme.cornerRadius)
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
                                     Text("Notes")
-                                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                                        .foregroundColor(.secondary)
+                                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                     
                                     Spacer()
                                     
@@ -123,7 +124,7 @@ struct CreateMeetingView: View {
                                         }) {
                                             Image(systemName: "keyboard.chevron.compact.down")
                                                 .font(.system(.caption))
-                                                .foregroundColor(.green)
+                                                .foregroundColor(themeManager.currentTheme.accentColor)
                                         }
                                         .transition(.opacity)
                                     }
@@ -132,10 +133,10 @@ struct CreateMeetingView: View {
                                 
                                 TextEditor(text: $meetingNotes)
                                     .focused($isNotesFieldFocused)
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
                                     .padding()
-                                    .background(.ultraThinMaterial)
-                                    .cornerRadius(8)
+                                    .background(themeManager.currentTheme.materialStyle)
+                                    .cornerRadius(themeManager.currentTheme.cornerRadius)
                                     .frame(minHeight: 100)
                             }
                         }
@@ -146,125 +147,125 @@ struct CreateMeetingView: View {
                         
                         if hasImportedAudio {
                             VStack(spacing: 20) {
-                                Text("IMPORTED AUDIO READY")
-                                    .font(.system(.title, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.blue)
+                                Text(themeManager.currentTheme.headerStyle == .brackets ? "IMPORTED AUDIO READY" : "Imported Audio Ready")
+                                    .font(.system(.title, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                    .foregroundColor(themeManager.currentTheme.accentColor)
                                 
                                 Text("Duration: \(formatDuration(importedAudioDuration))")
-                                    .font(.system(.title2, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.blue)
+                                    .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                    .foregroundColor(themeManager.currentTheme.accentColor)
                                 
                                 Rectangle()
-                                    .fill(.blue)
+                                    .fill(themeManager.currentTheme.accentColor)
                                     .frame(width: 200, height: 4)
                                     .opacity(0.7)
                                 
                                 if hasFinishedRecording || isProcessingAudio {
                                     VStack(spacing: 20) {
-                                        Text("PROCESSING MEETING...")
-                                            .font(.system(.title, design: .monospaced, weight: .bold))
-                                            .foregroundColor(.orange)
+                                        Text(themeManager.currentTheme.headerStyle == .brackets ? "PROCESSING MEETING..." : "Processing meeting...")
+                                            .font(.system(.title, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                            .foregroundColor(themeManager.currentTheme.warningColor)
                                         
                                         ProgressView()
                                             .scaleEffect(1.5)
                                     }
                                 } else {
-                                    Button("ANALYZE MEETING") {
+                                    Button(themeManager.currentTheme.headerStyle == .brackets ? "ANALYZE MEETING" : "Analyze Meeting") {
                                         analyzeImportedAudio()
                                     }
-                                    .font(.system(.body, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                    .foregroundColor(themeManager.currentTheme.backgroundColor)
                                     .padding()
-                                    .background(.blue)
-                                    .cornerRadius(8)
+                                    .background(themeManager.currentTheme.accentColor)
+                                    .cornerRadius(themeManager.currentTheme.cornerRadius)
                                     .disabled(meetingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                 }
                             }
                         } else if audioRecorder.isRecording {
                             VStack(spacing: 20) {
-                                Text(audioRecorder.isPaused ? "MEETING PAUSED" : "RECORDING MEETING...")
-                                    .font(.system(.title, design: .monospaced, weight: .bold))
-                                    .foregroundColor(audioRecorder.isPaused ? .orange : .red)
+                                Text(themeManager.currentTheme.headerStyle == .brackets ? (audioRecorder.isPaused ? "MEETING PAUSED" : "RECORDING MEETING...") : (audioRecorder.isPaused ? "Meeting Paused" : "Recording Meeting..."))
+                                    .font(.system(.title, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                    .foregroundColor(audioRecorder.isPaused ? themeManager.currentTheme.warningColor : themeManager.currentTheme.destructiveColor)
                                 
                                 Text(formatDuration(recordingDuration))
-                                    .font(.system(.title2, design: .monospaced, weight: .bold))
-                                    .foregroundColor(audioRecorder.isPaused ? .orange : .red)
+                                    .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                    .foregroundColor(audioRecorder.isPaused ? themeManager.currentTheme.warningColor : themeManager.currentTheme.destructiveColor)
                                 
                                 if !audioRecorder.isPaused {
                                     Rectangle()
-                                        .fill(.red)
+                                        .fill(themeManager.currentTheme.destructiveColor)
                                         .frame(width: CGFloat(audioRecorder.recordingLevel * 200), height: 4)
                                         .animation(.easeInOut(duration: 0.1), value: audioRecorder.recordingLevel)
                                 } else {
                                     Rectangle()
-                                        .fill(.orange)
+                                        .fill(themeManager.currentTheme.warningColor)
                                         .frame(width: 200, height: 4)
                                         .opacity(0.5)
                                 }
                                 
                                 HStack(spacing: 16) {
                                     if audioRecorder.isPaused {
-                                        Button("RESUME") {
+                                        Button(themeManager.currentTheme.headerStyle == .brackets ? "RESUME" : "Resume") {
                                             resumeMeetingRecording()
                                         }
-                                        .font(.system(.body, design: .monospaced, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                        .foregroundColor(themeManager.currentTheme.backgroundColor)
                                         .padding()
-                                        .background(.green)
-                                        .cornerRadius(8)
+                                        .background(themeManager.currentTheme.accentColor)
+                                        .cornerRadius(themeManager.currentTheme.cornerRadius)
                                     } else {
-                                        Button("PAUSE") {
+                                        Button(themeManager.currentTheme.headerStyle == .brackets ? "PAUSE" : "Pause") {
                                             pauseMeetingRecording()
                                         }
-                                        .font(.system(.body, design: .monospaced, weight: .bold))
-                                        .foregroundColor(.white)
+                                        .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                        .foregroundColor(themeManager.currentTheme.backgroundColor)
                                         .padding()
-                                        .background(.orange)
-                                        .cornerRadius(8)
+                                        .background(themeManager.currentTheme.warningColor)
+                                        .cornerRadius(themeManager.currentTheme.cornerRadius)
                                     }
                                     
-                                    Button("STOP MEETING") {
+                                    Button(themeManager.currentTheme.headerStyle == .brackets ? "STOP MEETING" : "Stop Meeting") {
                                         stopMeetingRecording()
                                     }
-                                    .font(.system(.body, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                    .foregroundColor(themeManager.currentTheme.backgroundColor)
                                     .padding()
-                                    .background(.red)
-                                    .cornerRadius(8)
+                                    .background(themeManager.currentTheme.destructiveColor)
+                                    .cornerRadius(themeManager.currentTheme.cornerRadius)
                                     
-                                    Button("CANCEL") {
+                                    Button(themeManager.currentTheme.headerStyle == .brackets ? "CANCEL" : "Cancel") {
                                         cancelMeetingRecording()
                                     }
-                                    .font(.system(.body, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                    .foregroundColor(themeManager.currentTheme.backgroundColor)
                                     .padding()
-                                    .background(.gray)
-                                    .cornerRadius(8)
+                                    .background(themeManager.currentTheme.secondaryTextColor)
+                                    .cornerRadius(themeManager.currentTheme.cornerRadius)
                                 }
                             }
                         } else if hasFinishedRecording {
                             VStack(spacing: 20) {
-                                Text("PROCESSING MEETING...")
-                                    .font(.system(.title, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.orange)
+                                Text(themeManager.currentTheme.headerStyle == .brackets ? "PROCESSING MEETING..." : "Processing meeting...")
+                                    .font(.system(.title, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                    .foregroundColor(themeManager.currentTheme.warningColor)
                                 
                                 ProgressView()
                                     .scaleEffect(1.5)
                             }
                         } else {
                             VStack(spacing: 20) {
-                                Text("START MEETING RECORDING")
-                                    .font(.system(.title, design: .monospaced, weight: .bold))
-                                    .foregroundColor(.secondary)
+                                Text(themeManager.currentTheme.headerStyle == .brackets ? "START MEETING RECORDING" : "Start Meeting Recording")
+                                    .font(.system(.title, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                 
-                                Button("START MEETING RECORDING") {
+                                Button(themeManager.currentTheme.headerStyle == .brackets ? "START MEETING RECORDING" : "Start Meeting Recording") {
                                     startMeetingRecording()
                                 }
-                                .font(.system(.body, design: .monospaced, weight: .bold))
-                                .foregroundColor(.white)
+                                .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                .foregroundColor(themeManager.currentTheme.backgroundColor)
                                 .padding()
-                                .background(.blue)
-                                .cornerRadius(8)
+                                .background(themeManager.currentTheme.accentColor)
+                                .cornerRadius(themeManager.currentTheme.cornerRadius)
                                 .disabled(meetingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             }
                         }
@@ -279,15 +280,15 @@ struct CreateMeetingView: View {
             // Bottom Cancel Button
             if !audioRecorder.isRecording && !hasFinishedRecording && !hasImportedAudio {
                 HStack {
-                    Button("CANCEL") {
+                    Button(themeManager.currentTheme.headerStyle == .brackets ? "CANCEL" : "Cancel") {
                         dismiss()
                     }
-                    .font(.system(.body, design: .monospaced, weight: .bold))
-                    .foregroundColor(.red)
+                    .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.destructiveColor)
                     .padding()
                     .overlay(
                         Rectangle()
-                            .stroke(.red, lineWidth: 1)
+                            .stroke(themeManager.currentTheme.destructiveColor, lineWidth: 1)
                     )
                     
                     Spacer()
@@ -295,8 +296,8 @@ struct CreateMeetingView: View {
                 .padding()
             }
         }
-        .background(.black)
-        .foregroundColor(.green)
+        .themedBackground()
+        .foregroundColor(themeManager.currentTheme.accentColor)
         .navigationBarBackButtonHidden(false)
         .alert("API Key Required", isPresented: $showingAPIKeyAlert) {
             TextField("OpenAI API Key", text: $apiKeyInput)

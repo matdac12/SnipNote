@@ -11,6 +11,7 @@ import SwiftData
 struct CreateNoteView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var themeManager: ThemeManager
     
     var onNoteCreated: ((Note) -> Void)?
     
@@ -32,13 +33,13 @@ struct CreateNoteView: View {
         VStack(spacing: 0) {
                 
                 HStack {
-                    Text("[ NEW NOTE ]")
-                        .font(.system(.title2, design: .monospaced, weight: .bold))
-                        .foregroundColor(.primary)
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "[ NEW NOTE ]" : "New Note")
+                        .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.textColor)
                     Spacer()
                 }
                 .padding()
-                .background(.ultraThinMaterial)
+                .background(themeManager.currentTheme.materialStyle)
                 
                 Spacer()
                 
@@ -46,42 +47,42 @@ struct CreateNoteView: View {
                     
                     if audioRecorder.isRecording {
                         VStack(spacing: 20) {
-                            Text("RECORDING...")
-                                .font(.system(.title, design: .monospaced, weight: .bold))
-                                .foregroundColor(.red)
+                            Text(themeManager.currentTheme.headerStyle == .brackets ? "RECORDING..." : "Recording...")
+                                .font(.system(.title, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                .foregroundColor(themeManager.currentTheme.destructiveColor)
                             
                             Rectangle()
-                                .fill(.red)
+                                .fill(themeManager.currentTheme.destructiveColor)
                                 .frame(width: CGFloat(audioRecorder.recordingLevel * 200), height: 4)
                                 .animation(.easeInOut(duration: 0.1), value: audioRecorder.recordingLevel)
                             
-                            Button("STOP RECORDING") {
+                            Button(themeManager.currentTheme.headerStyle == .brackets ? "STOP RECORDING" : "Stop Recording") {
                                 toggleRecording()
                             }
-                            .font(.system(.body, design: .monospaced, weight: .bold))
-                            .foregroundColor(.white)
+                            .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.backgroundColor)
                             .padding()
-                            .background(.red)
-                            .cornerRadius(8)
+                            .background(themeManager.currentTheme.destructiveColor)
+                            .cornerRadius(themeManager.currentTheme.cornerRadius)
                         }
                     } else if hasFinishedRecording {
                         VStack(spacing: 20) {
-                            Text("CREATING NOTE...")
-                                .font(.system(.title, design: .monospaced, weight: .bold))
-                                .foregroundColor(.orange)
+                            Text(themeManager.currentTheme.headerStyle == .brackets ? "CREATING NOTE..." : "Creating note...")
+                                .font(.system(.title, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                .foregroundColor(themeManager.currentTheme.warningColor)
                             
                             ProgressView()
                                 .scaleEffect(1.5)
                         }
                     } else {
                         VStack(spacing: 20) {
-                            Text("TAP TO RECORD")
-                                .font(.system(.title, design: .monospaced, weight: .bold))
-                                .foregroundColor(.secondary)
+                            Text(themeManager.currentTheme.headerStyle == .brackets ? "TAP TO RECORD" : "Tap to record")
+                                .font(.system(.title, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                             
                             Image(systemName: "mic.circle")
                                 .font(.system(size: 80))
-                                .foregroundColor(.blue)
+                                .foregroundColor(themeManager.currentTheme.accentColor)
                         }
                         .onTapGesture {
                             toggleRecording()
@@ -92,26 +93,26 @@ struct CreateNoteView: View {
                 Spacer()
                 
                 HStack {
-                    Button("CANCEL") {
+                    Button(themeManager.currentTheme.headerStyle == .brackets ? "CANCEL" : "Cancel") {
                         if let url = currentRecordingURL {
                             audioRecorder.deleteRecording(at: url)
                         }
                         dismiss()
                     }
-                    .font(.system(.body, design: .monospaced, weight: .bold))
-                    .foregroundColor(.red)
+                    .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.destructiveColor)
                     .padding()
                     .overlay(
                         Rectangle()
-                            .stroke(.red, lineWidth: 1)
+                            .stroke(themeManager.currentTheme.destructiveColor, lineWidth: 1)
                     )
                     
                     Spacer()
                 }
                 .padding()
         }
-        .background(.black)
-        .foregroundColor(.green)
+        .themedBackground()
+        .foregroundColor(themeManager.currentTheme.accentColor)
         .navigationBarBackButtonHidden(false)
         .alert("API Key Required", isPresented: $showingAPIKeyAlert) {
             TextField("OpenAI API Key", text: $apiKeyInput)

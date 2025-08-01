@@ -14,6 +14,7 @@ struct SettingsView: View {
     @StateObject private var notificationService = NotificationService.shared
     @Query private var actions: [Action]
     @EnvironmentObject var authManager: AuthenticationManager
+    @EnvironmentObject var themeManager: ThemeManager
     
     @State private var showingPermissionAlert = false
     @State private var permissionStatus: UNAuthorizationStatus = .notDetermined
@@ -26,36 +27,68 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             
             HStack {
-                Text("[ SETTINGS ]")
-                    .font(.system(.title, design: .monospaced, weight: .bold))
-                    .foregroundColor(.green)
+                Text(themeManager.currentTheme.headerStyle == .brackets ? "[ SETTINGS ]" : "Settings")
+                    .themedTitle()
                 Spacer()
             }
             .padding()
-            .background(.ultraThinMaterial)
+            .background(themeManager.currentTheme.materialStyle)
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     
+                    // APPEARANCE SECTION
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("APPEARANCE")
+                            .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("Theme")
+                                    .themedBody()
+                                    .fontWeight(.bold)
+                                
+                                Spacer()
+                                
+                                Picker("Theme", selection: $themeManager.themeType) {
+                                    ForEach(ThemeType.allCases, id: \.self) { theme in
+                                        Text(theme.rawValue)
+                                            .tag(theme)
+                                    }
+                                }
+                                .pickerStyle(SegmentedPickerStyle())
+                                .frame(width: 150)
+                            }
+                            
+                            Text(themeManager.themeType == .light ? "Clean and modern interface for everyday use" : "Terminal-style interface for power users")
+                                .themedCaption()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding()
+                        .background(themeManager.currentTheme.materialStyle)
+                        .cornerRadius(themeManager.currentTheme.cornerRadius)
+                    }
+                    
                     VStack(alignment: .leading, spacing: 16) {
                         Text("NOTIFICATIONS")
-                            .font(.system(.headline, design: .monospaced, weight: .bold))
-                            .foregroundColor(.secondary)
+                            .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         
                         VStack(spacing: 12) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("Daily Reminders")
-                                        .font(.system(.body, design: .monospaced, weight: .bold))
+                                        .themedBody()
+                                        .fontWeight(.bold)
                                     Text("Get notified about high priority actions")
-                                        .font(.system(.caption, design: .monospaced))
-                                        .foregroundColor(.secondary)
+                                        .themedCaption()
                                 }
                                 
                                 Spacer()
                                 
                                 Toggle("", isOn: $notificationService.isNotificationEnabled)
-                                    .toggleStyle(SwitchToggleStyle(tint: .green))
+                                    .toggleStyle(SwitchToggleStyle(tint: themeManager.currentTheme.accentColor))
                                     .onChange(of: notificationService.isNotificationEnabled) { _, newValue in
                                         handleNotificationToggle(newValue)
                                     }
@@ -64,31 +97,34 @@ struct SettingsView: View {
                             if notificationService.isNotificationEnabled {
                                 HStack {
                                     Text("Notification Time")
-                                        .font(.system(.body, design: .monospaced, weight: .bold))
+                                        .themedBody()
+                                        .fontWeight(.bold)
                                     
                                     Spacer()
                                     
                                     Button(action: { showingTimeSheet = true }) {
                                         Text(DateFormatter.timeFormatter.string(from: notificationService.notificationTime))
-                                            .font(.system(.body, design: .monospaced))
-                                            .foregroundColor(.blue)
+                                            .themedBody()
+                                            .foregroundColor(themeManager.currentTheme.accentColor)
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 6)
                                             .overlay(
                                                 Rectangle()
-                                                    .stroke(.blue, lineWidth: 1)
+                                                    .stroke(themeManager.currentTheme.accentColor, lineWidth: 1)
                                             )
                                     }
                                 }
                                 
                                 HStack {
                                     Text("Permission Status")
-                                        .font(.system(.body, design: .monospaced, weight: .bold))
+                                        .themedBody()
+                                        .fontWeight(.bold)
                                     
                                     Spacer()
                                     
                                     Text(permissionStatusText)
-                                        .font(.system(.caption, design: .monospaced, weight: .bold))
+                                        .themedCaption()
+                                        .fontWeight(.bold)
                                         .foregroundColor(permissionStatusColor)
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
@@ -98,14 +134,14 @@ struct SettingsView: View {
                             }
                         }
                         .padding()
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(8)
+                        .background(themeManager.currentTheme.materialStyle)
+                        .cornerRadius(themeManager.currentTheme.cornerRadius)
                     }
                     
                     VStack(alignment: .leading, spacing: 16) {
                         Text("STATISTICS")
-                            .font(.system(.headline, design: .monospaced, weight: .bold))
-                            .foregroundColor(.secondary)
+                            .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         
                         VStack(spacing: 12) {
                             StatRow(label: "Total Actions", value: "\(actions.count)")
@@ -114,15 +150,15 @@ struct SettingsView: View {
                             StatRow(label: "High Priority", value: "\(actions.filter { $0.priority == .high && !$0.isCompleted }.count)")
                         }
                         .padding()
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(8)
+                        .background(themeManager.currentTheme.materialStyle)
+                        .cornerRadius(themeManager.currentTheme.cornerRadius)
                     }
                     
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             Text("USAGE")
-                                .font(.system(.headline, design: .monospaced, weight: .bold))
-                                .foregroundColor(.secondary)
+                                .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                             
                             Spacer()
                             
@@ -145,33 +181,34 @@ struct SettingsView: View {
                                 HStack {
                                     Spacer()
                                     Text("Loading usage data...")
-                                        .font(.system(.body, design: .monospaced))
-                                        .foregroundColor(.secondary)
+                                        .themedBody()
+                                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                     Spacer()
                                 }
                             }
                         }
                         .padding()
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(8)
+                        .background(themeManager.currentTheme.materialStyle)
+                        .cornerRadius(themeManager.currentTheme.cornerRadius)
                     }
                     
                     VStack(alignment: .leading, spacing: 16) {
                         Text("ACCOUNT")
-                            .font(.system(.headline, design: .monospaced, weight: .bold))
-                            .foregroundColor(.secondary)
+                            .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         
                         VStack(spacing: 12) {
                             if let email = authManager.currentUser?.email {
                                 HStack {
                                     Text("Email")
-                                        .font(.system(.body, design: .monospaced))
+                                        .themedBody()
                                     
                                     Spacer()
                                     
                                     Text(email)
-                                        .font(.system(.body, design: .monospaced, weight: .bold))
-                                        .foregroundColor(.green)
+                                        .themedBody()
+                                        .fontWeight(.bold)
+                                        .foregroundColor(themeManager.currentTheme.accentColor)
                                 }
                             }
                             
@@ -179,42 +216,43 @@ struct SettingsView: View {
                                 HStack {
                                     Image(systemName: "rectangle.portrait.and.arrow.right")
                                     Text("LOG OUT")
-                                        .font(.system(.body, design: .monospaced, weight: .bold))
+                                        .themedBody()
+                                        .fontWeight(.bold)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(.red.opacity(0.2))
-                                .foregroundColor(.red)
-                                .cornerRadius(8)
+                                .background(themeManager.currentTheme.destructiveColor.opacity(0.2))
+                                .foregroundColor(themeManager.currentTheme.destructiveColor)
+                                .cornerRadius(themeManager.currentTheme.cornerRadius)
                             }
                         }
                         .padding()
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(8)
+                        .background(themeManager.currentTheme.materialStyle)
+                        .cornerRadius(themeManager.currentTheme.cornerRadius)
                     }
                     
                     VStack(alignment: .leading, spacing: 16) {
                         Text("ABOUT")
-                            .font(.system(.headline, design: .monospaced, weight: .bold))
-                            .foregroundColor(.secondary)
+                            .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         
                         VStack(alignment: .leading, spacing: 8) {
                             Text("SnipNote v1.0")
-                                .font(.system(.body, design: .monospaced, weight: .bold))
+                                .themedBody()
+                                .fontWeight(.bold)
                             Text("AI-powered voice note taking with smart action extraction")
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundColor(.secondary)
+                                .themedCaption()
                                 .lineLimit(2)
                         }
                         .padding()
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(8)
+                        .background(themeManager.currentTheme.materialStyle)
+                        .cornerRadius(themeManager.currentTheme.cornerRadius)
                     }
                 }
                 .padding()
             }
         }
-        .background(.black)
+        .themedBackground()
         .sheet(isPresented: $showingTimeSheet) {
             TimePickerSheet(selectedTime: $notificationService.notificationTime) { time in
                 notificationService.updateNotificationSettings(
@@ -267,12 +305,12 @@ struct SettingsView: View {
     
     private var permissionStatusColor: Color {
         switch permissionStatus {
-        case .authorized: return .green
-        case .denied: return .red
-        case .provisional: return .orange
-        case .ephemeral: return .orange
-        case .notDetermined: return .secondary
-        @unknown default: return .secondary
+        case .authorized: return themeManager.currentTheme.accentColor
+        case .denied: return themeManager.currentTheme.destructiveColor
+        case .provisional: return themeManager.currentTheme.warningColor
+        case .ephemeral: return themeManager.currentTheme.warningColor
+        case .notDetermined: return themeManager.currentTheme.secondaryTextColor
+        @unknown default: return themeManager.currentTheme.secondaryTextColor
         }
     }
     
@@ -325,17 +363,19 @@ struct SettingsView: View {
 struct StatRow: View {
     let label: String
     let value: String
+    @EnvironmentObject var themeManager: ThemeManager
     
     var body: some View {
         HStack {
             Text(label)
-                .font(.system(.body, design: .monospaced))
+                .themedBody()
             
             Spacer()
             
             Text(value)
-                .font(.system(.body, design: .monospaced, weight: .bold))
-                .foregroundColor(.green)
+                .themedBody()
+                .fontWeight(.bold)
+                .foregroundColor(themeManager.currentTheme.accentColor)
         }
     }
 }
@@ -359,7 +399,7 @@ struct TimePickerSheet: View {
                 Spacer()
             }
             .padding()
-            .background(.black)
+            .themedBackground()
             .navigationTitle("Notification Time")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -367,7 +407,7 @@ struct TimePickerSheet: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .foregroundColor(.red)
+                    .foregroundColor(ThemeManager.shared.currentTheme.destructiveColor)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -375,11 +415,10 @@ struct TimePickerSheet: View {
                         onTimeSelected(selectedTime)
                         dismiss()
                     }
-                    .foregroundColor(.green)
+                    .foregroundColor(ThemeManager.shared.currentTheme.accentColor)
                 }
             }
         }
-        .preferredColorScheme(.dark)
     }
 }
 

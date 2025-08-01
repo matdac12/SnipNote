@@ -15,6 +15,7 @@ struct SnipNoteApp: App {
     @State private var deepLinkAudioURL: URL?
     @State private var shouldNavigateToActions = false
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var themeManager = ThemeManager.shared
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -34,6 +35,8 @@ struct SnipNoteApp: App {
     var body: some Scene {
         WindowGroup {
             AuthenticationView(deepLinkAudioURL: $deepLinkAudioURL, shouldNavigateToActions: $shouldNavigateToActions)
+                .environmentObject(themeManager)
+                .themed()
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }

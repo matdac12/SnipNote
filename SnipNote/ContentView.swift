@@ -58,13 +58,21 @@ struct ContentView: View {
                 .badge(pendingActionsCount)
                 .tag(showNotesTab ? 2 : 1)
             
+            EveView()
+                .tabItem {
+                    Image(systemName: "wand.and.stars.inverse")
+                    Text(themeManager.currentTheme.headerStyle == .brackets ? "EVE" : "Eve")
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                }
+                .tag(showNotesTab ? 3 : 2)
+            
             SettingsView()
                 .tabItem {
                     Image(systemName: "gearshape")
                     Text(themeManager.currentTheme.headerStyle == .brackets ? "SETTINGS" : "Settings")
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 }
-                .tag(showNotesTab ? 3 : 2)
+                .tag(showNotesTab ? 4 : 3)
         }
         .onChange(of: deepLinkAudioURL) { _, newValue in
             if newValue != nil {
@@ -84,5 +92,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView(deepLinkAudioURL: .constant(nil), shouldNavigateToActions: .constant(false))
-        .modelContainer(for: [Note.self, Action.self, Meeting.self], inMemory: true)
+        .modelContainer(for: [Note.self, Action.self, Meeting.self, EveMessage.self, ChatConversation.self], inMemory: true)
 }

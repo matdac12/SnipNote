@@ -8,6 +8,7 @@
 import Foundation
 import Security
 import AVFoundation
+import SwiftData
 
 class OpenAIService: ObservableObject {
     static let shared = OpenAIService()
@@ -455,6 +456,66 @@ class OpenAIService: ObservableObject {
         } catch {
             return []
         }
+    }
+    
+    func chatWithEve(message: String, context: String, conversationHistory: [EveMessage]) async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Build conversation history for context
+        var messages: [ChatMessage] = []
+        
+        // System message
+        let systemPrompt = """
+        You are Eve, an AI assistant integrated into the SnipNote app. You help users understand and navigate their meetings, notes, and action items.
+        
+        You have access to the user's:
+        - Meeting transcripts, summaries, and notes
+        - Quick notes and their summaries
+        - Action items extracted from meetings and notes
+        
+        Be helpful, concise, and friendly. When referencing specific meetings or notes, mention their titles and dates.
+        If asked about specific people, topics, or dates, search through the provided context carefully.
+        Always respond in the same language as the user's message.
+        
+        Context about the user's content:
+        \(context)
+        """
+        
+        messages.append(ChatMessage(role: "system", content: systemPrompt))
+        
+        // Add conversation history (last 10 messages for context)
+        let recentHistory = conversationHistory.suffix(10)
+        for msg in recentHistory {
+            if msg.content != message { // Don't duplicate the current message
+                messages.append(ChatMessage(role: msg.role.rawValue, content: msg.content))
+            }
+        }
+        
+        // Add current user message
+        messages.append(ChatMessage(role: "user", content: message))
+        
+        let requestBody = ChatRequest(
+            model: "gpt-4.1",
+            messages: messages,
+            maxTokens: 800
+        )
+        
+        let jsonData = try JSONEncoder().encode(requestBody)
+        request.httpBody = jsonData
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+        
+        let content = response.choices.first?.message.content ?? "I'm sorry, I couldn't generate a response."
+        return stripMarkdown(content)
     }
     
     func generateActionsReport(groupedActions: [String: [(action: String, priority: String, isCompleted: Bool)]]) async throws -> String {

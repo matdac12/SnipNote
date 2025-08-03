@@ -16,10 +16,13 @@ class AudioPlayerManager: NSObject, ObservableObject {
     @Published var currentTime: TimeInterval = 0
     @Published var duration: TimeInterval = 0
     @Published var errorMessage: String?
+    @Published var playbackRate: Float = 1.0
     
     private var audioPlayer: AVAudioPlayer?
     private var timer: Timer?
     private var currentMeetingId: UUID?
+    
+    private let skipInterval: TimeInterval = 15.0
     
     override init() {
         super.init()
@@ -83,6 +86,8 @@ class AudioPlayerManager: NSObject, ObservableObject {
     }
     
     func play() {
+        audioPlayer?.enableRate = true
+        audioPlayer?.rate = playbackRate
         audioPlayer?.play()
         isPlaying = true
         startTimer()
@@ -106,6 +111,24 @@ class AudioPlayerManager: NSObject, ObservableObject {
     func seek(to time: TimeInterval) {
         audioPlayer?.currentTime = time
         currentTime = time
+    }
+    
+    func skipForward() {
+        let newTime = min(currentTime + skipInterval, duration)
+        seek(to: newTime)
+    }
+    
+    func skipBackward() {
+        let newTime = max(currentTime - skipInterval, 0)
+        seek(to: newTime)
+    }
+    
+    func setPlaybackRate(_ rate: Float) {
+        playbackRate = rate
+        audioPlayer?.rate = rate
+        if rate != 1.0 {
+            audioPlayer?.enableRate = true
+        }
     }
     
     private func startTimer() {

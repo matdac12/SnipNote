@@ -20,7 +20,9 @@ struct MeetingDetailView: View {
     @State private var tempName = ""
     @State private var tempSummary = ""
     @State private var showingTranscript = false
-    @State private var showingExportMenu = false
+    @State private var isDownloadingAudio = false
+    @State private var downloadProgress: Double = 0
+    @State private var showDownloadAlert = false
     @StateObject private var audioPlayer = AudioPlayerManager()
     
     private var relatedActions: [Action] {
@@ -55,8 +57,30 @@ struct MeetingDetailView: View {
             tempName = meeting.name
             tempSummary = meeting.aiSummary
         }
-        .sheet(isPresented: $showingExportMenu) {
-            exportMenuSheet
+        .overlay {
+            if isDownloadingAudio && showDownloadAlert {
+                ZStack {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                    
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .tint(themeManager.currentTheme.accentColor)
+                        
+                        Text("Downloading Audio...")
+                            .font(.headline)
+                        
+                        Text("Please wait while the audio file is being downloaded")
+                            .font(.caption)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    .padding(30)
+                    .background(themeManager.currentTheme.materialStyle)
+                    .cornerRadius(20)
+                }
+            }
         }
     }
     
@@ -93,7 +117,7 @@ struct MeetingDetailView: View {
                                 .themedCaption()
                             
                             if meeting.hasRecording {
-                                playButton
+                                MiniAudioPlayer(audioPlayer: audioPlayer, meeting: meeting)
                             }
                         }
                     }
@@ -350,9 +374,32 @@ struct MeetingDetailView: View {
             }
         } else if !meeting.audioTranscript.isEmpty {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    showingExportMenu = true
-                }) {
+                Menu {
+                    Button(action: shareSummary) {
+                        Label("Summary", systemImage: "doc.richtext")
+                    }
+                    
+                    Button(action: shareTranscript) {
+                        Label("Transcript", systemImage: "text.quote")
+                    }
+                    
+                    Button(action: shareEverything) {
+                        Label("Everything", systemImage: "doc.text")
+                    }
+                    
+                    if meeting.hasRecording {
+                        Divider()
+                        
+                        Button(action: shareAudio) {
+                            if isDownloadingAudio {
+                                Label("Downloading...", systemImage: "arrow.down.circle")
+                            } else {
+                                Label("Audio", systemImage: "waveform")
+                            }
+                        }
+                        .disabled(isDownloadingAudio)
+                    }
+                } label: {
                     Image(systemName: "square.and.arrow.down")
                         .font(.system(.body))
                         .foregroundColor(themeManager.currentTheme.accentColor)
@@ -361,41 +408,6 @@ struct MeetingDetailView: View {
         }
     }
     
-    private var exportMenuSheet: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                Text("Export Meeting")
-                    .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                
-                Button(action: {
-                    sharePlainText()
-                    showingExportMenu = false
-                }) {
-                    HStack {
-                        Image(systemName: "doc.text")
-                        Text("Export as Plain Text")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(themeManager.currentTheme.materialStyle)
-                    .cornerRadius(themeManager.currentTheme.cornerRadius)
-                }
-                
-                Spacer()
-            }
-            .padding()
-            .themedBackground()
-            .navigationBarTitle("Export Options", displayMode: .inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
-                        showingExportMenu = false
-                    }
-                    .foregroundColor(themeManager.currentTheme.accentColor)
-                }
-            }
-        }
-    }
     
     // MARK: - Helper Methods
     
@@ -450,7 +462,7 @@ struct MeetingDetailView: View {
         }
     }
     
-    private func sharePlainText() {
+    private func shareEverything() {
         let content = """
         Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
         Date: \(meeting.dateCreated.formatted())
@@ -488,26 +500,148 @@ struct MeetingDetailView: View {
         }
     }
     
-    // MARK: - Audio Player UI
-    
-    private var playButton: some View {
-        Button(action: {
-            Task {
-                await audioPlayer.loadAndPlayAudio(for: meeting)
+    private func shareSummary() {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateString = dateFormatter.string(from: meeting.dateCreated)
+        
+        let content = """
+        Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
+        Date: \(meeting.dateCreated.formatted())
+        Location: \(meeting.location.isEmpty ? "N/A" : meeting.location)
+        Duration: \(meeting.durationFormatted)
+        
+        Summary:
+        \(meeting.aiSummary.isEmpty ? "No summary available" : meeting.aiSummary)
+        """
+        
+        do {
+            let filename = "\(meeting.name.isEmpty ? "Meeting" : meeting.name.replacingOccurrences(of: " ", with: "_"))_Summary_\(dateString).txt"
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+            try content.write(to: url, atomically: true, encoding: String.Encoding.utf8)
+            
+            let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first,
+               let rootVC = window.rootViewController {
+                activityVC.popoverPresentationController?.sourceView = rootVC.view
+                activityVC.popoverPresentationController?.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                rootVC.present(activityVC, animated: true)
             }
-        }) {
-            if audioPlayer.isLoading {
-                ProgressView()
-                    .scaleEffect(0.8)
-                    .frame(width: 24, height: 24)
-            } else {
-                Image(systemName: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(themeManager.currentTheme.accentColor)
-                    .symbolEffect(.bounce, value: audioPlayer.isPlaying)
+        } catch {
+            print("Error sharing summary: \(error)")
+        }
+    }
+    
+    private func shareTranscript() {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateString = dateFormatter.string(from: meeting.dateCreated)
+        
+        let content = """
+        Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
+        Date: \(meeting.dateCreated.formatted())
+        
+        Transcript:
+        \(meeting.audioTranscript.isEmpty ? "No transcript available" : meeting.audioTranscript)
+        """
+        
+        do {
+            let filename = "\(meeting.name.isEmpty ? "Meeting" : meeting.name.replacingOccurrences(of: " ", with: "_"))_Transcript_\(dateString).txt"
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+            try content.write(to: url, atomically: true, encoding: String.Encoding.utf8)
+            
+            let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first,
+               let rootVC = window.rootViewController {
+                activityVC.popoverPresentationController?.sourceView = rootVC.view
+                activityVC.popoverPresentationController?.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                rootVC.present(activityVC, animated: true)
+            }
+        } catch {
+            print("Error sharing transcript: \(error)")
+        }
+    }
+    
+    private func shareAudio() {
+        isDownloadingAudio = true
+        downloadProgress = 0
+        
+        // Show alert for downloads that might take time
+        if meeting.duration > 60 { // Show alert for recordings longer than 1 minute
+            showDownloadAlert = true
+        }
+        
+        print("🎵 Starting audio download - Duration: \(meeting.duration)s")
+        
+        Task {
+            do {
+                // Get audio URL from Supabase
+                guard let audioURL = try await SupabaseManager.shared.getAudioURL(for: meeting.id) else {
+                    await MainActor.run {
+                        isDownloadingAudio = false
+                        showDownloadAlert = false
+                        print("❌ No audio URL found")
+                    }
+                    return
+                }
+                
+                print("🎵 Got audio URL: \(audioURL)")
+                
+                // Download audio using URLSession
+                let session = URLSession(configuration: .default)
+                let (tempLocalURL, _) = try await session.download(from: audioURL)
+                
+                print("🎵 Download completed to: \(tempLocalURL)")
+                
+                // Create proper filename
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd"
+                let dateString = dateFormatter.string(from: meeting.dateCreated)
+                let filename = "\(meeting.name.isEmpty ? "Meeting" : meeting.name.replacingOccurrences(of: " ", with: "_"))_\(dateString).m4a"
+                let destinationURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+                
+                // Move file to proper location with correct name
+                try? FileManager.default.removeItem(at: destinationURL) // Remove if exists
+                try FileManager.default.moveItem(at: tempLocalURL, to: destinationURL)
+                
+                await MainActor.run {
+                    isDownloadingAudio = false
+                    showDownloadAlert = false
+                    
+                    print("🎵 Presenting share sheet for: \(destinationURL)")
+                    
+                    // Present share sheet
+                    let activityVC = UIActivityViewController(activityItems: [destinationURL], applicationActivities: nil)
+                    
+                    // Clean up temp file after sharing
+                    activityVC.completionWithItemsHandler = { _, _, _, _ in
+                        print("🎵 Cleaning up temporary file")
+                        try? FileManager.default.removeItem(at: destinationURL)
+                    }
+                    
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let window = windowScene.windows.first,
+                       let rootVC = window.rootViewController {
+                        activityVC.popoverPresentationController?.sourceView = rootVC.view
+                        activityVC.popoverPresentationController?.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                        rootVC.present(activityVC, animated: true)
+                        print("🎵 Share sheet presented")
+                    } else {
+                        print("❌ Could not present share sheet - no root view controller")
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isDownloadingAudio = false
+                    showDownloadAlert = false
+                    print("❌ Error sharing audio: \(error)")
+                    print("❌ Error details: \(error.localizedDescription)")
+                }
             }
         }
-        .disabled(audioPlayer.isLoading)
-        .sensoryFeedback(.impact, trigger: audioPlayer.isPlaying)
     }
 }

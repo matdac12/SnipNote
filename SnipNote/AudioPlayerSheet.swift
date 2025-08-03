@@ -12,9 +12,22 @@ struct AudioPlayerSheet: View {
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.dismiss) private var dismiss
     
-    let meeting: Meeting
+    var meeting: Meeting?
+    var note: Note?
     @State private var isDragging = false
     @State private var dragValue: Double = 0
+    
+    init(audioPlayer: AudioPlayerManager, meeting: Meeting) {
+        self.audioPlayer = audioPlayer
+        self.meeting = meeting
+        self.note = nil
+    }
+    
+    init(audioPlayer: AudioPlayerManager, note: Note) {
+        self.audioPlayer = audioPlayer
+        self.meeting = nil
+        self.note = note
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -58,26 +71,39 @@ struct AudioPlayerSheet: View {
                             )
                             .padding(.horizontal)
                         
-                        // Meeting title and info
+                        // Meeting/Note title and info
                         VStack(spacing: 8) {
-                            Text(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
-                                .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
-                                .multilineTextAlignment(.center)
-                            
-                            HStack {
-                                if !meeting.location.isEmpty {
+                            if let meeting = meeting {
+                                Text(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
+                                    .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                                    .multilineTextAlignment(.center)
+                                
+                                HStack {
+                                    if !meeting.location.isEmpty {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "location")
+                                                .font(.caption)
+                                            Text(meeting.location)
+                                                .themedCaption()
+                                        }
+                                    }
+                                    
                                     HStack(spacing: 4) {
-                                        Image(systemName: "location")
+                                        Image(systemName: "calendar")
                                             .font(.caption)
-                                        Text(meeting.location)
+                                        Text(meeting.dateCreated.formatted(date: .abbreviated, time: .shortened))
                                             .themedCaption()
                                     }
                                 }
+                            } else if let note = note {
+                                Text(note.title.isEmpty ? "Untitled Note" : note.title)
+                                    .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                                    .multilineTextAlignment(.center)
                                 
                                 HStack(spacing: 4) {
                                     Image(systemName: "calendar")
                                         .font(.caption)
-                                    Text(meeting.dateCreated.formatted(date: .abbreviated, time: .shortened))
+                                    Text(note.dateCreated.formatted(date: .abbreviated, time: .shortened))
                                         .themedCaption()
                                 }
                             }

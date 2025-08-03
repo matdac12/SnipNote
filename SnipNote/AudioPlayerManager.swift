@@ -85,6 +85,53 @@ class AudioPlayerManager: NSObject, ObservableObject {
         }
     }
     
+    func loadAndPlayAudio(for note: Note) async {
+        // If we're already playing this note, just toggle play/pause
+        if currentMeetingId == note.id, let player = audioPlayer {
+            if player.isPlaying {
+                pause()
+            } else {
+                play()
+            }
+            return
+        }
+        
+        // Stop current playback if any
+        stop()
+        
+        isLoading = true
+        errorMessage = nil
+        currentMeetingId = note.id
+        
+        do {
+            // Get signed URL from Supabase
+            guard let audioURL = try await SupabaseManager.shared.getNoteAudioURL(for: note.id) else {
+                errorMessage = "Audio not found"
+                isLoading = false
+                return
+            }
+            
+            // Download audio data
+            let (data, _) = try await URLSession.shared.data(from: audioURL)
+            
+            // Create audio player
+            audioPlayer = try AVAudioPlayer(data: data)
+            audioPlayer?.delegate = self
+            audioPlayer?.prepareToPlay()
+            
+            duration = audioPlayer?.duration ?? 0
+            isLoading = false
+            
+            // Start playing
+            play()
+            
+        } catch {
+            errorMessage = "Failed to load audio: \(error.localizedDescription)"
+            isLoading = false
+            currentMeetingId = nil
+        }
+    }
+    
     func play() {
         audioPlayer?.enableRate = true
         audioPlayer?.rate = playbackRate

@@ -248,6 +248,7 @@ class OpenAIService: ObservableObject {
         3. Important decisions or conclusions
         
         Keep the summary concise but comprehensive. Format as bullet points.
+        IMPORTANT: Preserve the original language of the transcript. If the transcript is in Italian, write your summary in Italian. If it's in English, write in English.
         
         Transcript: \(text)
         """
@@ -255,7 +256,7 @@ class OpenAIService: ObservableObject {
         let requestBody = ChatRequest(
             model: "gpt-4.1",
             messages: [
-                ChatMessage(role: "system", content: "You are a helpful assistant that summarizes spoken notes into actionable insights."),
+                ChatMessage(role: "system", content: "You are a helpful assistant that summarizes spoken notes into actionable insights. Always respond in the same language as the input transcript."),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: 500

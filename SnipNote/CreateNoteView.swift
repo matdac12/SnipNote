@@ -28,6 +28,8 @@ struct CreateNoteView: View {
     @State private var createdNoteId: UUID?
     @State private var navigateToNote = false
     @State private var hasFinishedRecording = false
+    @State private var recordingStartTime: Date?
+    @State private var recordingEndTime: Date?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -142,11 +144,15 @@ struct CreateNoteView: View {
             return
         }
         
+        recordingStartTime = Date()
         currentRecordingURL = audioRecorder.startRecording()
     }
     
     private func stopRecordingAndProcess() {
         guard let recordingURL = audioRecorder.stopRecording() else { return }
+        
+        recordingEndTime = Date()
+        let duration = recordingEndTime?.timeIntervalSince(recordingStartTime ?? Date()) ?? 0
         
         // Set state to show "CREATING NOTE..." instead of "TAP TO RECORD"
         hasFinishedRecording = true
@@ -173,6 +179,29 @@ struct CreateNoteView: View {
                 
                 // Track successful transcription
                 await UsageTracker.shared.trackNoteCreated(transcribed: true)
+                
+                // Upload audio to Supabase before deleting local file
+                if let noteId = createdNoteId {
+                    do {
+                        _ = try await SupabaseManager.shared.uploadNoteAudioRecording(
+                            audioURL: recordingURL,
+                            noteId: noteId,
+                            duration: duration
+                        )
+                        print("🎵 Note audio uploaded successfully")
+                        
+                        // Update note with hasRecording flag
+                        await MainActor.run {
+                            if let note = createdNote {
+                                note.hasRecording = true
+                                note.startTime = recordingStartTime
+                                note.endTime = recordingEndTime
+                            }
+                        }
+                    } catch {
+                        print("❌ Failed to upload note audio: \(error)")
+                    }
+                }
                 
                 await MainActor.run {
                     updateNoteWithTranscript(transcript: transcript)

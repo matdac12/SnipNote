@@ -117,7 +117,9 @@ struct MeetingDetailView: View {
                                 .themedCaption()
                             
                             if meeting.hasRecording {
-                                MiniAudioPlayer(audioPlayer: audioPlayer, meeting: meeting)
+                                MiniAudioPlayer(audioPlayer: audioPlayer, item: meeting) { meeting in
+                                    await audioPlayer.loadAndPlayAudio(for: meeting)
+                                }
                             }
                         }
                     }

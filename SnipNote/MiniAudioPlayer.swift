@@ -7,10 +7,11 @@
 
 import SwiftUI
 
-struct MiniAudioPlayer: View {
+struct MiniAudioPlayer<T>: View where T: AnyObject {
     @ObservedObject var audioPlayer: AudioPlayerManager
     @EnvironmentObject var themeManager: ThemeManager
-    let meeting: Meeting
+    let item: T
+    let loadAction: (T) async -> Void
     
     @State private var isExpanded = false
     @State private var showFullPlayer = false
@@ -25,7 +26,7 @@ struct MiniAudioPlayer: View {
             // Play/Pause Button
             Button(action: {
                 Task {
-                    await audioPlayer.loadAndPlayAudio(for: meeting)
+                    await loadAction(item)
                 }
             }) {
                 if audioPlayer.isLoading {
@@ -106,8 +107,13 @@ struct MiniAudioPlayer: View {
             }
         }
         .sheet(isPresented: $showFullPlayer) {
-            AudioPlayerSheet(audioPlayer: audioPlayer, meeting: meeting)
-                .environmentObject(themeManager)
+            if let meeting = item as? Meeting {
+                AudioPlayerSheet(audioPlayer: audioPlayer, meeting: meeting)
+                    .environmentObject(themeManager)
+            } else if let note = item as? Note {
+                AudioPlayerSheet(audioPlayer: audioPlayer, note: note)
+                    .environmentObject(themeManager)
+            }
         }
     }
 }

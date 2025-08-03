@@ -22,6 +22,7 @@ final class Meeting {
     var endTime: Date?
     var dateCreated: Date
     var dateModified: Date
+    var hasRecording: Bool = false // Indicates if audio is stored in Supabase
     
     // Computed property for duration
     var duration: TimeInterval {
@@ -36,7 +37,7 @@ final class Meeting {
         return formatter.string(from: duration) ?? "0s"
     }
     
-    init(name: String = "", location: String = "", meetingNotes: String = "", audioTranscript: String = "", shortSummary: String = "", aiSummary: String = "", isProcessing: Bool = false) {
+    init(name: String = "", location: String = "", meetingNotes: String = "", audioTranscript: String = "", shortSummary: String = "", aiSummary: String = "", isProcessing: Bool = false, hasRecording: Bool = false) {
         self.id = UUID()
         self.name = name
         self.location = location
@@ -45,6 +46,7 @@ final class Meeting {
         self.shortSummary = shortSummary
         self.aiSummary = aiSummary
         self.isProcessing = isProcessing
+        self.hasRecording = hasRecording
         self.startTime = nil
         self.endTime = nil
         self.dateCreated = Date()

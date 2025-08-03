@@ -419,6 +419,24 @@ struct CreateMeetingView: View {
                     updateMeetingWithTranscript(transcript: transcript)
                 }
                 
+                // Upload imported audio to Supabase
+                if let meeting = createdMeeting {
+                    do {
+                        _ = try await SupabaseManager.shared.uploadAudioRecording(
+                            audioURL: audioURL,
+                            meetingId: meeting.id,
+                            duration: importedAudioDuration
+                        )
+                        
+                        // Update meeting to indicate it has a recording
+                        await MainActor.run {
+                            meeting.hasRecording = true
+                        }
+                    } catch {
+                        print("Error uploading imported audio to Supabase: \(error)")
+                    }
+                }
+                
                 // Process AI analysis
                 let overview = try await openAIService.generateMeetingOverview(transcript)
                 let summary = try await openAIService.summarizeMeeting(transcript)
@@ -478,8 +496,28 @@ struct CreateMeetingView: View {
                 
                 await MainActor.run {
                     updateMeetingWithTranscript(transcript: transcript)
-                    audioRecorder.deleteRecording(at: recordingURL)
                 }
+                
+                // Upload audio to Supabase before deleting local file
+                if let meeting = createdMeeting {
+                    do {
+                        _ = try await SupabaseManager.shared.uploadAudioRecording(
+                            audioURL: recordingURL,
+                            meetingId: meeting.id,
+                            duration: recordingDuration
+                        )
+                        
+                        // Update meeting to indicate it has a recording
+                        await MainActor.run {
+                            meeting.hasRecording = true
+                        }
+                    } catch {
+                        print("Error uploading audio to Supabase: \(error)")
+                    }
+                }
+                
+                // Delete local recording after successful upload
+                audioRecorder.deleteRecording(at: recordingURL)
                 
                 // Process AI in background after navigation
                 let overview = try await openAIService.generateMeetingOverview(transcript)

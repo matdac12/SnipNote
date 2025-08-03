@@ -21,6 +21,7 @@ struct MeetingDetailView: View {
     @State private var tempSummary = ""
     @State private var showingTranscript = false
     @State private var showingExportMenu = false
+    @StateObject private var audioPlayer = AudioPlayerManager()
     
     private var relatedActions: [Action] {
         allActions.filter { $0.sourceNoteId == meeting.id }
@@ -87,8 +88,14 @@ struct MeetingDetailView: View {
                     }
                     
                     if meeting.duration > 0 {
-                        Text("⏱️ \(meeting.durationFormatted)")
-                            .themedCaption()
+                        HStack(spacing: 8) {
+                            Text("⏱️ \(meeting.durationFormatted)")
+                                .themedCaption()
+                            
+                            if meeting.hasRecording {
+                                playButton
+                            }
+                        }
                     }
                 }
             }
@@ -479,5 +486,28 @@ struct MeetingDetailView: View {
         } catch {
             print("Error sharing content: \(error)")
         }
+    }
+    
+    // MARK: - Audio Player UI
+    
+    private var playButton: some View {
+        Button(action: {
+            Task {
+                await audioPlayer.loadAndPlayAudio(for: meeting)
+            }
+        }) {
+            if audioPlayer.isLoading {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .frame(width: 24, height: 24)
+            } else {
+                Image(systemName: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(themeManager.currentTheme.accentColor)
+                    .symbolEffect(.bounce, value: audioPlayer.isPlaying)
+            }
+        }
+        .disabled(audioPlayer.isLoading)
+        .sensoryFeedback(.impact, trigger: audioPlayer.isPlaying)
     }
 }

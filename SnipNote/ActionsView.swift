@@ -26,14 +26,7 @@ struct ActionsView: View {
         case toDo = "TO DO"
         case completed = "COMPLETED"
     }
-
-    private struct ActionGroup: Identifiable {
-        let id: String
-        let title: String
-        let reportTitle: String
-        var actions: [Action]
-    }
-
+    
     private var filteredActions: [Action] {
         switch filter {
         case .toDo:
@@ -42,16 +35,34 @@ struct ActionsView: View {
             return allActions.filter { $0.isCompleted }
         }
     }
+    
+    private var groupedActions: [String: [Action]] {
+        var grouped: [String: [Action]] = [:]
 
-    private var actionGroups: [ActionGroup] {
-        buildGroups(from: filteredActions)
+        for action in filteredActions {
+            guard let sourceId = action.sourceNoteId else { continue }
+
+            var groupTitle = "Unknown Source"
+
+            if let meeting = allMeetings.first(where: { $0.id == sourceId }) {
+                let meetingName = meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
+                groupTitle = "M • \(meetingName)"
+            } else {
+                // Handle orphaned note actions gracefully
+                groupTitle = "Legacy Notes"
+            }
+
+            if grouped[groupTitle] == nil {
+                grouped[groupTitle] = []
+            }
+            grouped[groupTitle]?.append(action)
+        }
+
+        return grouped
     }
     
     var body: some View {
-        let groups = actionGroups
-        let groupIDs = groups.map(\.id)
-
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             
             HStack {
                 Text(themeManager.currentTheme.headerStyle == .brackets ? "[ ACTIONS ]" : "Actions")
@@ -112,8 +123,10 @@ struct ActionsView: View {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             allExpanded.toggle()
                             if allExpanded {
-                                expandedSections = Set(groupIDs)
+                                // Expand all sections
+                                expandedSections = Set(groupedActions.keys)
                             } else {
+                                // Collapse all sections
                                 expandedSections.removeAll()
                             }
                         }
@@ -146,21 +159,21 @@ struct ActionsView: View {
                 }
             } else {
                 List {
-                    ForEach(groups) { group in
+                    ForEach(groupedActions.keys.sorted(), id: \.self) { groupTitle in
                         // Group header (always visible as separate row)
                         ExpandableGroupHeaderView(
-                            title: group.title,
-                            actionCount: group.actions.count,
-                            isExpanded: expandedSections.contains(group.id),
+                            title: groupTitle,
+                            actionCount: groupedActions[groupTitle]?.count ?? 0,
+                            isExpanded: expandedSections.contains(groupTitle),
                             onTap: {
                                 withAnimation(.easeInOut(duration: 0.2)) {
-                                    if expandedSections.contains(group.id) {
-                                        expandedSections.remove(group.id)
+                                    if expandedSections.contains(groupTitle) {
+                                        expandedSections.remove(groupTitle)
                                     } else {
-                                        expandedSections.insert(group.id)
+                                        expandedSections.insert(groupTitle)
                                     }
                                     // Update allExpanded state based on current sections
-                                    allExpanded = !groupIDs.isEmpty && expandedSections.count == groupIDs.count
+                                    allExpanded = expandedSections.count == groupedActions.count
                                 }
                             }
                         )
@@ -169,13 +182,13 @@ struct ActionsView: View {
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
                         
                         // Expandable actions (only show if expanded, each as separate row)
-                        if expandedSections.contains(group.id) {
-                            ForEach(group.actions.sorted(by: { 
+                        if expandedSections.contains(groupTitle) {
+                            ForEach(groupedActions[groupTitle]?.sorted(by: { 
                                 if $0.isCompleted != $1.isCompleted {
                                     return !$0.isCompleted && $1.isCompleted
                                 }
                                 return $0.dateCreated > $1.dateCreated
-                            })) { action in
+                            }) ?? []) { action in
                                 ActionRowView(action: action)
                                     .listRowBackground(Color.clear)
                                     .listRowSeparator(.hidden)
@@ -207,12 +220,6 @@ struct ActionsView: View {
         .themedBackground()
         .sheet(isPresented: $showingReport) {
             ActionsReportView(reportContent: reportContent)
-                .environmentObject(themeManager)
-        }
-        .onChange(of: groupIDs) { _, newIDs in
-            let idSet = Set(newIDs)
-            expandedSections = expandedSections.intersection(idSet)
-            allExpanded = !idSet.isEmpty && expandedSections == idSet
         }
     }
     
@@ -277,17 +284,37 @@ struct ActionsView: View {
         
         Task {
             do {
-                // Rebuild groupings with stable identifiers (includes completed actions)
-                let allGroups = buildGroups(from: allActions)
-                var allActionsData: [String: [(action: String, priority: String, isCompleted: Bool)]] = [:]
-                for group in allGroups {
-                    allActionsData[group.reportTitle] = group.actions.map { action in
-                        (action: action.title,
+                // Prepare data for report generation
+                var actionsData: [String: [(action: String, priority: String, isCompleted: Bool)]] = [:]
+                
+                for (groupTitle, actions) in groupedActions {
+                    actionsData[groupTitle] = actions.map { action in
+                        (action: action.title, 
                          priority: action.priority.rawValue,
                          isCompleted: action.isCompleted)
                     }
                 }
-
+                
+                // Also include completed actions for a comprehensive report
+                let allGroupedActions = Dictionary(grouping: allActions) { action -> String in
+                    guard let sourceId = action.sourceNoteId else { return "Unknown Source" }
+                    
+                    if let meeting = allMeetings.first(where: { $0.id == sourceId }) {
+                        let meetingName = meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
+                        return "M • \(meetingName)"
+                    }
+                    return "Unknown Source"
+                }
+                
+                var allActionsData: [String: [(action: String, priority: String, isCompleted: Bool)]] = [:]
+                for (groupTitle, actions) in allGroupedActions {
+                    allActionsData[groupTitle] = actions.map { action in
+                        (action: action.title, 
+                         priority: action.priority.rawValue,
+                         isCompleted: action.isCompleted)
+                    }
+                }
+                
                 reportContent = try await OpenAIService.shared.generateActionsReport(groupedActions: allActionsData)
                 showingReport = true
             } catch {
@@ -299,44 +326,7 @@ struct ActionsView: View {
             isGeneratingReport = false
         }
     }
-
-    private func buildGroups(from actions: [Action]) -> [ActionGroup] {
-        let meetingLookup = Dictionary(uniqueKeysWithValues: allMeetings.map { ($0.id, $0) })
-        var groups: [String: ActionGroup] = [:]
-
-        for action in actions {
-            let key: String
-            let displayTitle: String
-            let reportTitle: String
-
-            if let sourceId = action.sourceNoteId, let meeting = meetingLookup[sourceId] {
-                key = "meeting-\(meeting.id.uuidString)"
-                let meetingName = meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
-                displayTitle = "M • \(meetingName)"
-                reportTitle = "\(displayTitle) [\(meeting.id.uuidString.prefix(6).uppercased())]"
-            } else {
-                key = "orphaned"
-                displayTitle = "Unlinked Actions"
-                reportTitle = displayTitle
-            }
-
-            if var group = groups[key] {
-                group.actions.append(action)
-                groups[key] = group
-            } else {
-                groups[key] = ActionGroup(id: key, title: displayTitle, reportTitle: reportTitle, actions: [action])
-            }
-        }
-
-        return Array(groups.values).sorted { lhs, rhs in
-            let titleComparison = lhs.title.localizedCaseInsensitiveCompare(rhs.title)
-            if titleComparison == .orderedSame {
-                return lhs.id < rhs.id
-            }
-            return titleComparison == .orderedAscending
-        }
-    }
-
+    
 }
 
 struct ExpandableGroupHeaderView: View {

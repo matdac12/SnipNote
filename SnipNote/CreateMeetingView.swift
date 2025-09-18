@@ -1,0 +1,1548 @@
+//
+//  CreateMeetingView.swift
+//  SnipNote
+//
+//  Created by Mattia Da Campo on 26/06/25.
+//
+
+import SwiftUI
+import SwiftData
+import AVFoundation
+import StoreKit
+
+#if canImport(AVFAudio)
+import AVFAudio
+#endif
+
+struct CreateMeetingView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject var localizationManager: LocalizationManager
+    
+    var onMeetingCreated: ((Meeting) -> Void)?
+    var importedAudioURL: URL? // For shared audio files
+    
+    @StateObject private var audioRecorder = AudioRecorder()
+    @StateObject private var openAIService = OpenAIService.shared
+    @StateObject private var storeManager = StoreManager.shared
+    @Query private var allMeetings: [Meeting]
+    
+    @State private var meetingName = ""
+    @State private var meetingLocation = ""
+    @State private var meetingNotes = ""
+    @State private var meetingDate = Date()
+    @State private var isRecording = false
+    @State private var currentRecordingURL: URL?
+    @State private var createdMeeting: Meeting?
+    @State private var createdMeetingId: UUID?
+    @State private var showingAPIKeyAlert = false
+    @State private var apiKeyInput = ""
+    @State private var recordingStartTime: Date?
+    @State private var hasFinishedRecording = false
+    
+    // Timer for recording duration display
+    @State private var recordingTimer: Timer?
+    @State private var recordingDuration: TimeInterval = 0
+
+    // Processing state
+    @State private var isProcessingAudio = false
+
+    // Countdown state
+    @State private var showingCountdown = false
+    @State private var countdownValue = 3
+    @State private var countdownTimer: Timer?
+    
+    // Paywall state
+    @State private var showingPaywall = false
+    @State private var showingLimitAlert = false
+    @State private var showingDurationAlert = false
+    @State private var durationAlertMessage = ""
+    
+    private enum FocusedField: Hashable {
+        case name
+        case location
+        case notes
+    }
+
+    // Focus state for meeting detail inputs
+    @FocusState private var focusedField: FocusedField?
+    @State private var meetingNameTouched = false
+    @State private var showingDatePicker = false
+    @State private var pendingMeetingDate = Date()
+    @State private var isLocationExpanded = false
+    @State private var isNotesExpanded = false
+
+    // Recording animation state
+    @State private var recordingDotScale: CGFloat = 1.0
+
+    private enum MicrophonePermissionStatus: Equatable {
+        case granted
+        case denied
+        case undetermined
+
+        static func current() -> MicrophonePermissionStatus {
+            switch AVAudioApplication.shared.recordPermission {
+            case .granted: return .granted
+            case .denied: return .denied
+            case .undetermined: return .undetermined
+            @unknown default: return .undetermined
+            }
+        }
+    }
+
+    // Microphone permission state
+    @State private var microphonePermissionStatus: MicrophonePermissionStatus = MicrophonePermissionStatus.current()
+    @State private var showingMicPermissionHelp = false
+
+    // Meeting name validation
+    @State private var showingNameRequiredAlert = false
+    
+    // Computed properties for imported audio mode
+    private var hasImportedAudio: Bool {
+        let hasAudio = importedAudioURL != nil
+        print("🎵 hasImportedAudio: \(hasAudio), URL: \(importedAudioURL?.absoluteString ?? "nil")")
+        return hasAudio
+    }
+    
+    private var importedAudioDuration: TimeInterval {
+        guard let url = importedAudioURL else { 
+            print("❌ No imported audio URL")
+            return 0 
+        }
+        do {
+            let audioFile = try AVAudioFile(forReading: url)
+            let duration = Double(audioFile.length) / audioFile.fileFormat.sampleRate
+            print("🎵 Audio duration calculated: \(duration) seconds")
+            return duration
+        } catch {
+            print("❌ Failed to read audio file: \(error)")
+            return 0
+        }
+    }
+
+    private var meetingNameTrimmed: String {
+        meetingName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var meetingNameValidationMessage: String? {
+        guard meetingNameTouched else { return nil }
+        return meetingNameTrimmed.isEmpty ? "Meeting name is required." : nil
+    }
+
+    private var meetingNameHelperText: String {
+        meetingNameTrimmed.isEmpty ? "Give this meeting a descriptive title." : "Clear names help Eve keep meetings organized."
+    }
+
+    private var meetingNotesHelperText: String {
+        meetingNotes.isEmpty ? "Optional — capture agenda, attendees, or goals." : "\(meetingNotes.count) characters captured so far."
+    }
+
+    private var meetingLocationTrimmed: String {
+        meetingLocation.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var meetingNotesTrimmed: String {
+        meetingNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static let headerDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
+    private var meetingDateFormatted: String {
+        CreateMeetingView.headerDateFormatter.string(from: meetingDate)
+    }
+
+    private var meetingLocationSummary: String {
+        let trimmed = meetingLocationTrimmed
+        return trimmed.isEmpty ? "Optional — include room, link, or dial-in." : trimmed
+    }
+
+    private var meetingNotesSummary: String {
+        let trimmed = meetingNotesTrimmed
+        guard !trimmed.isEmpty else {
+            return "Optional — capture agenda, attendees, or goals."
+        }
+
+        let maxLength = 90
+        if trimmed.count > maxLength {
+            let index = trimmed.index(trimmed.startIndex, offsetBy: maxLength)
+            return String(trimmed[..<index]) + "…"
+        }
+        return trimmed
+    }
+
+    private func localized(_ key: String) -> String {
+        localizationManager.localizedString(key)
+    }
+
+    @ViewBuilder
+    private func headerView() -> some View {
+        let theme = themeManager.currentTheme
+
+        let localizedNewMeeting = localized("New Meeting")
+        let defaultTitle = theme.headerStyle == .brackets ? "[ \(localizedNewMeeting.uppercased()) ]" : localizedNewMeeting
+        let headerTitle = meetingNameTrimmed.isEmpty ? defaultTitle : meetingNameTrimmed
+
+        HStack(alignment: .center, spacing: 12) {
+            Text(headerTitle)
+                .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(theme.textColor)
+
+            Button {
+                pendingMeetingDate = meetingDate
+                showingDatePicker = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "calendar")
+                    Text(meetingDateFormatted)
+                }
+                .font(.system(.footnote, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                .foregroundColor(theme.accentColor)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(
+                    Capsule()
+                        .fill(theme.secondaryBackgroundColor.opacity(theme.colorScheme == .dark ? 0.55 : 0.2))
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(theme.accentColor.opacity(0.35), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Select meeting date")
+
+            Spacer()
+
+            Image(systemName: "sparkles")
+                .foregroundColor(theme.accentColor)
+                .font(.system(.title3, weight: .semibold))
+                .opacity(0.85)
+        }
+        .padding()
+        .background(headerBackgroundGradient(for: theme))
+        .overlay(headerBottomDivider(for: theme), alignment: .bottom)
+    }
+
+    private func headerBackgroundGradient(for theme: AppTheme) -> LinearGradient {
+        LinearGradient(
+            colors: [
+                theme.secondaryBackgroundColor.opacity(0.9),
+                theme.backgroundColor
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    @ViewBuilder
+    private func headerBottomDivider(for theme: AppTheme) -> some View {
+        Rectangle()
+            .fill(theme.secondaryTextColor.opacity(0.1))
+            .frame(height: 1)
+    }
+
+    @ViewBuilder
+    private func meetingDetailsSection() -> some View {
+        let theme = themeManager.currentTheme
+
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(spacing: 16) {
+                MeetingInputCard(title: "Meeting Name",
+                                 helper: meetingNameValidationMessage == nil ? meetingNameHelperText : nil,
+                                 error: meetingNameValidationMessage,
+                                 iconSystemName: "textformat") {
+                    TextField("Enter meeting name", text: $meetingName)
+                        .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
+                        .textInputAutocapitalization(.words)
+                        .disableAutocorrection(true)
+                        .focused($focusedField, equals: .name)
+                        .submitLabel(.next)
+                        .onSubmit {
+                            focusedField = .location
+                        }
+                        .onChange(of: meetingName) { _, _ in
+                            meetingNameTouched = true
+                        }
+                }
+                .id(FocusedField.name)
+
+                optionalLocationInput(theme: theme)
+                optionalNotesInput(theme: theme)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private func optionalLocationInput(theme: AppTheme) -> some View {
+        if isLocationExpanded {
+            expandedLocationCard(theme: theme)
+                .transition(.move(edge: .top).combined(with: .opacity))
+        } else {
+            optionalCollapsedCard(
+                theme: theme,
+                title: theme.headerStyle == .brackets ? "ADD LOCATION" : "Add Location",
+                subtitle: "Optional — include room, link, or dial-in.",
+                iconSystemName: "mappin.and.ellipse",
+                summary: meetingLocationTrimmed.isEmpty ? nil : meetingLocationSummary
+            ) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isLocationExpanded = true
+                    focusedField = .location
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func optionalNotesInput(theme: AppTheme) -> some View {
+        if isNotesExpanded {
+            expandedNotesCard(theme: theme)
+                .transition(.move(edge: .top).combined(with: .opacity))
+        } else {
+            optionalCollapsedCard(
+                theme: theme,
+                title: theme.headerStyle == .brackets ? "ADD NOTES" : "Add Notes",
+                subtitle: "Optional — capture agenda, attendees, or goals.",
+                iconSystemName: "note.text",
+                summary: meetingNotesTrimmed.isEmpty ? nil : meetingNotesSummary
+            ) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isNotesExpanded = true
+                    focusedField = .notes
+                }
+            }
+        }
+    }
+
+    private func expandedLocationCard(theme: AppTheme) -> some View {
+        MeetingInputCard(title: "Location",
+                         helper: meetingLocationTrimmed.isEmpty ? "Optional — include room, link, or dial-in." : nil,
+                         iconSystemName: "mappin.and.ellipse") {
+            TextField("Enter meeting location", text: $meetingLocation)
+                .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
+                .textInputAutocapitalization(.words)
+                .focused($focusedField, equals: .location)
+                .submitLabel(.next)
+                .onSubmit {
+                    focusedField = .notes
+                }
+        }
+        .id(FocusedField.location)
+        .overlay(alignment: .topTrailing) {
+            collapseSectionButton(theme: theme, accessibilityLabel: "Hide location") {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isLocationExpanded = false
+                    if focusedField == .location {
+                        focusedField = nil
+                    }
+                }
+            }
+        }
+    }
+
+    private func expandedNotesCard(theme: AppTheme) -> some View {
+        MeetingInputCard(title: "Notes",
+                         helper: meetingNotesHelperText,
+                         iconSystemName: "note.text",
+                         contentPadding: EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)) {
+            ZStack(alignment: .topLeading) {
+                if meetingNotesTrimmed.isEmpty {
+                    Text("Jot down talking points, decisions to make, or context for Eve.")
+                        .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
+                        .foregroundColor(theme.secondaryTextColor.opacity(0.6))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 8)
+                }
+
+                TextEditor(text: $meetingNotes)
+                    .focused($focusedField, equals: .notes)
+                    .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
+                    .frame(minHeight: 140)
+            }
+        }
+        .id(FocusedField.notes)
+        .overlay(alignment: .topTrailing) {
+            collapseSectionButton(theme: theme, accessibilityLabel: "Hide notes") {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isNotesExpanded = false
+                    if focusedField == .notes {
+                        focusedField = nil
+                    }
+                }
+            }
+        }
+    }
+
+    private func collapseSectionButton(theme: AppTheme, accessibilityLabel: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "chevron.up.circle.fill")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(theme.secondaryTextColor)
+                .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
+        }
+        .buttonStyle(.plain)
+        .padding(8)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private func optionalCollapsedCard(theme: AppTheme,
+                                       title: String,
+                                       subtitle: String,
+                                       iconSystemName: String,
+                                       summary: String?,
+                                       action: @escaping () -> Void) -> some View {
+        let displayTitle = theme.headerStyle == .brackets ? title.uppercased() : title
+        let detailText = summary?.isEmpty == false ? summary! : subtitle
+
+        return Button(action: action) {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: iconSystemName)
+                    .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                    .foregroundColor(theme.accentColor)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(displayTitle)
+                        .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(theme.secondaryTextColor)
+
+                    Text(detailText)
+                        .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default))
+                        .foregroundColor(theme.secondaryTextColor.opacity(0.9))
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer()
+
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(theme.accentColor)
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadius + 6)
+                .fill(theme.secondaryBackgroundColor.opacity(0.2))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.cornerRadius + 6)
+                .stroke(theme.accentColor.opacity(0.25), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(theme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
+        .padding(.horizontal, 10)
+    }
+
+    @ViewBuilder
+    private func meetingDatePickerSheet() -> some View {
+        let theme = themeManager.currentTheme
+
+        NavigationView {
+            VStack(spacing: 0) {
+                DatePicker(
+                    "Meeting Date",
+                    selection: $pendingMeetingDate,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .labelsHidden()
+                .tint(theme.accentColor)
+                .padding()
+
+                Spacer()
+            }
+            .background(theme.backgroundColor.ignoresSafeArea())
+            .navigationTitle("Meeting Date")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        pendingMeetingDate = meetingDate
+                        showingDatePicker = false
+                    }
+                    .foregroundColor(theme.secondaryTextColor)
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        meetingDate = pendingMeetingDate
+                        showingDatePicker = false
+                    }
+                    .foregroundColor(theme.accentColor)
+                }
+            }
+        }
+        .themed()
+        .onDisappear {
+            pendingMeetingDate = meetingDate
+        }
+    }
+
+    @ViewBuilder
+    private func microphonePermissionSection() -> some View {
+        let theme = themeManager.currentTheme
+
+        if !isPermissionGranted(microphonePermissionStatus) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "mic.slash.fill")
+                        .foregroundColor(isPermissionDenied(microphonePermissionStatus) ? theme.destructiveColor : theme.warningColor)
+                        .font(.system(size: 16))
+
+                    Text(isPermissionDenied(microphonePermissionStatus) ?
+                         (theme.headerStyle == .brackets ? "MICROPHONE ACCESS DENIED" : "Microphone Access Denied") :
+                         (theme.headerStyle == .brackets ? "MICROPHONE PERMISSION NEEDED" : "Microphone Permission Needed"))
+                        .font(.system(.headline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(isPermissionDenied(microphonePermissionStatus) ? theme.destructiveColor : theme.warningColor)
+
+                    Spacer()
+
+                    Button(action: {
+                        showingMicPermissionHelp.toggle()
+                    }) {
+                        Image(systemName: "questionmark.circle")
+                            .foregroundColor(theme.accentColor)
+                            .font(.system(size: 16))
+                    }
+                }
+
+                Text(isPermissionDenied(microphonePermissionStatus) ?
+                     "Recording requires microphone access. Please enable it in Settings > Privacy & Security > Microphone > SnipNote." :
+                     "To record meetings, SnipNote needs access to your microphone. Tap the record button and grant permission when prompted.")
+                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(theme.secondaryTextColor)
+
+                if showingMicPermissionHelp {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(theme.headerStyle == .brackets ? "TROUBLESHOOTING:" : "Troubleshooting:")
+                            .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(theme.accentColor)
+
+                        Text("1. Go to iOS Settings\n2. Find Privacy & Security\n3. Tap Microphone\n4. Enable SnipNote\n5. Return to the app")
+                            .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default))
+                            .foregroundColor(theme.secondaryTextColor)
+                    }
+                    .padding(.top, 4)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+            .padding()
+            .background(isPermissionDenied(microphonePermissionStatus) ? theme.destructiveColor.opacity(0.1) : theme.warningColor.opacity(0.1))
+            .cornerRadius(theme.cornerRadius)
+            .animation(.easeInOut(duration: 0.3), value: showingMicPermissionHelp)
+        }
+    }
+
+    @ViewBuilder
+    private func progressStepsSection() -> some View {
+        let theme = themeManager.currentTheme
+
+        HStack(spacing: 8) {
+            // Step 1: Record
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(audioRecorder.isRecording || hasFinishedRecording ? theme.accentColor : theme.secondaryTextColor.opacity(0.3))
+                    .frame(width: 8, height: 8)
+                Text(theme.headerStyle == .brackets ? "RECORD" : "Record")
+                    .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                    .foregroundColor(audioRecorder.isRecording || hasFinishedRecording ? theme.accentColor : theme.secondaryTextColor)
+            }
+
+            Rectangle()
+                .fill(hasFinishedRecording || isProcessingAudio ? theme.accentColor : theme.secondaryTextColor.opacity(0.3))
+                .frame(width: 20, height: 2)
+
+            // Step 2: Process
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(hasFinishedRecording || isProcessingAudio ? theme.accentColor : theme.secondaryTextColor.opacity(0.3))
+                    .frame(width: 8, height: 8)
+                Text(theme.headerStyle == .brackets ? "PROCESS" : "Process")
+                    .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                    .foregroundColor(hasFinishedRecording || isProcessingAudio ? theme.accentColor : theme.secondaryTextColor)
+            }
+
+            Rectangle()
+                .fill(theme.secondaryTextColor.opacity(0.3))
+                .frame(width: 20, height: 2)
+
+            // Step 3: Review
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(theme.secondaryTextColor.opacity(0.3))
+                    .frame(width: 8, height: 8)
+                Text(theme.headerStyle == .brackets ? "REVIEW" : "Review")
+                    .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                    .foregroundColor(theme.secondaryTextColor)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private func recordingSection() -> some View {
+        let theme = themeManager.currentTheme
+
+        VStack(spacing: 20) {
+            if hasImportedAudio {
+                importedAudioCard(theme: theme)
+            } else if audioRecorder.isRecording {
+                activeRecordingCard(theme: theme)
+            } else if hasFinishedRecording {
+                processingCard(theme: theme)
+            } else if showingCountdown {
+                countdownCard(theme: theme)
+            } else {
+                idleRecordingCard(theme: theme)
+            }
+        }
+        .padding(.top, 20)
+    }
+
+    private func formBackgroundGradient() -> LinearGradient {
+        let theme = themeManager.currentTheme
+        return LinearGradient(
+            colors: [
+                theme.secondaryBackgroundColor.opacity(0.15),
+                theme.backgroundColor
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    @ViewBuilder
+    private func importedAudioCard(theme: AppTheme) -> some View {
+        VStack(spacing: 20) {
+            Text(theme.headerStyle == .brackets ? "IMPORTED AUDIO READY" : "Imported Audio Ready")
+                .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(theme.accentColor)
+
+            Text("Duration: \(formatDuration(importedAudioDuration))")
+                .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(theme.accentColor)
+
+            if exceedsFreeTierDuration(importedAudioDuration) {
+                Text("This exceeds the free plan limit (\(FreeTierLimits.durationDescription) max). Upgrade to SnipNote Pro for longer meetings.")
+                    .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                    .foregroundColor(theme.warningColor)
+                    .multilineTextAlignment(.center)
+            }
+
+            Rectangle()
+                .fill(theme.accentColor)
+                .frame(width: 200, height: 4)
+                .opacity(0.7)
+
+            if hasFinishedRecording || isProcessingAudio {
+                VStack(spacing: 20) {
+                    Text(theme.headerStyle == .brackets ? "PROCESSING MEETING..." : "Processing meeting...")
+                        .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(theme.warningColor)
+
+                    ProgressView()
+                        .scaleEffect(1.5)
+                }
+            } else {
+                Button(theme.headerStyle == .brackets ? "ANALYZE MEETING" : "Analyze Meeting") {
+                    analyzeImportedAudio()
+                }
+                .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(theme.backgroundColor)
+                .padding()
+                .background(theme.accentColor)
+                .cornerRadius(theme.cornerRadius)
+                .disabled(meetingNameTrimmed.isEmpty)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func activeRecordingCard(theme: AppTheme) -> some View {
+        VStack(spacing: 20) {
+            HStack {
+                if !audioRecorder.isPaused {
+                    Circle()
+                        .fill(theme.destructiveColor)
+                        .frame(width: 12, height: 12)
+                        .scaleEffect(recordingDotScale)
+                        .opacity(0.9)
+                        .onAppear {
+                            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                                recordingDotScale = 1.4
+                            }
+                        }
+                        .onDisappear {
+                            recordingDotScale = 1.0
+                        }
+                }
+
+                Text(theme.headerStyle == .brackets ? (audioRecorder.isPaused ? "MEETING PAUSED" : "RECORDING MEETING...") : (audioRecorder.isPaused ? "Meeting Paused" : "Recording Meeting..."))
+                    .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(audioRecorder.isPaused ? theme.warningColor : theme.destructiveColor)
+            }
+
+            Text(formatDuration(recordingDuration))
+                .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(audioRecorder.isPaused ? theme.warningColor : theme.destructiveColor)
+
+            WaveformView(
+                level: audioRecorder.isPaused ? 0.3 : audioRecorder.recordingLevel,
+                isRecording: !audioRecorder.isPaused,
+                accentColor: audioRecorder.isPaused ? theme.warningColor : theme.destructiveColor
+            )
+            .frame(height: 60)
+
+            if exceedsFreeTierDuration(recordingDuration) {
+                Text("This exceeds the free plan limit (\(FreeTierLimits.durationDescription) max). Upgrade to SnipNote Pro for longer meetings.")
+                    .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                    .foregroundColor(theme.warningColor)
+                    .multilineTextAlignment(.center)
+                    .transition(.opacity)
+            }
+
+            VStack(spacing: 12) {
+                Button(theme.headerStyle == .brackets ? "STOP MEETING" : "Stop Meeting") {
+                    stopMeetingRecording()
+                }
+                .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(theme.backgroundColor)
+                .padding()
+                .background(theme.destructiveColor)
+                .cornerRadius(theme.cornerRadius)
+
+                Button(audioRecorder.isPaused ? (theme.headerStyle == .brackets ? "RESUME" : "Resume") : (theme.headerStyle == .brackets ? "PAUSE" : "Pause")) {
+                    if audioRecorder.isPaused {
+                        resumeMeetingRecording()
+                    } else {
+                        pauseMeetingRecording()
+                    }
+                }
+                .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(theme.secondaryTextColor)
+                .padding()
+                .background(theme.secondaryTextColor.opacity(0.2))
+                .cornerRadius(theme.cornerRadius)
+
+                Button(role: .destructive) {
+                    cancelMeetingRecording()
+                } label: {
+                    Text(theme.headerStyle == .brackets ? "CANCEL" : "Cancel")
+                        .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(theme.secondaryTextColor)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(theme.secondaryTextColor.opacity(0.2))
+                        .cornerRadius(theme.cornerRadius)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func processingCard(theme: AppTheme) -> some View {
+        VStack(spacing: 20) {
+            Text(theme.headerStyle == .brackets ? "PROCESSING MEETING..." : "Processing meeting...")
+                .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(theme.warningColor)
+
+            ProgressView()
+                .scaleEffect(1.5)
+        }
+    }
+
+    @ViewBuilder
+    private func countdownCard(theme: AppTheme) -> some View {
+        VStack(spacing: 20) {
+            Text(theme.headerStyle == .brackets ? "STARTING IN..." : "Starting in...")
+                .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(theme.warningColor)
+
+            Text("\(countdownValue)")
+                .font(.system(.largeTitle, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(theme.accentColor)
+                .scaleEffect(countdownValue > 0 ? 1.5 : 0.8)
+                .animation(.easeOut(duration: 0.3), value: countdownValue)
+
+            Button(theme.headerStyle == .brackets ? "CANCEL" : "Cancel") {
+                cancelCountdown()
+            }
+            .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+            .foregroundColor(theme.destructiveColor)
+            .padding()
+            .background(theme.destructiveColor.opacity(0.2))
+            .cornerRadius(theme.cornerRadius)
+        }
+    }
+
+    @ViewBuilder
+    private func idleRecordingCard(theme: AppTheme) -> some View {
+        VStack(spacing: 16) {
+            Button(theme.headerStyle == .brackets ? "START MEETING RECORDING" : "Start Meeting Recording") {
+                startCountdown()
+            }
+            .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+            .foregroundColor(theme.backgroundColor)
+            .padding()
+            .background(meetingNameTrimmed.isEmpty ? theme.secondaryTextColor.opacity(0.6) : theme.accentColor)
+            .cornerRadius(theme.cornerRadius)
+            .disabled(meetingNameTrimmed.isEmpty)
+            .opacity(meetingNameTrimmed.isEmpty ? 0.7 : 1.0)
+        }
+    }
+
+
+    var body: some View {
+        VStack(spacing: 0) {
+            headerView()
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 20) {
+                        meetingDetailsSection()
+                        microphonePermissionSection()
+                        progressStepsSection()
+                        recordingSection()
+                    }
+                    .padding()
+                }
+                .background(formBackgroundGradient())
+                .onChange(of: focusedField) { _, field in
+                    guard let field else { return }
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        proxy.scrollTo(field, anchor: .center)
+                    }
+                }
+            }
+
+            Spacer()
+        }
+        .themedBackground()
+        .foregroundColor(themeManager.currentTheme.accentColor)
+        .navigationBarBackButtonHidden(false)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+
+                Button {
+                    focusedField = nil
+                } label: {
+                    Image(systemName: "keyboard.chevron.compact.down")
+                        .font(.system(size: 18, weight: .semibold))
+                }
+                .accessibilityLabel("Dismiss Keyboard")
+            }
+        }
+        .alert("API Key Required", isPresented: $showingAPIKeyAlert) {
+            TextField("OpenAI API Key", text: $apiKeyInput)
+            Button("Save") {
+                openAIService.apiKey = apiKeyInput
+                apiKeyInput = ""
+            }
+            Button("Cancel", role: .cancel) {
+                dismiss()
+            }
+        } message: {
+            Text("Enter your OpenAI API key to enable transcription and summarization.")
+        }
+        .alert("Limit Reached", isPresented: $showingLimitAlert) {
+            Button("Upgrade to Pro") {
+                showingPaywall = true
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You've reached your free tier limit of \(FreeTierLimits.maxItemsTotal) total meetings. Upgrade to Pro for unlimited meetings.")
+        }
+        .alert("Upgrade Required", isPresented: $showingDurationAlert) {
+            Button("Upgrade to Pro") {
+                showingPaywall = true
+            }
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(durationAlertMessage)
+        }
+        .sheet(isPresented: $showingDatePicker) {
+            meetingDatePickerSheet()
+        }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView()
+        }
+        .alert("Meeting Name Required", isPresented: $showingNameRequiredAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Please enter the name of the meeting")
+        }
+        .onAppear {
+            print("🎵 CreateMeetingView appeared with importedAudioURL: \(importedAudioURL?.absoluteString ?? "nil")")
+
+            // Check microphone permission (iOS 17+ compatible)
+            microphonePermissionStatus = getCurrentPermissionStatus()
+
+            if let url = importedAudioURL {
+                print("🎵 File exists: \(FileManager.default.fileExists(atPath: url.path))")
+
+                // Use filename as default meeting name if it's empty
+                if meetingName.isEmpty {
+                    let fileName = url.lastPathComponent
+                    // Remove file extension and clean up the name
+                    let nameWithoutExtension = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
+                    meetingName = nameWithoutExtension
+                    print("🎵 Set default meeting name: \(meetingName)")
+                }
+            }
+
+            isLocationExpanded = !meetingLocationTrimmed.isEmpty
+            isNotesExpanded = !meetingNotesTrimmed.isEmpty
+        }
+    }
+    
+    private func startMeetingRecording() {
+        guard openAIService.apiKey != nil else {
+            showingAPIKeyAlert = true
+            return
+        }
+        
+        guard !meetingNameTrimmed.isEmpty else {
+            return
+        }
+        
+        // Check subscription limits for free users
+        let subscribed = storeManager.hasActiveSubscription
+        let totalItems = allMeetings.count
+        if !subscribed && totalItems >= FreeTierLimits.maxItemsTotal {
+            showingLimitAlert = true
+            return
+        }
+        
+        recordingStartTime = Date()
+        recordingDuration = 0
+        currentRecordingURL = audioRecorder.startRecording()
+        
+        // Start timer for duration display
+        recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            if let startTime = recordingStartTime {
+                recordingDuration = Date().timeIntervalSince(startTime)
+            }
+        }
+    }
+    
+    private func pauseMeetingRecording() {
+        audioRecorder.pauseRecording()
+        recordingTimer?.invalidate()
+        recordingTimer = nil
+    }
+    
+    private func resumeMeetingRecording() {
+        audioRecorder.resumeRecording()
+        
+        // Restart timer for duration display
+        recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            if let startTime = recordingStartTime {
+                recordingDuration = Date().timeIntervalSince(startTime)
+            }
+        }
+    }
+    
+    private func cancelMeetingRecording() {
+        audioRecorder.cancelRecording()
+        recordingTimer?.invalidate()
+        recordingTimer = nil
+        
+        // Reset state and dismiss
+        recordingStartTime = nil
+        recordingDuration = 0
+        hasFinishedRecording = false
+        
+        dismiss()
+    }
+    
+    private func analyzeImportedAudio() {
+        guard let audioURL = importedAudioURL else { 
+            print("❌ No audio URL to analyze")
+            return 
+        }
+
+        let subscribed = storeManager.hasActiveSubscription
+        let duration = importedAudioDuration
+        guard FreeTierLimits.allows(duration: duration, subscribed: subscribed) else {
+            durationAlertMessage = "Free tier imports are limited to \(FreeTierLimits.durationDescription). Upgrade to SnipNote Pro to analyze longer meetings."
+            showingDurationAlert = true
+            return
+        }
+
+        print("🎵 Starting analysis of imported audio: \(audioURL)")
+        isProcessingAudio = true
+
+        // Create meeting immediately with form data
+        createProcessingMeeting()
+        
+        // Track meeting creation (without transcription yet)
+        Task {
+            let duration = Int(importedAudioDuration)
+            await UsageTracker.shared.trackMeetingCreated(transcribed: false, meetingSeconds: duration)
+        }
+        
+        // Notify parent to handle navigation
+        if let meeting = createdMeeting {
+            onMeetingCreated?(meeting)
+        }
+        
+        Task {
+            do {
+                // Use the chunked transcription method
+                let transcript = try await openAIService.transcribeAudioFromURL(
+                    audioURL: audioURL,
+                    progressCallback: { _ in }
+                )
+                
+                // Track successful transcription
+                let duration = Int(importedAudioDuration)
+                await UsageTracker.shared.trackMeetingCreated(transcribed: true, meetingSeconds: duration)
+                
+                await MainActor.run {
+                    updateMeetingWithTranscript(transcript: transcript)
+                }
+                
+                // Upload imported audio to Supabase
+                if let meeting = createdMeeting {
+                    do {
+                        _ = try await SupabaseManager.shared.uploadAudioRecording(
+                            audioURL: audioURL,
+                            meetingId: meeting.id,
+                            duration: importedAudioDuration
+                        )
+                        
+                        // Update meeting to indicate it has a recording
+                        await MainActor.run {
+                            meeting.hasRecording = true
+                        }
+                    } catch {
+                        print("Error uploading imported audio to Supabase: \(error)")
+                    }
+                }
+                
+                // Process AI analysis
+                let overview = try await openAIService.generateMeetingOverview(transcript)
+                let summary = try await openAIService.summarizeMeeting(transcript)
+                let actionItems = try await openAIService.extractActions(transcript)
+                
+                // Track AI usage
+                await UsageTracker.shared.trackAIUsage(
+                    summaries: 1,
+                    actionsExtracted: actionItems.count
+                )
+                
+                await MainActor.run {
+                    updateMeetingWithAI(overview: overview, summary: summary, actionItems: actionItems)
+                    isProcessingAudio = false
+                }
+                
+            } catch {
+                await MainActor.run {
+                    print("Error processing imported audio: \(error)")
+                    isProcessingAudio = false
+                    // Cancel processing notification on error
+                    if let meetingId = createdMeetingId {
+                        NotificationService.shared.cancelProcessingNotification(for: meetingId)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func stopMeetingRecording() {
+        guard let recordingURL = audioRecorder.stopRecording() else { return }
+
+        recordingTimer?.invalidate()
+        recordingTimer = nil
+        let subscribed = storeManager.hasActiveSubscription
+        let duration = recordingDuration
+        if !FreeTierLimits.allows(duration: duration, subscribed: subscribed) {
+            durationAlertMessage = "Recordings over \(FreeTierLimits.durationDescription) require SnipNote Pro. Upgrade to transcribe longer meetings."
+            showingDurationAlert = true
+            audioRecorder.deleteRecording(at: recordingURL)
+            currentRecordingURL = nil
+            recordingDuration = 0
+            recordingStartTime = nil
+            hasFinishedRecording = false
+            return
+        }
+
+        hasFinishedRecording = true
+
+        // Create meeting immediately with form data
+        createProcessingMeeting()
+        
+        // Track meeting creation (without transcription yet)
+        Task {
+            let duration = Int(recordingDuration)
+            await UsageTracker.shared.trackMeetingCreated(transcribed: false, meetingSeconds: duration)
+        }
+        
+        // Notify parent to handle navigation
+        if let meeting = createdMeeting {
+            onMeetingCreated?(meeting)
+        }
+        
+        Task {
+            do {
+                let audioData = try Data(contentsOf: recordingURL)
+                
+                // Get transcript first
+                let transcript = try await openAIService.transcribeAudio(audioData: audioData)
+                
+                // Track successful transcription
+                let duration = Int(recordingDuration)
+                await UsageTracker.shared.trackMeetingCreated(transcribed: true, meetingSeconds: duration)
+                
+                await MainActor.run {
+                    updateMeetingWithTranscript(transcript: transcript)
+                }
+                
+                // Upload audio to Supabase before deleting local file
+                if let meeting = createdMeeting {
+                    do {
+                        _ = try await SupabaseManager.shared.uploadAudioRecording(
+                            audioURL: recordingURL,
+                            meetingId: meeting.id,
+                            duration: recordingDuration
+                        )
+                        
+                        // Update meeting to indicate it has a recording
+                        await MainActor.run {
+                            meeting.hasRecording = true
+                        }
+                    } catch {
+                        print("Error uploading audio to Supabase: \(error)")
+                    }
+                }
+                
+                // Delete local recording after successful upload
+                audioRecorder.deleteRecording(at: recordingURL)
+                
+                // Process AI in background after navigation
+                let overview = try await openAIService.generateMeetingOverview(transcript)
+                let summary = try await openAIService.summarizeMeeting(transcript)
+                let actionItems = try await openAIService.extractActions(transcript)
+                
+                // Track AI usage
+                await UsageTracker.shared.trackAIUsage(
+                    summaries: 1,
+                    actionsExtracted: actionItems.count
+                )
+                
+                await MainActor.run {
+                    updateMeetingWithAI(overview: overview, summary: summary, actionItems: actionItems)
+                }
+                
+            } catch {
+                await MainActor.run {
+                    print("Error processing meeting audio: \(error)")
+                    // Cancel processing notification on error
+                    if let meetingId = createdMeetingId {
+                        NotificationService.shared.cancelProcessingNotification(for: meetingId)
+                    }
+                }
+            }
+        }
+    }
+
+    private func exceedsFreeTierDuration(_ duration: TimeInterval) -> Bool {
+        !storeManager.hasActiveSubscription && duration > TimeInterval(FreeTierLimits.maxTranscriptionSecondsPerRecording)
+    }
+
+    private func createProcessingMeeting() {
+        let meeting = Meeting(
+            name: meetingNameTrimmed.isEmpty ? "Untitled Meeting" : meetingNameTrimmed,
+            location: meetingLocation,
+            meetingNotes: meetingNotes,
+            audioTranscript: "Transcribing meeting audio...",
+            shortSummary: "Generating overview...",
+            aiSummary: "Generating meeting summary...",
+            isProcessing: true
+        )
+        meeting.dateCreated = meetingDate
+
+        if let startTime = recordingStartTime {
+            meeting.startTime = startTime
+            meeting.stopRecording() // Sets end time
+        }
+        
+        modelContext.insert(meeting)
+        createdMeeting = meeting
+        createdMeetingId = meeting.id
+
+        // Schedule processing notification
+        Task {
+            await NotificationService.shared.scheduleProcessingNotification(
+                for: meeting.id,
+                meetingName: meeting.name
+            )
+        }
+
+        do {
+            try modelContext.save()
+        } catch {
+            print("Error saving meeting: \(error)")
+        }
+    }
+    
+    private func updateMeetingWithTranscript(transcript: String) {
+        guard let meetingId = createdMeetingId else { return }
+        
+        let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
+        
+        do {
+            let meetings = try modelContext.fetch(descriptor)
+            guard let meeting = meetings.first else { return }
+            
+            meeting.audioTranscript = transcript
+            meeting.dateModified = Date()
+            
+            try modelContext.save()
+        } catch {
+            print("Error updating meeting with transcript: \(error)")
+        }
+    }
+    
+    private func updateMeetingWithAI(overview: String, summary: String, actionItems: [ActionItem]) {
+        guard let meetingId = createdMeetingId else { return }
+        
+        let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
+        
+        do {
+            let meetings = try modelContext.fetch(descriptor)
+            guard let meeting = meetings.first else { return }
+            
+            meeting.shortSummary = overview
+            meeting.aiSummary = summary
+            meeting.isProcessing = false
+            meeting.dateModified = Date()
+
+            // Send processing complete notification
+            Task {
+                await NotificationService.shared.sendProcessingCompleteNotification(
+                    for: meeting.id,
+                    meetingName: meeting.name
+                )
+            }
+            
+            // Create Action entities from extracted action items
+            for actionItem in actionItems {
+                let priority: ActionPriority
+                switch actionItem.priority.uppercased() {
+                case "HIGH":
+                    priority = .high
+                case "MED", "MEDIUM":
+                    priority = .medium
+                case "LOW":
+                    priority = .low
+                default:
+                    priority = .medium
+                }
+                
+                let action = Action(
+                    title: actionItem.action,
+                    priority: priority,
+                    sourceNoteId: meeting.id // Reusing the same field for meetings
+                )
+                
+                modelContext.insert(action)
+            }
+            
+            try modelContext.save()
+            
+            // Track action creation
+            if !actionItems.isEmpty {
+                Task {
+                    await UsageTracker.shared.trackActionsCreated(count: actionItems.count)
+                }
+            }
+            
+            // Update notifications after creating new actions
+            Task { @MainActor in
+                // Fetch all actions to update notifications
+                let descriptor = FetchDescriptor<Action>()
+                if let allActions = try? modelContext.fetch(descriptor) {
+                    NotificationService.shared.scheduleNotification(with: allActions)
+                    // Also update badge immediately
+                    await NotificationService.shared.updateBadgeCount(with: allActions)
+                }
+            }
+        } catch {
+            print("Error updating meeting with AI: \(error)")
+        }
+    }
+    
+    private func startCountdown() {
+        guard openAIService.apiKey != nil else {
+            showingAPIKeyAlert = true
+            return
+        }
+
+        meetingNameTouched = true
+
+        guard !meetingNameTrimmed.isEmpty else {
+            showingNameRequiredAlert = true
+            return
+        }
+
+        // Check subscription limits for free users
+        let subscribed = storeManager.hasActiveSubscription
+        let totalItems = allMeetings.count
+        if !subscribed && totalItems >= FreeTierLimits.maxItemsTotal {
+            showingLimitAlert = true
+            return
+        }
+
+        // Request microphone permission if not granted
+        if !isPermissionGranted(microphonePermissionStatus) {
+            requestMicrophonePermission { granted in
+                DispatchQueue.main.async {
+                    microphonePermissionStatus = granted ? .granted : .denied
+                    if granted {
+                        startCountdownAfterPermission()
+                    }
+                }
+            }
+            return
+        }
+
+        startCountdownAfterPermission()
+    }
+
+    private func startCountdownAfterPermission() {
+        countdownValue = 3
+        showingCountdown = true
+
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+            if countdownValue > 1 {
+                countdownValue -= 1
+            } else {
+                timer.invalidate()
+                countdownTimer = nil
+                showingCountdown = false
+                startMeetingRecording()
+            }
+        }
+    }
+
+    private func cancelCountdown() {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+        showingCountdown = false
+        countdownValue = 3
+    }
+
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let minutes = Int(duration) / 60
+        let seconds = Int(duration) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    private func appendToMeetingNotes(_ snippet: String) {
+        let trimmedSnippet = snippet.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedSnippet.isEmpty else { return }
+
+        let snippetToAppend = snippet
+
+        if meetingNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            meetingNotes = snippetToAppend
+        } else if meetingNotes.hasSuffix("\n\n") {
+            meetingNotes += snippetToAppend
+        } else if meetingNotes.hasSuffix("\n") {
+            meetingNotes += snippetToAppend
+        } else {
+            meetingNotes += "\n\n" + snippetToAppend
+        }
+
+        focusedField = .notes
+    }
+
+    // Microphone permission helpers
+    private func getCurrentPermissionStatus() -> MicrophonePermissionStatus {
+        MicrophonePermissionStatus.current()
+    }
+
+    private func requestMicrophonePermission(completion: @escaping (Bool) -> Void) {
+        AVAudioApplication.requestRecordPermission(completionHandler: completion)
+    }
+
+    private func isPermissionGranted(_ permission: MicrophonePermissionStatus) -> Bool {
+        permission == .granted
+    }
+
+    private func isPermissionDenied(_ permission: MicrophonePermissionStatus) -> Bool {
+        permission == .denied
+    }
+}
+
+private struct MeetingInputCard<Content: View>: View {
+    @EnvironmentObject private var themeManager: ThemeManager
+
+    let title: String
+    let helper: String?
+    let error: String?
+    let iconSystemName: String?
+    let contentPadding: EdgeInsets
+    let content: Content
+
+    init(title: String,
+         helper: String? = nil,
+         error: String? = nil,
+         iconSystemName: String? = nil,
+         contentPadding: EdgeInsets = EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14),
+         @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.helper = helper
+        self.error = error
+        self.iconSystemName = iconSystemName
+        self.contentPadding = contentPadding
+        self.content = content()
+    }
+
+    private var hasError: Bool {
+        error != nil
+    }
+
+    private var borderColor: Color {
+        hasError ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.accentColor.opacity(0.25)
+    }
+
+    private var labelText: String {
+        themeManager.currentTheme.headerStyle == .brackets ? title.uppercased() : title
+    }
+
+    private var outerBackgroundOpacity: Double {
+        themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18
+    }
+
+    private var shadowOpacity: Double {
+        themeManager.currentTheme.colorScheme == .dark ? 0.5 : 0.18
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                if let iconSystemName {
+                    Image(systemName: iconSystemName)
+                        .font(.system(.callout, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                        .foregroundColor(themeManager.currentTheme.accentColor)
+                }
+
+                Text(labelText)
+                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+            }
+
+            content
+                .padding(contentPadding)
+                .background(
+                    RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius)
+                        .fill(themeManager.currentTheme.materialStyle)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius)
+                        .stroke(borderColor, lineWidth: hasError ? 1.5 : 1)
+                )
+
+            if let error {
+                Text(error)
+                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(themeManager.currentTheme.destructiveColor)
+            } else if let helper {
+                Text(helper)
+                    .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
+                .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(outerBackgroundOpacity))
+        )
+        .shadow(color: Color.black.opacity(shadowOpacity), radius: 10, x: 0, y: 6)
+    }
+}
+
+// MARK: - Waveform View
+struct WaveformView: View {
+    let level: Float
+    let isRecording: Bool
+    let accentColor: Color
+
+    @State private var waveformData: [Float] = Array(repeating: 0.0, count: 30)
+    @State private var animationTimer: Timer?
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(0..<waveformData.count, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(accentColor)
+                    .frame(width: 3, height: CGFloat(max(4, waveformData[index] * 50)))
+                    .opacity(isRecording ? 0.9 : 0.5)
+                    .animation(.easeInOut(duration: 0.1), value: waveformData[index])
+            }
+        }
+        .onAppear {
+            if isRecording {
+                startWaveformAnimation()
+            }
+        }
+        .onDisappear {
+            stopWaveformAnimation()
+        }
+        .onChange(of: isRecording) { _, newValue in
+            if newValue {
+                startWaveformAnimation()
+            } else {
+                stopWaveformAnimation()
+            }
+        }
+        .onChange(of: level) { _, newLevel in
+            updateWaveform(with: newLevel)
+        }
+    }
+
+    private func startWaveformAnimation() {
+        animationTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
+            // Simulate waveform movement by shifting data and adding new values
+            waveformData.removeFirst()
+            let newValue = level + Float.random(in: -0.2...0.2)
+            waveformData.append(max(0.1, min(1.0, newValue)))
+        }
+    }
+
+    private func stopWaveformAnimation() {
+        animationTimer?.invalidate()
+        animationTimer = nil
+    }
+
+    private func updateWaveform(with newLevel: Float) {
+        guard isRecording else { return }
+
+        // Add some variation to make it look more natural
+        let variation = Float.random(in: -0.1...0.1)
+        let adjustedLevel = max(0.1, min(1.0, newLevel + variation))
+
+        // Update the last few values for smooth animation
+        if waveformData.count > 3 {
+            waveformData[waveformData.count - 1] = adjustedLevel
+            waveformData[waveformData.count - 2] = adjustedLevel * 0.8
+            waveformData[waveformData.count - 3] = adjustedLevel * 0.6
+        }
+    }
+}

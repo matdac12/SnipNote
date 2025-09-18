@@ -1,0 +1,2035 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "-%@" : {
+
+    },
+    "[ ACTIONS ]" : {
+
+    },
+    "[ ACTIONS REPORT ]" : {
+
+    },
+    "[ AI POWERED INSIGHTS ]" : {
+
+    },
+    "[ EVE ]" : {
+
+    },
+    "[ MEETINGS ]" : {
+
+    },
+    "[ PERMISSIONS NEEDED ]" : {
+
+    },
+    "[ RECORD YOUR MEETINGS ]" : {
+
+    },
+    "[ WELCOME TO SNIPNOTE ]" : {
+
+    },
+    "%@×" : {
+
+    },
+    "%lld" : {
+
+    },
+    "%lld %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@"
+          }
+        }
+      }
+    },
+    "%lld %@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@%3$@"
+          }
+        }
+      }
+    },
+    "•" : {
+
+    },
+    "≈ %@/mo" : {
+
+    },
+    "⏱️ %@" : {
+
+    },
+    "✓ Completed" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✓ Completato"
+          }
+        }
+      }
+    },
+    "✓ COMPLETED" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "✓ COMPLETATO"
+          }
+        }
+      }
+    },
+    "📍 %@" : {
+
+    },
+    "0.5×" : {
+
+    },
+    "0.75×" : {
+
+    },
+    "1. Go to iOS Settings\n2. Find Privacy & Security\n3. Tap Microphone\n4. Enable SnipNote\n5. Return to the app" : {
+
+    },
+    "1.5×" : {
+
+    },
+    "1.25×" : {
+
+    },
+    "1×" : {
+
+    },
+    "2×" : {
+
+    },
+    "About" : {
+
+    },
+    "ABOUT" : {
+
+    },
+    "About SnipNote" : {
+
+    },
+    "Actions" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azioni"
+          }
+        }
+      }
+    },
+    "Actions Report" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report Azioni"
+          }
+        }
+      }
+    },
+    "AI-Powered Insights" : {
+
+    },
+    "AI-powered voice note taking with smart action extraction. Turn your meetings into actionable insights." : {
+
+    },
+    "Allow" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acconsenti"
+          }
+        }
+      }
+    },
+    "Already have an account?" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hai già un account?"
+          }
+        }
+      }
+    },
+    "Analyze Meeting" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analizza Meeting"
+          }
+        }
+      }
+    },
+    "ANALYZE MEETING" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ANALIZZA MEETING"
+          }
+        }
+      }
+    },
+    "API Key Required" : {
+
+    },
+    "Are you sure you want to start a new chat? Current conversation will be cleared." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sicuro di voler iniziare una nuova chat? Quella attuale andrà persa."
+          }
+        }
+      }
+    },
+    "Ask Eve..." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiedi a Eve.."
+          }
+        }
+      }
+    },
+    "Ask me anything about your meetings" : {
+
+    },
+    "Audio" : {
+
+    },
+    "BEST VALUE" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "CANCEL" : {
+
+    },
+    "Cancel anytime from Settings" : {
+
+    },
+    "Close" : {
+
+    },
+    "CLOSE" : {
+
+    },
+    "Collapse All" : {
+
+    },
+    "COLLAPSE ALL" : {
+
+    },
+    "Completed %@" : {
+
+    },
+    "CONTACT" : {
+
+    },
+    "Copied!" : {
+
+    },
+    "COPIED!" : {
+
+    },
+    "Copy Debug Info" : {
+
+    },
+    "Copy Report" : {
+
+    },
+    "COPY REPORT" : {
+
+    },
+    "Create Account" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea Account"
+          }
+        }
+      }
+    },
+    "CREATE ACCOUNT" : {
+
+    },
+    "Deselect All" : {
+
+    },
+    "DEVELOPER" : {
+
+    },
+    "Dismiss Keyboard" : {
+
+    },
+    "Don't have an account?" : {
+
+    },
+    "Done" : {
+
+    },
+    "Downloading Audio..." : {
+
+    },
+    "Downloading..." : {
+
+    },
+    "Duration: %@" : {
+
+    },
+    "Edit" : {
+
+    },
+    "Email" : {
+
+    },
+    "EMAIL" : {
+
+    },
+    "Enter meeting location" : {
+
+    },
+    "Enter meeting name" : {
+
+    },
+    "Enter your OpenAI API key to enable transcription and summarization." : {
+
+    },
+    "Eve" : {
+
+    },
+    "Everything" : {
+
+    },
+    "Expand All" : {
+
+    },
+    "EXPAND ALL" : {
+
+    },
+    "Extracting action items from meeting..." : {
+
+    },
+    "Extracting..." : {
+
+    },
+    "EXTRACTING..." : {
+
+    },
+    "Full Transcript" : {
+
+    },
+    "Get automatic summaries, action item extraction, and smart organization. Focus on the conversation while SnipNote handles the notes." : {
+
+    },
+    "Get Started" : {
+
+    },
+    "Get unlimited access to all premium features" : {
+
+    },
+    "Hide" : {
+
+    },
+    "Hide Debug Info" : {
+
+    },
+    "If you're experiencing issues or have questions:" : {
+
+    },
+    "Imported Audio Ready" : {
+
+    },
+    "IMPORTED AUDIO READY" : {
+
+    },
+    "Jot down talking points, decisions to make, or context for Eve." : {
+
+    },
+    "language.option.english" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inglese"
+          }
+        }
+      }
+    },
+    "language.option.italian" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Italiano"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Italiano"
+          }
+        }
+      }
+    },
+    "language.option.short.english" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ENG"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ENG"
+          }
+        }
+      }
+    },
+    "language.option.short.italian" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ITA"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ITA"
+          }
+        }
+      }
+    },
+    "Limit Reached" : {
+
+    },
+    "Loading subscription options..." : {
+
+    },
+    "Mattia Da Campo" : {
+
+    },
+    "Meeting Date" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data riunione"
+          }
+        }
+      }
+    },
+    "Meeting Name" : {
+
+    },
+    "Meeting Name Required" : {
+
+    },
+    "Meeting Paused" : {
+
+    },
+    "MEETING PAUSED" : {
+
+    },
+    "Meeting Summary" : {
+
+    },
+    "Meetings" : {
+
+    },
+    "Microphone Access Denied" : {
+
+    },
+    "MICROPHONE ACCESS DENIED" : {
+
+    },
+    "Microphone Permission Needed" : {
+
+    },
+    "MICROPHONE PERMISSION NEEDED" : {
+
+    },
+    "NEED HELP?" : {
+
+    },
+    "New Chat" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuova Chat"
+          }
+        }
+      }
+    },
+    "New Meeting" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nuovo Meeting"
+          }
+        }
+      }
+    },
+    "Next" : {
+
+    },
+    "No %@ actions" : {
+
+    },
+    "NO %@ ACTIONS" : {
+
+    },
+    "No action items found in this meeting" : {
+
+    },
+    "No actions found" : {
+
+    },
+    "NO ACTIONS FOUND" : {
+
+    },
+    "NO MEETINGS FOUND" : {
+
+    },
+    "No meetings yet" : {
+
+    },
+    "No results found" : {
+
+    },
+    "NO RESULTS FOUND" : {
+
+    },
+    "Notification Time" : {
+
+    },
+    "OK" : {
+
+    },
+    "OpenAI API Key" : {
+
+    },
+    "Password" : {
+
+    },
+    "PASSWORD" : {
+
+    },
+    "Pause" : {
+
+    },
+    "PAUSE" : {
+
+    },
+    "Payment will be charged to your iTunes account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. Manage or cancel your subscription in Account Settings." : {
+
+    },
+    "Permissions Needed" : {
+
+    },
+    "Please enter the name of the meeting" : {
+
+    },
+    "Please wait while the audio file is being downloaded" : {
+
+    },
+    "Premium Features" : {
+
+    },
+    "Privacy Policy" : {
+
+    },
+    "PRO" : {
+
+    },
+    "Process" : {
+
+    },
+    "PROCESS" : {
+
+    },
+    "Processing meeting summary..." : {
+
+    },
+    "Processing meeting..." : {
+
+    },
+    "PROCESSING MEETING..." : {
+
+    },
+    "Processing..." : {
+
+    },
+    "PROCESSING..." : {
+
+    },
+    "Purchase Error" : {
+
+    },
+    "Record" : {
+
+    },
+    "RECORD" : {
+
+    },
+    "Record Your Meetings" : {
+
+    },
+    "Recording Meeting..." : {
+
+    },
+    "RECORDING MEETING..." : {
+
+    },
+    "Recording requires microphone access. Please enable it in Settings > Privacy & Security > Microphone > SnipNote." : {
+
+    },
+    "Report" : {
+
+    },
+    "REPORT" : {
+
+    },
+    "Restore Purchases" : {
+
+    },
+    "Resume" : {
+
+    },
+    "RESUME" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Retry Loading" : {
+
+    },
+    "Review" : {
+
+    },
+    "REVIEW" : {
+
+    },
+    "Save" : {
+
+    },
+    "SAVE" : {
+
+    },
+    "Search meetings, transcripts..." : {
+
+    },
+    "Select a meeting" : {
+
+    },
+    "SELECT A MEETING" : {
+
+    },
+    "Select All" : {
+
+    },
+    "Select Context" : {
+
+    },
+    "Select meeting date" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seleziona data riunione"
+          }
+        }
+      }
+    },
+    "settings.about.tagline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI-powered voice note taking with smart action extraction"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note vocali con AI e azioni intelligenti"
+          }
+        }
+      }
+    },
+    "settings.about.developer.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hi! I'm Mattia, the developer behind SnipNote. I created this app to help professionals capture and organize their meeting insights more effectively using AI technology."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciao! Sono Mattia, lo sviluppatore di SnipNote. Ho creato questa app per aiutare i professionisti a catturare e organizzare le intuizioni dalle riunioni in modo più efficace usando la tecnologia AI."
+          }
+        }
+      }
+    },
+    "settings.about.developer.role" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Independent iOS Developer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sviluppatore iOS Indipendente"
+          }
+        }
+      }
+    },
+    "settings.about.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI-Powered Meeting Assistant"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assistente Meeting con AI"
+          }
+        }
+      }
+    },
+    "settings.about.version" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SnipNote v1.4.6"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SnipNote v1.4.6"
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina account"
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla"
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.confirmButton" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina account"
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.confirmMessage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type DELETE to permanently delete your account and all data."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digita DELETE per eliminare definitivamente il tuo account e tutti i dati."
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.confirmPlaceholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type DELETE to confirm"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digita DELETE per confermare"
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.confirmTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm Account Deletion"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conferma eliminazione account"
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This will permanently delete your account and all associated data. This action cannot be undone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo eliminerà definitivamente il tuo account e tutti i dati associati. Questa azione non può essere annullata."
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.errorDismiss" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.errorTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Errore"
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.restoreButton" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Purchases"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripristina acquisti"
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.restoreFailure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No purchases to restore"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun acquisto da ripristinare"
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.restoreSuccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restored successfully"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripristino riuscito"
+          }
+        }
+      }
+    },
+    "settings.account.deleteAccount.restoreTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Purchases"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripristina acquisti"
+          }
+        }
+      }
+    },
+    "settings.account.email" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        }
+      }
+    },
+    "settings.account.logoutButton" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Out"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci"
+          }
+        }
+      }
+    },
+    "settings.account.manageSubscription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage Subscription"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestisci abbonamento"
+          }
+        }
+      }
+    },
+    "settings.account.restorePurchases" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Purchases"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripristina acquisti"
+          }
+        }
+      }
+    },
+    "settings.actions.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions keep track of follow-up items automatically extracted from your meetings. Enable them when you want a dedicated space for tasks surfaced by SnipNote."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le azioni tengono traccia dei follow-up estratti automaticamente dalle tue riunioni. Attivale quando vuoi uno spazio dedicato alle attività suggerite da SnipNote."
+          }
+        }
+      }
+    },
+    "settings.actions.section.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track tasks that SnipNote discovers in your meetings."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni traccia delle attività che SnipNote individua nelle tue riunioni."
+          }
+        }
+      }
+    },
+    "settings.actions.section.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azioni"
+          }
+        }
+      }
+    },
+    "settings.actions.toggle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Actions tab"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra la scheda Azioni"
+          }
+        }
+      }
+    },
+    "settings.appearance.lightDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean and modern interface for everyday use"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interfaccia pulita e moderna per l’uso quotidiano"
+          }
+        }
+      }
+    },
+    "settings.appearance.terminalDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminal-style interface for power users"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interfaccia in stile terminal per utenti esperti"
+          }
+        }
+      }
+    },
+    "settings.appearance.theme" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Theme"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grafica"
+          }
+        }
+      }
+    },
+    "settings.language.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the app language. SnipNote defaults to your system language."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli la lingua dell’app. SnipNote usa la lingua di sistema per impostazione predefinita."
+          }
+        }
+      }
+    },
+    "settings.language.section.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changes apply instantly. Some content like AI summaries follows your selected language."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le modifiche si applicano subito. Alcuni contenuti, come i riepiloghi AI, seguono la lingua selezionata."
+          }
+        }
+      }
+    },
+    "settings.language.section.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lingua"
+          }
+        }
+      }
+    },
+    "settings.notifications.dailyReminders" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily Reminders"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Promemoria giornalieri"
+          }
+        }
+      }
+    },
+    "settings.notifications.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get notified about high priority actions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricevi una notifica per le azioni ad alta priorità"
+          }
+        }
+      }
+    },
+    "settings.notifications.logout.cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla"
+          }
+        }
+      }
+    },
+    "settings.notifications.logout.confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Out"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci"
+          }
+        }
+      }
+    },
+    "settings.notifications.logout.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you sure you want to log out? You'll need to sign in again to use the app."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sei sicuro di voler uscire? Dovrai accedere nuovamente per usare l’app."
+          }
+        }
+      }
+    },
+    "settings.notifications.logout.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log Out"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci"
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla"
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enable notifications in Settings to receive daily reminders about your high priority actions."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abilita le notifiche in Impostazioni per ricevere i promemoria giornalieri delle azioni ad alta priorità."
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impostazioni"
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permission Status"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato autorizzazione"
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification Permission Required"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorizzazione alle notifiche richiesta"
+          }
+        }
+      }
+    },
+    "settings.notifications.time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification Time"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orario della notifica"
+          }
+        }
+      }
+    },
+    "settings.section.account.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
+          }
+        }
+      }
+    },
+    "settings.section.appearance.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aspetto"
+          }
+        }
+      }
+    },
+    "settings.section.notifications.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifiche"
+          }
+        }
+      }
+    },
+    "settings.section.statistics.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistics"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Statistiche"
+          }
+        }
+      }
+    },
+    "settings.section.subscription.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscription"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbonamento"
+          }
+        }
+      }
+    },
+    "settings.section.usage.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilizzo"
+          }
+        }
+      }
+    },
+    "settings.statistics.completed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completate"
+          }
+        }
+      }
+    },
+    "settings.statistics.highPriority" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "High Priority"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alta priorità"
+          }
+        }
+      }
+    },
+    "settings.statistics.pending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pending"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da completare"
+          }
+        }
+      }
+    },
+    "settings.statistics.totalActions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Actions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azioni totali"
+          }
+        }
+      }
+    },
+    "settings.subscription.plan.free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free Plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piano gratuito"
+          }
+        }
+      }
+    },
+    "settings.subscription.plan.pro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Member"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utente Pro"
+          }
+        }
+      }
+    },
+    "settings.subscription.plan.unlimited" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlimited access to all features"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso illimitato a tutte le funzionalità"
+          }
+        }
+      }
+    },
+    "settings.subscription.plan.usage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d/%2$d meetings used"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$d/%2$d riunioni utilizzate"
+          }
+        }
+      }
+    },
+    "settings.subscription.upgrade" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorna"
+          }
+        }
+      }
+    },
+    "settings.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impostazioni"
+          }
+        }
+      }
+    },
+    "settings.usage.actionsCompleted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions Completed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azioni completate"
+          }
+        }
+      }
+    },
+    "settings.usage.actionsExtracted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions Extracted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azioni estratte"
+          }
+        }
+      }
+    },
+    "settings.usage.aiSummaries" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI Summaries"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riepiloghi AI"
+          }
+        }
+      }
+    },
+    "settings.usage.loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading usage data..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caricamento dati di utilizzo..."
+          }
+        }
+      }
+    },
+    "settings.usage.meetingsCreated" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetings Created"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riunioni create"
+          }
+        }
+      }
+    },
+    "settings.usage.meetingsTranscribed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetings Transcribed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riunioni trascritte"
+          }
+        }
+      }
+    },
+    "settings.usage.totalRecordingTime" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Recording Time"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tempo totale di registrazione"
+          }
+        }
+      }
+    },
+    "Show" : {
+
+    },
+    "Show Debug Info" : {
+
+    },
+    "Sign in" : {
+
+    },
+    "Sign In" : {
+
+    },
+    "SIGN IN" : {
+
+    },
+    "Sign up" : {
+
+    },
+    "Skip" : {
+
+    },
+    "SNIPNOTE" : {
+
+    },
+    "SnipNote v1.4.6" : {
+
+    },
+    "Start Meeting Recording" : {
+
+    },
+    "START MEETING RECORDING" : {
+
+    },
+    "Start New Chat" : {
+
+    },
+    "Starting in..." : {
+
+    },
+    "STARTING IN..." : {
+
+    },
+    "Stop Meeting" : {
+
+    },
+    "STOP MEETING" : {
+
+    },
+    "Subscribe Now" : {
+
+    },
+    "Summary" : {
+
+    },
+    "tab.actions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azioni"
+          }
+        }
+      }
+    },
+    "tab.eve" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eve"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eve"
+          }
+        }
+      }
+    },
+    "tab.meetings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meetings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riunioni"
+          }
+        }
+      }
+    },
+    "tab.settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impostazioni"
+          }
+        }
+      }
+    },
+    "Tap + to create your first meeting" : {
+
+    },
+    "TAP + TO CREATE YOUR FIRST MEETING" : {
+
+    },
+    "Tap the record button to capture audio from meetings, calls, or voice notes. SnipNote will automatically transcribe and analyze your content." : {
+
+    },
+    "Terms of Use (EULA)" : {
+
+    },
+    "This exceeds the free plan limit (%@ max). Upgrade to SnipNote Pro for longer meetings." : {
+
+    },
+    "To provide the best experience, SnipNote needs access to your microphone and permission to send notifications." : {
+
+    },
+    "To record meetings, SnipNote needs access to your microphone. Tap the record button and grant permission when prompted." : {
+
+    },
+    "Transcript" : {
+
+    },
+    "Troubleshooting:" : {
+
+    },
+    "TROUBLESHOOTING:" : {
+
+    },
+    "Try a different search term" : {
+
+    },
+    "Unable to load subscription options" : {
+
+    },
+    "Unlock SnipNote Pro" : {
+
+    },
+    "Upgrade Now" : {
+
+    },
+    "Upgrade Required" : {
+
+    },
+    "Upgrade to Pro" : {
+
+    },
+    "VERSION" : {
+
+    },
+    "Welcome to Eve" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benvenuto in Eve"
+          }
+        }
+      }
+    },
+    "Welcome to SnipNote" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benvenuto in SnipNote"
+          }
+        }
+      }
+    },
+    "You've reached your free tier limit of %lld total meetings. Upgrade to Pro for unlimited meetings." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hai raggiunto il tuo limite gratutito di  %lld meetings. Passa a Pro per un uno illimitato. "
+          }
+        }
+      }
+    },
+    "Your AI Assistant" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo Assistente AI"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.1"
+}

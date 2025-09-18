@@ -1,0 +1,1123 @@
+//
+//  OpenAIService.swift
+//  SnipNote
+//
+//  Created by Mattia Da Campo on 26/06/25.
+//
+
+import Foundation
+import Security
+
+class OpenAIService: ObservableObject {
+    static let shared = OpenAIService()
+    
+    private let baseURL = "https://api.openai.com/v1"
+    private let keychainService = "com.mattia.snipnote.apikey"
+    private let keychainAccount = "openai_api_key"
+    
+    private init() {}
+    
+    var apiKey: String? {
+        get {
+            // First check if API key is set in Config
+            if Config.openAIAPIKey != "YOUR_OPENAI_API_KEY_HERE" && !Config.openAIAPIKey.isEmpty {
+                return Config.openAIAPIKey
+                
+            }
+            // Fallback to keychain
+            if let key = getAPIKeyFromKeychain(), !key.isEmpty {
+                return key
+            }
+            return nil
+        }
+        set {
+            if let key = newValue {
+                saveAPIKeyToKeychain(key)
+            } else {
+                deleteAPIKeyFromKeychain()
+            }
+        }
+    }
+    
+    private func saveAPIKeyToKeychain(_ key: String) {
+        let data = key.data(using: .utf8)!
+        
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: keychainAccount,
+            kSecValueData as String: data
+        ]
+        
+        SecItemDelete(query as CFDictionary)
+        SecItemAdd(query as CFDictionary, nil)
+    }
+    
+    private func getAPIKeyFromKeychain() -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: keychainAccount,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        
+        guard status == errSecSuccess,
+              let data = item as? Data,
+              let key = String(data: data, encoding: .utf8) else {
+            return nil
+        }
+        
+        return key
+    }
+    
+    private func deleteAPIKeyFromKeychain() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: keychainAccount
+        ]
+        
+        SecItemDelete(query as CFDictionary)
+    }
+    
+    func transcribeAudio(audioData: Data) async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/audio/transcriptions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.m4a\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
+        body.append(audioData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
+        body.append("whisper-1\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        request.httpBody = body
+        
+        let (data, urlResponse) = try await URLSession.shared.data(for: request)
+
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            if let apiError = try? JSONDecoder().decode(OpenAIAPIErrorResponse.self, from: data) {
+                throw OpenAIError.apiError(apiError.error.message)
+            }
+            let rawBody = String(data: data, encoding: .utf8) ?? "<binary>"
+            throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(rawBody)")
+        }
+
+        do {
+            let response = try JSONDecoder().decode(TranscriptionResponse.self, from: data)
+            return response.text
+        } catch {
+            let rawBody = String(data: data, encoding: .utf8) ?? "<binary>"
+            throw OpenAIError.apiError("Unexpected transcription response: \(rawBody)")
+        }
+    }
+
+    func transcribeAudioFromURL(
+        audioURL: URL,
+        progressCallback: @escaping (AudioChunkerProgress) -> Void
+    ) async throws -> String {
+        // Validate audio file first
+        try AudioChunker.validateAudioFile(url: audioURL)
+
+        // Check if file needs chunking
+        let needsChunking = try AudioChunker.needsChunking(url: audioURL)
+
+        if !needsChunking {
+            // For small files, use direct processing
+            progressCallback(AudioChunkerProgress(
+                currentChunk: 1,
+                totalChunks: 1,
+                currentStage: "Processing audio file",
+                percentComplete: 50.0
+            ))
+
+            let audioData = try Data(contentsOf: audioURL)
+            let transcript = try await transcribeAudio(audioData: audioData)
+
+            progressCallback(AudioChunkerProgress(
+                currentChunk: 1,
+                totalChunks: 1,
+                currentStage: "Transcription complete",
+                percentComplete: 100.0
+            ))
+
+            return transcript
+        } else {
+            // For large files, use chunked processing
+            return try await transcribeAudioInChunks(
+                audioURL: audioURL,
+                progressCallback: progressCallback
+            )
+        }
+    }
+
+    private func transcribeAudioInChunks(
+        audioURL: URL,
+        progressCallback: @escaping (AudioChunkerProgress) -> Void
+    ) async throws -> String {
+
+        // Create chunks
+        let chunks = try await AudioChunker.createChunks(
+            from: audioURL,
+            progressCallback: { chunkProgress in
+                // Update progress for chunking phase (0-30%)
+                let adjustedProgress = AudioChunkerProgress(
+                    currentChunk: chunkProgress.currentChunk,
+                    totalChunks: chunkProgress.totalChunks,
+                    currentStage: chunkProgress.currentStage,
+                    percentComplete: chunkProgress.percentComplete * 0.3
+                )
+                progressCallback(adjustedProgress)
+            }
+        )
+
+        var transcripts: [String] = []
+        let totalChunks = chunks.count
+
+        // Process each chunk
+        for (index, chunk) in chunks.enumerated() {
+            let chunkNumber = index + 1
+
+            progressCallback(AudioChunkerProgress(
+                currentChunk: chunkNumber,
+                totalChunks: totalChunks,
+                currentStage: "Transcribing chunk \(chunkNumber) of \(totalChunks)",
+                percentComplete: 30.0 + (Double(index) / Double(totalChunks)) * 70.0
+            ))
+
+            print("🎵 Transcribing chunk \(chunkNumber)/\(totalChunks)")
+
+            do {
+                let chunkTranscript = try await transcribeAudio(audioData: chunk.data)
+                transcripts.append(chunkTranscript)
+                print("🎵 Chunk \(chunkNumber) transcribed successfully")
+
+            } catch {
+                // Retry once before giving up
+                print("🎵 Retrying chunk \(chunkNumber)...")
+                do {
+                    let retryTranscript = try await transcribeAudio(audioData: chunk.data)
+                    transcripts.append(retryTranscript)
+                    print("🎵 Chunk \(chunkNumber) retry successful")
+                } catch {
+                    print("🎵 Chunk \(chunkNumber) failed after retry")
+                    transcripts.append("[Transcription failed for chunk \(chunkNumber) after retry]")
+                }
+            }
+        }
+
+        progressCallback(AudioChunkerProgress(
+            currentChunk: totalChunks,
+            totalChunks: totalChunks,
+            currentStage: "Combining transcripts",
+            percentComplete: 100.0
+        ))
+
+        // Combine all transcripts
+        let fullTranscript = transcripts
+            .filter { !$0.isEmpty && !$0.contains("[Transcription failed") }
+            .joined(separator: " ")
+
+        return fullTranscript
+    }
+
+    func summarizeText(_ text: String) async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let prompt = """
+        Please analyze the following transcript and provide:
+        1. Key points and insights
+        2. Actionable items or tasks mentioned
+        3. Important decisions or conclusions
+        
+        Keep the summary concise but comprehensive. Format as bullet points.
+        
+        Transcript: \(text)
+        """
+        
+        let requestBody = ChatRequest(
+            model: "gpt-4o",
+            messages: [
+                ChatMessage(role: "system", content: "You are a helpful assistant that summarizes spoken notes into actionable insights."),
+                ChatMessage(role: "user", content: prompt)
+            ],
+            maxTokens: 500
+        )
+        
+        let jsonData = try JSONEncoder().encode(requestBody)
+        request.httpBody = jsonData
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+        
+        return response.choices.first?.message.content ?? "No summary generated"
+    }
+    
+    func generateTitle(_ text: String) async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let prompt = """
+        Identify the language spoken and always respond in the same language as the input transcript.
+        Generate an appropriate title for this note transcript in exactly 3-4 words. The title should be concise, descriptive, and capture the main topic or purpose.
+
+        Examples:
+        - "Meeting Notes Summary"
+        - "Weekly Project Update"
+        - "Shopping List Items"
+        - "Travel Planning Ideas"
+
+        Transcript: \(text)
+        """
+        
+        let requestBody = ChatRequest(
+            model: "gpt-4o",
+            messages: [
+                ChatMessage(role: "system", content: "You generate concise, descriptive titles for notes. Always respond with exactly 2-3 words, properly capitalized, in the same language as the input transcript."),
+                ChatMessage(role: "user", content: prompt)
+            ],
+            maxTokens: 20
+        )
+        
+        let jsonData = try JSONEncoder().encode(requestBody)
+        request.httpBody = jsonData
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+        
+        return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Untitled Note"
+    }
+    
+    func generateMeetingOverview(_ text: String) async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let prompt = """
+        Identify the language spoken and always respond in the same language as the input transcript.
+        Summarize this meeting transcript in exactly one short, clear sentence. Capture the main topic and key outcome or focus of the meeting.
+
+        Examples:
+        - "Team discussed Q4 goals and assigned project leads for upcoming initiatives."
+        - "Budget review meeting where department heads presented spending proposals."
+        - "Weekly standup covering project progress and addressing technical blockers."
+        - "Client presentation meeting to review design mockups and gather feedback."
+
+        Meeting Transcript: \(text)
+        """
+        
+        let requestBody = ChatRequest(
+            model: "gpt-4o",
+            messages: [
+                ChatMessage(role: "system", content: "You create concise one-sentence meeting overviews. Always respond with exactly one clear, informative sentence in the same language as the input transcript."),
+                ChatMessage(role: "user", content: prompt)
+            ],
+            maxTokens: 50
+        )
+        
+        let jsonData = try JSONEncoder().encode(requestBody)
+        request.httpBody = jsonData
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+        
+        return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Meeting discussion on various topics."
+    }
+    
+    func summarizeMeeting(_ text: String) async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let prompt = """
+        Identify the language spoken and always respond in the same language as the input transcript.
+        Please create a comprehensive meeting summary from this transcript. Structure your response with the following sections:
+
+        ## Key Discussion Points
+        - Main topics discussed
+        - Important insights shared
+
+        ## Decisions Made
+        - Key decisions reached during the meeting
+        - Who is responsible for what
+
+        ## Action Items
+        - Tasks assigned with responsible parties
+        - Deadlines mentioned
+
+        ## Next Steps
+        - Follow-up actions
+        - Future meetings or milestones
+
+        Meeting Transcript: \(text)
+        """
+        
+        let requestBody = ChatRequest(
+            model: "gpt-4o",
+            messages: [
+                ChatMessage(role: "system", content: "You are a professional meeting summarizer. Create structured, comprehensive summaries that capture key decisions, action items, and next steps. Always respond in the same language as the input transcript."),
+                ChatMessage(role: "user", content: prompt)
+            ],
+            maxTokens: 800
+        )
+        
+        let jsonData = try JSONEncoder().encode(requestBody)
+        request.httpBody = jsonData
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+        
+        return response.choices.first?.message.content ?? "No meeting summary generated"
+    }
+    
+    func extractActions(_ text: String) async throws -> [ActionItem] {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+        
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let prompt = """
+        Identify the language spoken and always respond in the same language as the input transcript.
+        Extract actionable items from this transcript. For each action item, provide:
+        1. A clear, concise action description
+        2. Priority level (HIGH, MED, LOW)
+
+        Return ONLY a JSON array with this exact format:
+        [{"action": "action description", "priority": "HIGH|MED|LOW"}]
+
+        If no actionable items exist, return an empty array: []
+
+        Transcript: \(text)
+        """
+        
+        let requestBody = ChatRequest(
+            model: "gpt-4o",
+            messages: [
+                ChatMessage(role: "system", content: "You extract actionable items from text and return them as JSON. Be precise and only return valid JSON. Always use the same language as the input transcript for action descriptions."),
+                ChatMessage(role: "user", content: prompt)
+            ],
+            maxTokens: 300
+        )
+        
+        let jsonData = try JSONEncoder().encode(requestBody)
+        request.httpBody = jsonData
+        
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+        
+        guard let content = response.choices.first?.message.content else {
+            return []
+        }
+        
+        // Parse the JSON response
+        do {
+            let actionData = content.data(using: .utf8) ?? Data()
+            let actions = try JSONDecoder().decode([ActionItem].self, from: actionData)
+            return actions
+        } catch {
+            print("Failed to parse actions JSON: \(error)")
+            return []
+        }
+    }
+
+    func chatWithEve(
+        message: String,
+        promptVariables: EvePromptVariables,
+        conversationId: String?,
+        vectorStoreId: String?
+    ) async throws -> ChatWithEveResult {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+
+        let activeConversationId = try await ensureConversationId(apiKey: apiKey, currentConversationId: conversationId)
+        let sanitizedVariables = promptVariables.sanitized()
+
+        let url = URL(string: "\(baseURL)/responses")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        var requestBody = ResponsesRequest(
+            model: Config.openAIResponsesModel,
+            prompt: ResponsesPrompt(
+                id: Config.openAIPromptID,
+                variables: ResponsesPromptVariables(
+                    meetingOverview: sanitizedVariables.meetingOverview,
+                    meetingSummary: sanitizedVariables.meetingSummary
+                )
+            ),
+            input: [],
+            conversation: activeConversationId,
+            text: ResponseTextConfig(
+                format: ResponseTextFormat(type: "text"),
+                verbosity: "medium"
+            ),
+            reasoning: ResponseReasoningConfig(effort: "medium"),
+            tools: nil
+        )
+
+        var contents: [ResponseInputContent] = []
+        contents.append(ResponseInputContent(type: "input_text", text: message))
+
+        let inputItem = ResponseInputItem(role: "user", content: contents)
+        requestBody.input = [inputItem]
+
+        if let vectorStoreId {
+            let tool = ResponseTool(
+                type: "file_search",
+                vectorStoreIds: [vectorStoreId],
+                maxNumResults: 20
+            )
+            requestBody.tools = [tool]
+        }
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        request.httpBody = try encoder.encode(requestBody)
+
+        let (data, urlResponse) = try await URLSession.shared.data(for: request)
+
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? "<binary>"
+            throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(body)")
+        }
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let response = try decoder.decode(OpenAIResponsesResponse.self, from: data)
+
+        guard let text = response.combinedOutputText else {
+            throw OpenAIError.apiError("No response content returned")
+        }
+
+        return ChatWithEveResult(responseText: text, conversationId: activeConversationId)
+    }
+
+    func createConversation() async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+
+        return try await createConversation(apiKey: apiKey)
+    }
+
+    private func ensureConversationId(apiKey: String, currentConversationId: String?) async throws -> String {
+        if let existingId = currentConversationId {
+            return existingId
+        }
+
+        return try await createConversation(apiKey: apiKey)
+    }
+
+    private func createConversation(apiKey: String) async throws -> String {
+        let url = URL(string: "\(baseURL)/conversations")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let payload = ConversationCreateRequest(metadata: ["source": "SnipNote"])
+        request.httpBody = try JSONEncoder().encode(payload)
+
+        let (data, urlResponse) = try await URLSession.shared.data(for: request)
+
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? "<binary>"
+            throw OpenAIError.apiError("Failed to create conversation. HTTP \(httpResponse.statusCode): \(body)")
+        }
+
+        let conversation = try JSONDecoder().decode(OpenAIConversation.self, from: data)
+        return conversation.id
+    }
+
+    func uploadTranscriptFile(transcript: String, fileName: String) async throws -> UploadedFileInfo {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+
+        guard let data = transcript.data(using: .utf8) else {
+            throw OpenAIError.apiError("Unable to encode transcript")
+        }
+
+        let url = URL(string: "\(baseURL)/files")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        let expiresSeconds = 7 * 24 * 60 * 60 // 7 days
+
+        var body = Data()
+
+        func appendField(name: String, value: String) {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(value)\r\n".data(using: .utf8)!)
+        }
+
+        appendField(name: "purpose", value: "user_data")
+        appendField(name: "expires_after[anchor]", value: "created_at")
+        appendField(name: "expires_after[seconds]", value: "\(expiresSeconds)")
+
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: text/plain\r\n\r\n".data(using: .utf8)!)
+        body.append(data)
+        body.append("\r\n".data(using: .utf8)!)
+
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+
+        let (responseData, urlResponse) = try await URLSession.shared.data(for: request)
+
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let bodyString = String(data: responseData, encoding: .utf8) ?? "<binary>"
+            throw OpenAIError.apiError("File upload failed: HTTP \(httpResponse.statusCode) - \(bodyString)")
+        }
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let fileResponse = try decoder.decode(OpenAIFileUploadResponse.self, from: responseData)
+
+        let expiresDate: Date?
+        if let timestamp = fileResponse.expiresAt {
+            expiresDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
+        } else {
+            expiresDate = Date().addingTimeInterval(TimeInterval(expiresSeconds))
+        }
+
+        return UploadedFileInfo(id: fileResponse.id, expiresAt: expiresDate)
+    }
+
+    func ensureVectorStore(userId: UUID, existingVectorStoreId: String?) async throws -> String {
+        if let existingVectorStoreId {
+            return existingVectorStoreId
+        }
+
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+
+        do {
+            return try await executeWithRetry(operationDescription: "Create vector store") {
+                let url = URL(string: "\(self.baseURL)/vector_stores")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+                let createRequest = CreateVectorStoreRequest(
+                    name: "vector_store_\(userId.uuidString.lowercased())",
+                    expiresAfter: VectorStoreExpiresAfter(anchor: "last_active_at", days: 14)
+                )
+
+                let encoder = JSONEncoder()
+                encoder.keyEncodingStrategy = .convertToSnakeCase
+                request.httpBody = try encoder.encode(createRequest)
+
+                let (data, response) = try await URLSession.shared.data(for: request)
+
+                if let httpResponse = response as? HTTPURLResponse,
+                   !(200...299).contains(httpResponse.statusCode) {
+                    let body = String(data: data, encoding: .utf8) ?? "<binary>"
+                    throw OpenAIError.apiError("Failed to create vector store. HTTP \(httpResponse.statusCode): \(body)")
+                }
+
+                let decoder = JSONDecoder()
+                decoder.keyDecodingStrategy = .convertFromSnakeCase
+                let vectorStore = try decoder.decode(VectorStoreResponse.self, from: data)
+                return vectorStore.id
+            }
+        } catch let error as OpenAIError {
+            throw error
+        } catch {
+            throw OpenAIError.vectorStoreUnavailable("Create vector store failed: \(error.localizedDescription)")
+        }
+    }
+
+    func attachFileToVectorStore(fileId: String, vectorStoreId: String) async throws {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+
+        do {
+            try await executeWithRetry(operationDescription: "Attach file to vector store") {
+                let url = URL(string: "\(self.baseURL)/vector_stores/\(vectorStoreId)/files")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+                let body = VectorStoreFileRequest(fileId: fileId)
+                let encoder = JSONEncoder()
+                encoder.keyEncodingStrategy = .convertToSnakeCase
+                request.httpBody = try encoder.encode(body)
+
+                let (data, response) = try await URLSession.shared.data(for: request)
+
+                if let httpResponse = response as? HTTPURLResponse,
+                   !(200...299).contains(httpResponse.statusCode) {
+                    let bodyString = String(data: data, encoding: .utf8) ?? "<binary>"
+                    throw OpenAIError.apiError("Failed to attach file to vector store. HTTP \(httpResponse.statusCode): \(bodyString)")
+                }
+                return ()
+            }
+        } catch let error as OpenAIError {
+            throw error
+        } catch {
+            throw OpenAIError.vectorStoreUnavailable("Attach file failed: \(error.localizedDescription)")
+        }
+    }
+
+    func detachFileFromVectorStore(fileId: String, vectorStoreId: String) async throws {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+
+        do {
+            try await executeWithRetry(operationDescription: "Detach file from vector store") {
+                let url = URL(string: "\(self.baseURL)/vector_stores/\(vectorStoreId)/files/\(fileId)")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "DELETE"
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+                let (_, response) = try await URLSession.shared.data(for: request)
+
+                if let httpResponse = response as? HTTPURLResponse,
+                   !(200...299).contains(httpResponse.statusCode) {
+                    throw OpenAIError.apiError("Failed to detach file from vector store. HTTP \(httpResponse.statusCode)")
+                }
+                return ()
+            }
+        } catch let error as OpenAIError {
+            throw error
+        } catch {
+            throw OpenAIError.vectorStoreUnavailable("Detach file failed: \(error.localizedDescription)")
+        }
+    }
+
+    func generateActionsReport(groupedActions: [String: [(action: String, priority: String, isCompleted: Bool)]]) async throws -> String {
+        guard let apiKey = apiKey else {
+            throw OpenAIError.noAPIKey
+        }
+
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // Format the actions data for the prompt
+        var promptContent = "Generate a comprehensive report for the following actions grouped by their source (notes or meetings):\n\n"
+
+        let pendingCount = groupedActions.values.flatMap { $0 }.filter { !$0.isCompleted }.count
+        let completedCount = groupedActions.values.flatMap { $0 }.filter { $0.isCompleted }.count
+
+        promptContent += "SUMMARY: \(pendingCount) pending actions, \(completedCount) completed actions\n\n"
+
+        for (source, actions) in groupedActions.sorted(by: { $0.key < $1.key }) {
+            promptContent += "\(source):\n"
+            for action in actions {
+                let status = action.isCompleted ? "✓" : "○"
+                promptContent += "  \(status) [\(action.priority.uppercased())] \(action.action)\n"
+            }
+            promptContent += "\n"
+        }
+
+        let systemPrompt = """
+        You are an AI assistant that analyzes a list of tasks and outputs only the task names, grouped by priority level.
+        For each priority (High, Medium, Low), list the task names one per line under the heading "High Priority:", "Medium Priority:", and "Low Priority:", with no additional commentary.
+        Finally, include a minimal action plan, where you might suggest the order of the tasks.
+        """
+
+        let messages: [[String: String]] = [
+            ["role": "system", "content": systemPrompt],
+            ["role": "user", "content": promptContent]
+        ]
+
+        let requestBody: [String: Any] = [
+            "model": "gpt-4o-mini",
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": 1500
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+
+        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let choices = json["choices"] as? [[String: Any]],
+           let firstChoice = choices.first,
+           let message = firstChoice["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return stripMarkdown(content.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+
+        throw OpenAIError.apiError("Failed to generate report")
+    }
+
+    private func stripMarkdown(_ text: String) -> String {
+        var cleaned = text
+
+        // Remove bold markers (must be done before single asterisk removal)
+        cleaned = cleaned.replacingOccurrences(of: "**", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "__", with: "")
+
+        // Remove italic markers
+        cleaned = cleaned.replacingOccurrences(of: "*", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "_", with: "")
+
+        // Remove strikethrough
+        cleaned = cleaned.replacingOccurrences(of: "~~", with: "")
+
+        // Remove inline code markers
+        cleaned = cleaned.replacingOccurrences(of: "`", with: "")
+
+        // Remove headers
+        cleaned = cleaned.replacingOccurrences(of: "# ", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "## ", with: "")
+        cleaned = cleaned.replacingOccurrences(of: "### ", with: "")
+
+        return cleaned
+    }
+
+    // MARK: - Retry Helpers
+
+    private func executeWithRetry<T>(
+        maxAttempts: Int = 3,
+        initialDelay: TimeInterval = 0.4,
+        operationDescription: String,
+        operation: @escaping () async throws -> T
+    ) async throws -> T {
+        var attempt = 0
+        var delay = initialDelay
+
+        while true {
+            do {
+                return try await operation()
+            } catch {
+                attempt += 1
+                if attempt >= maxAttempts || !shouldRetry(error: error) {
+                    throw OpenAIError.vectorStoreUnavailable("\(operationDescription) failed: \(error.localizedDescription)")
+                }
+
+                let nanoseconds = UInt64(delay * 1_000_000_000)
+                try await Task.sleep(nanoseconds: nanoseconds)
+                delay *= 2
+            }
+        }
+    }
+
+    private func shouldRetry(error: Error) -> Bool {
+        if error is URLError { return true }
+        if case OpenAIError.apiError(let message) = error {
+            return message.contains("429") || message.contains("500") || message.contains("503")
+        }
+        return false
+    }
+}
+struct ChatWithEveResult {
+    let responseText: String
+    let conversationId: String
+}
+
+struct EvePromptVariables {
+    let meetingOverview: String
+    let meetingSummary: String
+
+    func sanitized() -> EvePromptVariables {
+        EvePromptVariables(
+            meetingOverview: meetingOverview.isEmpty ? "No overview provided." : meetingOverview,
+            meetingSummary: meetingSummary.isEmpty ? "No summary available." : meetingSummary
+        )
+    }
+}
+
+struct ResponsesRequest: Codable {
+    let model: String
+    let prompt: ResponsesPrompt
+    var input: [ResponseInputItem]
+    let conversation: String
+    let text: ResponseTextConfig
+    let reasoning: ResponseReasoningConfig
+    var tools: [ResponseTool]?
+}
+
+struct ResponsesPrompt: Codable {
+    let id: String
+    let variables: ResponsesPromptVariables
+}
+
+struct ResponsesPromptVariables: Codable {
+    let meetingOverview: String
+    let meetingSummary: String
+
+    enum CodingKeys: String, CodingKey {
+        case meetingOverview = "meeting_overview"
+        case meetingSummary = "meeting_summary"
+    }
+}
+
+struct ResponseInputItem: Codable {
+    let role: String
+    let content: [ResponseInputContent]
+}
+
+struct ResponseInputContent: Codable {
+    let type: String
+    let text: String?
+
+    init(type: String, text: String? = nil) {
+        self.type = type
+        self.text = text
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case text
+    }
+}
+
+struct ResponseTool: Codable {
+    let type: String
+    let vectorStoreIds: [String]
+    let maxNumResults: Int
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case vectorStoreIds = "vector_store_ids"
+        case maxNumResults = "max_num_results"
+    }
+}
+
+struct ResponseTextConfig: Codable {
+    let format: ResponseTextFormat
+    let verbosity: String
+}
+
+struct ResponseTextFormat: Codable {
+    let type: String
+}
+
+struct ResponseReasoningConfig: Codable {
+    let effort: String
+}
+
+struct OpenAIResponsesResponse: Decodable {
+    let output: [ResponseOutputItem]
+
+    var combinedOutputText: String? {
+        let chunks = output.flatMap { $0.messageContent.compactMap { $0.text } }
+        guard !chunks.isEmpty else { return nil }
+        return chunks.joined()
+    }
+}
+
+enum ResponseOutputItem: Decodable {
+    case message(ResponseMessageOutput)
+    case toolCall(ResponseToolCallOutput)
+    case other
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+
+        switch type {
+        case "message":
+            let message = try ResponseMessageOutput(from: decoder)
+            self = .message(message)
+        case "tool_call":
+            let toolCall = try ResponseToolCallOutput(from: decoder)
+            self = .toolCall(toolCall)
+        default:
+            self = .other
+        }
+    }
+
+    var messageContent: [ResponseOutputContent] {
+        switch self {
+        case .message(let message):
+            return message.content
+        default:
+            return []
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+    }
+}
+
+struct ResponseMessageOutput: Decodable {
+    let type: String
+    let id: String
+    let status: String
+    let role: String?
+    let content: [ResponseOutputContent]
+}
+
+struct ResponseToolCallOutput: Decodable {
+    let type: String
+}
+
+struct ResponseOutputContent: Decodable {
+    let type: String
+    let text: String?
+    let annotations: [ResponseAnnotation]?
+}
+
+struct ResponseAnnotation: Decodable {}
+
+struct OpenAIConversation: Codable {
+    let id: String
+}
+
+struct ConversationCreateRequest: Codable {
+    let metadata: [String: String]?
+}
+
+struct OpenAIFileUploadResponse: Decodable {
+    let id: String
+    let expiresAt: Int?
+}
+
+struct UploadedFileInfo {
+    let id: String
+    let expiresAt: Date?
+}
+
+struct CreateVectorStoreRequest: Codable {
+    let name: String
+    let expiresAfter: VectorStoreExpiresAfter
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case expiresAfter = "expires_after"
+    }
+}
+
+struct VectorStoreExpiresAfter: Codable {
+    let anchor: String
+    let days: Int
+}
+
+struct VectorStoreResponse: Decodable {
+    let id: String
+}
+
+struct VectorStoreFileRequest: Codable {
+    let fileId: String
+
+    enum CodingKeys: String, CodingKey {
+        case fileId = "file_id"
+    }
+}
+
+struct ActionItem: Codable {
+    let action: String
+    let priority: String
+}
+
+struct TranscriptionResponse: Codable {
+    let text: String
+}
+
+struct OpenAIAPIErrorResponse: Codable {
+    let error: ErrorDetail
+
+    struct ErrorDetail: Codable {
+        let message: String
+        let type: String?
+        let code: String?
+    }
+}
+
+struct ChatRequest: Codable {
+    let model: String
+    let messages: [ChatMessage]
+    let maxTokens: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case model, messages
+        case maxTokens = "max_tokens"
+    }
+}
+
+struct ChatMessage: Codable {
+    let role: String
+    let content: String
+}
+
+struct ChatResponse: Codable {
+    let choices: [ChatChoice]
+}
+
+struct ChatChoice: Codable {
+    let message: ChatMessage
+}
+
+enum OpenAIError: Error {
+    case noAPIKey
+    case transcriptionFailed
+    case summarizationFailed
+    case apiError(String)
+    case vectorStoreUnavailable(String)
+}

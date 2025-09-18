@@ -254,9 +254,9 @@ struct CreateMeetingView: View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(spacing: 16) {
                 MeetingInputCard(title: "Meeting Name",
-                                 helper: meetingNameValidationMessage == nil ? meetingNameHelperText : nil,
-                                 error: meetingNameValidationMessage,
-                                 iconSystemName: "textformat") {
+                                  helper: meetingNameValidationMessage == nil ? meetingNameHelperText : nil,
+                                  error: meetingNameValidationMessage,
+                                  iconSystemName: "textformat") {
                     TextField("Enter meeting name", text: $meetingName)
                         .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
                         .textInputAutocapitalization(.words)
@@ -277,7 +277,7 @@ struct CreateMeetingView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.top, 4)
+        .padding(.top, 1)
     }
 
     @ViewBuilder
@@ -403,7 +403,7 @@ struct CreateMeetingView: View {
         let detailText = summary?.isEmpty == false ? summary! : subtitle
 
         return Button(action: action) {
-            HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 9) {
                 Image(systemName: iconSystemName)
                     .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(theme.accentColor)
@@ -607,7 +607,7 @@ struct CreateMeetingView: View {
                 idleRecordingCard(theme: theme)
             }
         }
-        .padding(.top, 20)
+        .padding(.top, 17)
     }
 
     private func formBackgroundGradient() -> LinearGradient {
@@ -670,7 +670,7 @@ struct CreateMeetingView: View {
 
     @ViewBuilder
     private func activeRecordingCard(theme: AppTheme) -> some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 9) {
             HStack {
                 if !audioRecorder.isPaused {
                     Circle()
@@ -689,7 +689,7 @@ struct CreateMeetingView: View {
                 }
 
                 Text(theme.headerStyle == .brackets ? (audioRecorder.isPaused ? "MEETING PAUSED" : "RECORDING MEETING...") : (audioRecorder.isPaused ? "Meeting Paused" : "Recording Meeting..."))
-                    .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(audioRecorder.isPaused ? theme.warningColor : theme.destructiveColor)
             }
 
@@ -712,39 +712,43 @@ struct CreateMeetingView: View {
                     .transition(.opacity)
             }
 
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 Button(theme.headerStyle == .brackets ? "STOP MEETING" : "Stop Meeting") {
                     stopMeetingRecording()
                 }
-                .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                 .foregroundColor(theme.backgroundColor)
-                .padding()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
                 .background(theme.destructiveColor)
                 .cornerRadius(theme.cornerRadius)
 
-                Button(audioRecorder.isPaused ? (theme.headerStyle == .brackets ? "RESUME" : "Resume") : (theme.headerStyle == .brackets ? "PAUSE" : "Pause")) {
-                    if audioRecorder.isPaused {
-                        resumeMeetingRecording()
-                    } else {
-                        pauseMeetingRecording()
+                HStack(spacing: 12) {
+                    Button(audioRecorder.isPaused ? (theme.headerStyle == .brackets ? "RESUME" : "Resume") : (theme.headerStyle == .brackets ? "PAUSE" : "Pause")) {
+                        if audioRecorder.isPaused {
+                            resumeMeetingRecording()
+                        } else {
+                            pauseMeetingRecording()
+                        }
                     }
-                }
-                .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                .foregroundColor(theme.secondaryTextColor)
-                .padding()
-                .background(theme.secondaryTextColor.opacity(0.2))
-                .cornerRadius(theme.cornerRadius)
+                    .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(theme.secondaryTextColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(theme.secondaryTextColor.opacity(0.2))
+                    .cornerRadius(theme.cornerRadius)
 
-                Button(role: .destructive) {
-                    cancelMeetingRecording()
-                } label: {
-                    Text(theme.headerStyle == .brackets ? "CANCEL" : "Cancel")
-                        .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                        .foregroundColor(theme.secondaryTextColor)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(theme.secondaryTextColor.opacity(0.2))
-                        .cornerRadius(theme.cornerRadius)
+                    Button(role: .destructive) {
+                        cancelMeetingRecording()
+                    } label: {
+                        Text(theme.headerStyle == .brackets ? "CANCEL" : "Cancel")
+                            .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(theme.secondaryTextColor)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(theme.secondaryTextColor.opacity(0.2))
+                            .cornerRadius(theme.cornerRadius)
+                    }
                 }
             }
         }

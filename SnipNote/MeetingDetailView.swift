@@ -16,6 +16,8 @@ struct MeetingDetailView: View {
     @Query private var allActions: [Action]
     @AppStorage("showActionsTab") private var showActionsTab = false
 
+    @Environment(\.navigateToEve) private var navigateToEve
+
     @State private var isEditingName = false
     @State private var isEditingSummary = false
     @State private var tempName = ""
@@ -465,35 +467,48 @@ struct MeetingDetailView: View {
     private var toolbarContent: some ToolbarContent {
         if !meeting.isProcessing && !meeting.audioTranscript.isEmpty {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button(action: shareSummary) {
-                        Label("Summary", systemImage: "doc.richtext")
+                HStack(spacing: 16) {
+                    // Eve Chat Button
+                    Button(action: {
+                        navigateToEve(meeting.id)
+                    }) {
+                        Image(systemName: "wand.and.stars")
+                            .font(.system(.body))
+                            .foregroundColor(themeManager.currentTheme.accentColor)
                     }
-                    
-                    Button(action: shareTranscript) {
-                        Label("Transcript", systemImage: "text.quote")
-                    }
-                    
-                    Button(action: shareEverything) {
-                        Label("Everything", systemImage: "doc.text")
-                    }
-                    
-                    if meeting.hasRecording {
-                        Divider()
-                        
-                        Button(action: shareAudio) {
-                            if isDownloadingAudio {
-                                Label("Downloading...", systemImage: "arrow.down.circle")
-                            } else {
-                                Label("Audio", systemImage: "waveform")
-                            }
+                    .help("Chat with Eve about this meeting")
+
+                    // Share Menu
+                    Menu {
+                        Button(action: shareSummary) {
+                            Label("Summary", systemImage: "doc.richtext")
                         }
-                        .disabled(isDownloadingAudio)
+
+                        Button(action: shareTranscript) {
+                            Label("Transcript", systemImage: "text.quote")
+                        }
+
+                        Button(action: shareEverything) {
+                            Label("Everything", systemImage: "doc.text")
+                        }
+
+                        if meeting.hasRecording {
+                            Divider()
+
+                            Button(action: shareAudio) {
+                                if isDownloadingAudio {
+                                    Label("Downloading...", systemImage: "arrow.down.circle")
+                                } else {
+                                    Label("Audio", systemImage: "waveform")
+                                }
+                            }
+                            .disabled(isDownloadingAudio)
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(.body))
+                            .foregroundColor(themeManager.currentTheme.accentColor)
                     }
-                } label: {
-                    Image(systemName: "square.and.arrow.down")
-                        .font(.system(.body))
-                        .foregroundColor(themeManager.currentTheme.accentColor)
                 }
             }
         }

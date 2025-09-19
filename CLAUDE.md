@@ -116,3 +116,4 @@
 - Search could be enhanced with filters by date, duration, or content type
 - Onboarding could be made re-accessible from Settings for feature discovery
 - never try to build, it doesnt work for now. when you are done with a task, tell me to do it manually and i will provide erorrs if any
+- do not attempt to build. let me know. i will do it manually and give back errors if any

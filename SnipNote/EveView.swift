@@ -15,6 +15,7 @@ struct EveView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @StateObject private var openAIService = OpenAIService.shared
     @StateObject private var storeManager = StoreManager.shared
+    @Binding var selectedMeetingForEve: UUID?
     
     @Query private var meetings: [Meeting]
     @Query(sort: \ChatConversation.dateModified, order: .reverse) private var conversations: [ChatConversation]
@@ -31,6 +32,10 @@ struct EveView: View {
     @State private var vectorStoreId: String?
     @State private var isSyncingContext = false
     @State private var contextWarning: String?
+
+    init(selectedMeetingForEve: Binding<UUID?> = .constant(nil)) {
+        self._selectedMeetingForEve = selectedMeetingForEve
+    }
 
     var body: some View {
         NavigationView {
@@ -100,6 +105,14 @@ struct EveView: View {
             initializeSelectedMeetings()
             Task { @MainActor in
                 await synchronizeVectorStoreForCurrentSelection()
+            }
+        }
+        .onChange(of: selectedMeetingForEve) { _, newValue in
+            if newValue != nil {
+                initializeSelectedMeetings()
+                Task { @MainActor in
+                    await synchronizeVectorStoreForCurrentSelection()
+                }
             }
         }
     }
@@ -560,6 +573,16 @@ struct EveView: View {
         let availableIds = Set(meetings.map { $0.id })
         guard !availableIds.isEmpty else {
             selectedMeetings.removeAll()
+            return
+        }
+
+        // Check if we have a pre-selected meeting from navigation
+        if let preSelectedId = selectedMeetingForEve, availableIds.contains(preSelectedId) {
+            selectedMeetings = [preSelectedId]
+            // Clear the binding so it doesn't persist
+            selectedMeetingForEve = nil
+            // Start a new conversation when navigating with a specific meeting
+            startNewConversation()
             return
         }
 

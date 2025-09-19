@@ -16,6 +16,7 @@ struct ContentView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var localizationManager: LocalizationManager
     @AppStorage("showActionsTab") private var showActionsTab = false
+    @State private var selectedMeetingForEve: UUID?
     
     private var pendingActionsCount: Int {
         return actions.filter { !$0.isCompleted }.count
@@ -49,7 +50,7 @@ struct ContentView: View {
                     .tag(Tab.actions)
             }
 
-            EveView()
+            EveView(selectedMeetingForEve: $selectedMeetingForEve)
                 .tabItem {
                     Image(systemName: "wand.and.stars.inverse")
                     Text(tabTitle(for: "tab.eve"))
@@ -87,6 +88,12 @@ struct ContentView: View {
                 selectedTab = .meetings
             }
         }
+        .onChange(of: selectedMeetingForEve) { _, newMeetingId in
+            if newMeetingId != nil {
+                selectedTab = .eve
+            }
+        }
+        .environment(\.navigateToEve, navigateToEveWith)
     }
 
     private func tabTitle(for key: String) -> String {
@@ -95,6 +102,10 @@ struct ContentView: View {
             return base.uppercased()
         }
         return base
+    }
+
+    func navigateToEveWith(meetingId: UUID) {
+        selectedMeetingForEve = meetingId
     }
 }
 

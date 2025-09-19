@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		4932D5C42E7867CD00769B1D /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4932D5C32E7867CD00769B1D /* StoreKit.framework */; };
 		4976E7522E240927000394DC /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 4976E7512E240927000394DC /* Supabase */; };
-		499749012E7AB3B700AE1B78 /* ExyteChat in Frameworks */ = {isa = PBXBuildFile; productRef = 499749002E7AB3B700AE1B78 /* ExyteChat */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,7 +73,6 @@
 			files = (
 				4976E7522E240927000394DC /* Supabase in Frameworks */,
 				4932D5C42E7867CD00769B1D /* StoreKit.framework in Frameworks */,
-				499749012E7AB3B700AE1B78 /* ExyteChat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -145,7 +143,6 @@
 			name = SnipNote;
 			packageProductDependencies = (
 				4976E7512E240927000394DC /* Supabase */,
-				499749002E7AB3B700AE1B78 /* ExyteChat */,
 			);
 			productName = SnipNote;
 			productReference = 4961E7262E0D7A090099EE31 /* SnipNote.app */;
@@ -232,7 +229,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				49EA9B3A2E2407C000DFDFF5 /* XCRemoteSwiftPackageReference "supabase-swift" */,
-				499748FF2E7AB3B700AE1B78 /* XCRemoteSwiftPackageReference "Chat" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4961E7272E0D7A090099EE31 /* Products */;
@@ -440,7 +436,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5K8R3X2322;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -474,7 +470,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5K8R3X2322;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -615,14 +611,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		499748FF2E7AB3B700AE1B78 /* XCRemoteSwiftPackageReference "Chat" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/exyte/Chat.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.7.0;
-			};
-		};
 		49EA9B3A2E2407C000DFDFF5 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/supabase/supabase-swift.git";
@@ -638,11 +626,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 49EA9B3A2E2407C000DFDFF5 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
-		};
-		499749002E7AB3B700AE1B78 /* ExyteChat */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 499748FF2E7AB3B700AE1B78 /* XCRemoteSwiftPackageReference "Chat" */;
-			productName = ExyteChat;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

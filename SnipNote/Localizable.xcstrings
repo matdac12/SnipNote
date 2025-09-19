@@ -67,6 +67,7 @@
 
     },
     "✓ Completed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -77,6 +78,7 @@
       }
     },
     "✓ COMPLETED" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -236,9 +238,6 @@
 
     },
     "COLLAPSE ALL" : {
-
-    },
-    "Completed %@" : {
 
     },
     "CONTACT" : {
@@ -678,23 +677,6 @@
         }
       }
     },
-    "settings.about.tagline" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI-powered voice note taking with smart action extraction"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Note vocali con AI e azioni intelligenti"
-          }
-        }
-      }
-    },
     "settings.about.developer.description" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -742,6 +724,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Assistente Meeting con AI"
+          }
+        }
+      }
+    },
+    "settings.about.tagline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI-powered voice note taking with smart action extraction"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note vocali con AI e azioni intelligenti"
           }
         }
       }

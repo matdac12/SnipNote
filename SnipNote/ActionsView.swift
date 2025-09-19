@@ -214,6 +214,7 @@ struct ActionsView: View {
                     }
                 }
                 .listStyle(PlainListStyle())
+                .listRowSeparator(.hidden)
                 .scrollContentBackground(.hidden)
             }
         }
@@ -368,51 +369,120 @@ struct ExpandableGroupHeaderView: View {
 struct ActionRowView: View {
     let action: Action
     @EnvironmentObject var themeManager: ThemeManager
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                
-                Text(themeManager.currentTheme.headerStyle == .brackets ? "[\(action.priority.rawValue)]" : action.priority.rawValue)
-                    .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                    .foregroundColor(priorityColor)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(priorityColor.opacity(0.2))
-                    .cornerRadius(3)
-                
-                Spacer()
-                
-                if action.isCompleted {
-                    Text(themeManager.currentTheme.headerStyle == .brackets ? "✓ COMPLETED" : "✓ Completed")
-                        .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                        .foregroundColor(themeManager.currentTheme.accentColor)
-                } else {
-                    Text(action.dateCreated, style: .date)
-                        .themedCaption()
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Circle()
+                    .fill(priorityColor)
+                    .frame(width: 10, height: 10)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .center, spacing: 8) {
+                        Text(displayTitle)
+                            .themedBody()
+                            .foregroundColor(titleColor)
+                            .strikethrough(action.isCompleted)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(3)
+
+                        Spacer(minLength: 8)
+
+                        if action.isCompleted {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(themeManager.currentTheme.accentColor)
+                        }
+                    }
+
+                    HStack(spacing: 8) {
+                        priorityBadge
+
+                        Text(dateLabel)
+                            .themedCaption()
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+
+                        Spacer(minLength: 0)
+                    }
                 }
             }
-            
-            Text(action.title)
-                .themedBody()
-                .foregroundColor(action.isCompleted ? themeManager.currentTheme.secondaryTextColor : themeManager.currentTheme.accentColor)
-                .strikethrough(action.isCompleted)
-                .lineLimit(3)
-                .multilineTextAlignment(.leading)
-            
-            if action.isCompleted, let completedDate = action.dateCompleted {
-                Text("Completed \(completedDate, style: .date)")
-                    .themedCaption()
+        }
+        .padding(16)
+        .background(themeManager.currentTheme.materialStyle)
+        .cornerRadius(themeManager.currentTheme.cornerRadius)
+        .shadow(
+            color: Color.black.opacity(shadowOpacity),
+            radius: 4,
+            x: 0,
+            y: 2
+        )
+        .padding(.vertical, 4)
+    }
+
+    private var shadowOpacity: Double {
+        themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18
+    }
+
+    private var displayTitle: String {
+        let title = action.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else {
+            return themeManager.currentTheme.headerStyle == .brackets ? "UNTITLED ACTION" : "Untitled Action"
+        }
+        return title
+    }
+
+    private var titleColor: Color {
+        action.isCompleted ? themeManager.currentTheme.secondaryTextColor : themeManager.currentTheme.accentColor
+    }
+
+    @ViewBuilder
+    private var priorityBadge: some View {
+        Text(priorityLabel)
+            .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+            .foregroundColor(priorityColor)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(priorityColor.opacity(0.18))
+            .cornerRadius(6)
+    }
+
+    private var priorityLabel: String {
+        switch themeManager.currentTheme.headerStyle {
+        case .brackets:
+            return action.priority.rawValue
+        case .plain:
+            switch action.priority {
+            case .high: return "High Priority"
+            case .medium: return "Medium Priority"
+            case .low: return "Low Priority"
             }
         }
-        .padding(.vertical, 8)
     }
-    
+
+    private var dateLabel: String {
+        let formatter = Date.FormatStyle(date: .abbreviated, time: .omitted)
+        let base: String
+        let date: Date
+
+        if action.isCompleted, let completed = action.dateCompleted {
+            base = themeManager.currentTheme.headerStyle == .brackets ? "COMPLETED" : "Completed"
+            date = completed
+        } else {
+            base = themeManager.currentTheme.headerStyle == .brackets ? "CREATED" : "Created"
+            date = action.dateCreated
+        }
+
+        let formatted = date.formatted(formatter)
+        return themeManager.currentTheme.headerStyle == .brackets ? "\(base) \(formatted.uppercased())" : "\(base) \(formatted)"
+    }
+
     private var priorityColor: Color {
         switch action.priority {
-        case .high: return themeManager.currentTheme.destructiveColor
-        case .medium: return themeManager.currentTheme.warningColor
-        case .low: return themeManager.currentTheme.accentColor
+        case .high:
+            return themeManager.currentTheme.destructiveColor
+        case .medium:
+            return themeManager.currentTheme.warningColor
+        case .low:
+            return themeManager.currentTheme.accentColor
         }
     }
 }

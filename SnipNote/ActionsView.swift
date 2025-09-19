@@ -78,48 +78,70 @@ struct ActionsView: View {
                             ProgressView()
                                 .scaleEffect(0.7)
                                 .progressViewStyle(CircularProgressViewStyle(tint: .gray))
+                        } else {
+                            Image(systemName: "doc.text")
+                                .font(.system(size: 14, weight: .semibold))
                         }
                         Text(themeManager.currentTheme.headerStyle == .brackets ? "REPORT" : "Report")
+                            .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     }
                 }
                 .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 .foregroundColor(isGeneratingReport ? themeManager.currentTheme.secondaryTextColor : themeManager.currentTheme.accentColor)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(isGeneratingReport ? themeManager.currentTheme.secondaryTextColor.opacity(0.2) : themeManager.currentTheme.accentColor.opacity(0.2))
-                .overlay(
-                    Rectangle()
-                        .stroke(isGeneratingReport ? themeManager.currentTheme.secondaryTextColor : themeManager.currentTheme.accentColor, lineWidth: 1)
-                )
-                .cornerRadius(themeManager.currentTheme.cornerRadius / 2)
+                .background(isGeneratingReport ? themeManager.currentTheme.secondaryTextColor.opacity(0.2) : themeManager.currentTheme.accentColor.opacity(0.15))
+
+                .clipShape(Capsule())
+                .shadow(color: isGeneratingReport ? Color.clear : themeManager.currentTheme.accentColor.opacity(0.2), radius: 3, x: 0, y: 2)
+                .buttonStyle(PlainButtonStyle())
                 .disabled(isGeneratingReport || allActions.isEmpty)
             }
             .padding()
-            .background(themeManager.currentTheme.materialStyle)
+            .background(
+                LinearGradient(
+                    colors: [
+                        themeManager.currentTheme.secondaryBackgroundColor.opacity(0.9),
+                        themeManager.currentTheme.backgroundColor
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+
+            // Divider line
+            Rectangle()
+                .fill(themeManager.currentTheme.secondaryTextColor.opacity(0.1))
+                .frame(height: 1)
             
             VStack(spacing: 8) {
                 // Filter buttons
-                HStack(spacing: 16) {
+                HStack(spacing: 12) {
                     ForEach(ActionFilter.allCases, id: \.self) { filterOption in
-                        Button(filterOption.rawValue) {
+                        Button(action: {
                             filter = filterOption
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: filterOption == .toDo ? "list.bullet" : "checkmark.circle.fill")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text(filterOption.rawValue)
+                                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                            }
+                            .foregroundColor(filter == filterOption ? themeManager.currentTheme.backgroundColor : themeManager.currentTheme.accentColor)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(filter == filterOption ? themeManager.currentTheme.accentColor : themeManager.currentTheme.secondaryBackgroundColor.opacity(0.5))
+                            .clipShape(Capsule())
+                            .shadow(color: filter == filterOption ? themeManager.currentTheme.accentColor.opacity(0.3) : Color.clear, radius: 3, x: 0, y: 2)
                         }
-                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                        .foregroundColor(filter == filterOption ? themeManager.currentTheme.backgroundColor : themeManager.currentTheme.accentColor)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(filter == filterOption ? themeManager.currentTheme.accentColor : .clear)
-                        .overlay(
-                            Rectangle()
-                                .stroke(themeManager.currentTheme.accentColor, lineWidth: 1)
-                        )
+                        .buttonStyle(PlainButtonStyle())
                     }
                     Spacer()
                 }
                 
                 // Expand All button
                 HStack {
-                    Button(themeManager.currentTheme.headerStyle == .brackets ? (allExpanded ? "COLLAPSE ALL" : "EXPAND ALL") : (allExpanded ? "Collapse All" : "Expand All")) {
+                    Button(action: {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             allExpanded.toggle()
                             if allExpanded {
@@ -130,18 +152,22 @@ struct ActionsView: View {
                                 expandedSections.removeAll()
                             }
                         }
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: allExpanded ? "chevron.up.chevron.down" : "chevron.right.chevron.left")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text(themeManager.currentTheme.headerStyle == .brackets ? (allExpanded ? "COLLAPSE ALL" : "EXPAND ALL") : (allExpanded ? "Collapse All" : "Expand All"))
+                                .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                        }
+                        .foregroundColor(themeManager.currentTheme.warningColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(themeManager.currentTheme.warningColor.opacity(0.15))
+                        .clipShape(Capsule())
+                        .shadow(color: themeManager.currentTheme.warningColor.opacity(0.2), radius: 3, x: 0, y: 2)
                     }
-                    .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                    .foregroundColor(themeManager.currentTheme.warningColor)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(themeManager.currentTheme.warningColor.opacity(0.1))
-                    .overlay(
-                        Rectangle()
-                            .stroke(themeManager.currentTheme.warningColor, lineWidth: 1)
-                    )
-                    .cornerRadius(themeManager.currentTheme.cornerRadius / 2)
-                    
+                    .buttonStyle(PlainButtonStyle())
+
                     Spacer()
                 }
             }
@@ -342,7 +368,7 @@ struct ExpandableGroupHeaderView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(themeManager.currentTheme.headerStyle == .brackets ? title.uppercased() : title)
-                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+
                         .foregroundColor(themeManager.currentTheme.accentColor)
                         .lineLimit(1)
                     

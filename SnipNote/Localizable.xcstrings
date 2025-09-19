@@ -98,7 +98,14 @@
 
     },
     "1. Go to iOS Settings\n2. Find Privacy & Security\n3. Tap Microphone\n4. Enable SnipNote\n5. Return to the app" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Vai a Impostazioni iOS\n2. Trova Privacy e Sicurezza\n3. Premi Microfono\n4. Abilita SnipNote\n5. Torna all'app"
+          }
+        }
+      }
     },
     "1.5×" : {
 
@@ -113,13 +120,34 @@
 
     },
     "About" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Info"
+          }
+        }
+      }
     },
     "ABOUT" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "INFO"
+          }
+        }
+      }
     },
     "About SnipNote" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Info su SnipNote"
+          }
+        }
+      }
     },
     "Actions" : {
       "localizations" : {
@@ -142,10 +170,24 @@
       }
     },
     "AI-Powered Insights" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insight con AI"
+          }
+        }
+      }
     },
     "AI-powered voice note taking with smart action extraction. Turn your meetings into actionable insights." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note vocali intelligenti con estrazione automatica di azioni. Trasforma le tue riunioni in insight utilizzabili."
+          }
+        }
+      }
     },
     "Allow" : {
       "localizations" : {
@@ -214,16 +256,37 @@
 
     },
     "Audio" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        }
+      }
     },
     "BEST VALUE" : {
 
     },
     "Cancel" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla"
+          }
+        }
+      }
     },
     "CANCEL" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ANNULLA"
+          }
+        }
+      }
     },
     "Cancel anytime from Settings" : {
 
@@ -232,10 +295,24 @@
 
     },
     "Close" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiudi"
+          }
+        }
+      }
     },
     "CLOSE" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CHIUDI"
+          }
+        }
+      }
     },
     "Collapse All" : {
 
@@ -287,7 +364,14 @@
 
     },
     "Done" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fatto"
+          }
+        }
+      }
     },
     "Downloading Audio..." : {
 
@@ -299,13 +383,34 @@
 
     },
     "Edit" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifica"
+          }
+        }
+      }
     },
     "Email" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        }
+      }
     },
     "EMAIL" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EMAIL"
+          }
+        }
+      }
     },
     "Enter meeting location" : {
 
@@ -329,28 +434,77 @@
 
     },
     "Extracting action items from meeting..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estrazione azioni dalla riunione..."
+          }
+        }
+      }
     },
     "Extracting..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estrazione..."
+          }
+        }
+      }
     },
     "EXTRACTING..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ESTRAZIONE..."
+          }
+        }
+      }
     },
     "Full Transcript" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizione completa"
+          }
+        }
+      }
     },
     "Get automatic summaries, action item extraction, and smart organization. Focus on the conversation while SnipNote handles the notes." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ottieni riepiloghi automatici, estrazione di azioni e organizzazione intelligente. Concentrati sulla conversazione mentre SnipNote gestisce le note."
+          }
+        }
+      }
     },
     "Get Started" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inizia"
+          }
+        }
+      }
     },
     "Get unlimited access to all premium features" : {
 
     },
     "Hide" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascondi"
+          }
+        }
+      }
     },
     "Hide Debug Info" : {
 
@@ -455,34 +609,97 @@
       }
     },
     "Meeting Name" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome riunione"
+          }
+        }
+      }
     },
     "Meeting Name Required" : {
 
     },
     "Meeting Paused" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riunione in pausa"
+          }
+        }
+      }
     },
     "MEETING PAUSED" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RIUNIONE IN PAUSA"
+          }
+        }
+      }
     },
     "Meeting Summary" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riepilogo riunione"
+          }
+        }
+      }
     },
     "Meetings" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riunioni"
+          }
+        }
+      }
     },
     "Microphone Access Denied" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso al microfono negato"
+          }
+        }
+      }
     },
     "MICROPHONE ACCESS DENIED" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ACCESSO AL MICROFONO NEGATO"
+          }
+        }
+      }
     },
     "Microphone Permission Needed" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permesso microfono richiesto"
+          }
+        }
+      }
     },
     "MICROPHONE PERMISSION NEEDED" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PERMESSO MICROFONO RICHIESTO"
+          }
+        }
+      }
     },
     "NEED HELP?" : {
 
@@ -509,7 +726,14 @@
       }
     },
     "Next" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avanti"
+          }
+        }
+      }
     },
     "No %@ actions" : {
 
@@ -542,28 +766,70 @@
 
     },
     "OK" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
     },
     "OpenAI API Key" : {
 
     },
     "Password" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password"
+          }
+        }
+      }
     },
     "PASSWORD" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PASSWORD"
+          }
+        }
+      }
     },
     "Pause" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausa"
+          }
+        }
+      }
     },
     "PAUSE" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PAUSA"
+          }
+        }
+      }
     },
     "Payment will be charged to your iTunes account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. Manage or cancel your subscription in Account Settings." : {
 
     },
     "Permissions Needed" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permessi richiesti"
+          }
+        }
+      }
     },
     "Please enter the name of the meeting" : {
 
@@ -581,46 +847,130 @@
 
     },
     "Process" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elabora"
+          }
+        }
+      }
     },
     "PROCESS" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ELABORA"
+          }
+        }
+      }
     },
     "Processing meeting summary..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elaborazione riepilogo riunione..."
+          }
+        }
+      }
     },
     "Processing meeting..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elaborazione riunione..."
+          }
+        }
+      }
     },
     "PROCESSING MEETING..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ELABORAZIONE RIUNIONE..."
+          }
+        }
+      }
     },
     "Processing..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elaborazione..."
+          }
+        }
+      }
     },
     "PROCESSING..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ELABORAZIONE..."
+          }
+        }
+      }
     },
     "Purchase Error" : {
 
     },
     "Record" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra"
+          }
+        }
+      }
     },
     "RECORD" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "REGISTRA"
+          }
+        }
+      }
     },
     "Record Your Meetings" : {
 
     },
     "Recording Meeting..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrazione riunione..."
+          }
+        }
+      }
     },
     "RECORDING MEETING..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "REGISTRAZIONE RIUNIONE..."
+          }
+        }
+      }
     },
     "Recording requires microphone access. Please enable it in Settings > Privacy & Security > Microphone > SnipNote." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La registrazione richiede l'accesso al microfono. Abilitalo in Impostazioni > Privacy e Sicurezza > Microfono > SnipNote."
+          }
+        }
+      }
     },
     "Report" : {
 
@@ -632,10 +982,24 @@
 
     },
     "Resume" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprendi"
+          }
+        }
+      }
     },
     "RESUME" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RIPRENDI"
+          }
+        }
+      }
     },
     "Retry" : {
 
@@ -650,10 +1014,24 @@
 
     },
     "Save" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva"
+          }
+        }
+      }
     },
     "SAVE" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SALVA"
+          }
+        }
+      }
     },
     "Search meetings, transcripts..." : {
 
@@ -1820,25 +2198,67 @@
       }
     },
     "Show" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra"
+          }
+        }
+      }
     },
     "Show Debug Info" : {
 
     },
     "Sign in" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi"
+          }
+        }
+      }
     },
     "Sign In" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi"
+          }
+        }
+      }
     },
     "SIGN IN" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ACCEDI"
+          }
+        }
+      }
     },
     "Sign up" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrati"
+          }
+        }
+      }
     },
     "Skip" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salta"
+          }
+        }
+      }
     },
     "SNIPNOTE" : {
 
@@ -1856,10 +2276,24 @@
 
     },
     "Starting in..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inizio tra..."
+          }
+        }
+      }
     },
     "STARTING IN..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "INIZIO TRA..."
+          }
+        }
+      }
     },
     "Stop Meeting" : {
 
@@ -1871,7 +2305,14 @@
 
     },
     "Summary" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riepilogo"
+          }
+        }
+      }
     },
     "tab.actions" : {
       "extractionState" : "manual",
@@ -1948,7 +2389,14 @@
 
     },
     "Tap the record button to capture audio from meetings, calls, or voice notes. SnipNote will automatically transcribe and analyze your content." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Premi il pulsante di registrazione per catturare l'audio di riunioni, chiamate o note vocali. SnipNote trascriverà e analizzerà automaticamente il contenuto."
+          }
+        }
+      }
     },
     "Terms of Use (EULA)" : {
 
@@ -1957,13 +2405,34 @@
 
     },
     "To provide the best experience, SnipNote needs access to your microphone and permission to send notifications." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per offrire la migliore esperienza, SnipNote necessita l'accesso al microfono e il permesso di inviare notifiche."
+          }
+        }
+      }
     },
     "To record meetings, SnipNote needs access to your microphone. Tap the record button and grant permission when prompted." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per registrare le riunioni, SnipNote necessita l'accesso al microfono. Premi il pulsante di registrazione e concedi il permesso quando richiesto."
+          }
+        }
+      }
     },
     "Transcript" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizione"
+          }
+        }
+      }
     },
     "Troubleshooting:" : {
 
@@ -2017,7 +2486,7 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hai raggiunto il tuo limite gratutito di  %lld meetings. Passa a Pro per un uno illimitato. "
+            "value" : "Hai raggiunto il tuo limite gratuito di %lld riunioni. Passa a Pro per accesso illimitato."
           }
         }
       }

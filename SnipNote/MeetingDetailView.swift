@@ -145,7 +145,9 @@ struct MeetingDetailView: View {
                     .themedCaption()
                     .multilineTextAlignment(.trailing)
             }
-            .padding()
+            .padding(.top, 13)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
 
             // Divider line like CreateMeetingView
             Rectangle()

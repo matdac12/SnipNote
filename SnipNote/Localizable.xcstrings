@@ -57,10 +57,25 @@
         }
       }
     },
+    "%lld Minutes" : {
+
+    },
     "•" : {
 
     },
+    "• Minutes are added instantly to your account" : {
+
+    },
+    "• Minutes never expire" : {
+
+    },
+    "• Purchase multiple packs anytime" : {
+
+    },
     "≈ %@/mo" : {
+
+    },
+    "≈ %@€/min" : {
 
     },
     "⏱️ %@" : {
@@ -268,6 +283,18 @@
     "BEST VALUE" : {
 
     },
+    "Buy Extra Minutes" : {
+
+    },
+    "Buy Minutes" : {
+
+    },
+    "Buy Minutes Packs" : {
+
+    },
+    "Buy Packs" : {
+
+    },
     "Cancel" : {
       "localizations" : {
         "it" : {
@@ -292,6 +319,9 @@
 
     },
     "Chat with Eve about this meeting" : {
+
+    },
+    "Choose Your Pack" : {
 
     },
     "Close" : {
@@ -349,6 +379,9 @@
       }
     },
     "CREATE ACCOUNT" : {
+
+    },
+    "Current Balance" : {
 
     },
     "Deselect All" : {
@@ -433,6 +466,9 @@
     "EXPAND ALL" : {
 
     },
+    "EXTRA MINUTES" : {
+
+    },
     "Extracting action items from meeting..." : {
       "localizations" : {
         "it" : {
@@ -463,6 +499,9 @@
         }
       }
     },
+    "Free Tier - Minutes-based usage" : {
+
+    },
     "Full Transcript" : {
       "localizations" : {
         "it" : {
@@ -483,6 +522,12 @@
         }
       }
     },
+    "Get instant minutes that never expire" : {
+
+    },
+    "Get premium features with generous minute allowances" : {
+
+    },
     "Get Started" : {
       "localizations" : {
         "it" : {
@@ -492,9 +537,6 @@
           }
         }
       }
-    },
-    "Get unlimited access to all premium features" : {
-
     },
     "Hide" : {
       "localizations" : {
@@ -516,6 +558,9 @@
 
     },
     "IMPORTED AUDIO READY" : {
+
+    },
+    "Insufficient Minutes" : {
 
     },
     "Jot down talking points, decisions to make, or context for Eve." : {
@@ -588,9 +633,6 @@
           }
         }
       }
-    },
-    "Limit Reached" : {
-
     },
     "Loading subscription options..." : {
 
@@ -701,7 +743,16 @@
         }
       }
     },
+    "minutes" : {
+
+    },
     "NEED HELP?" : {
+
+    },
+    "Need More Minutes?" : {
+
+    },
+    "NEED MORE MINUTES?" : {
 
     },
     "New Chat" : {
@@ -821,6 +872,9 @@
     "Payment will be charged to your iTunes account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. Manage or cancel your subscription in Account Settings." : {
 
     },
+    "Perfect for %@" : {
+
+    },
     "Permissions Needed" : {
       "localizations" : {
         "it" : {
@@ -917,6 +971,9 @@
       }
     },
     "Purchase Error" : {
+
+    },
+    "Purchase Pack" : {
 
     },
     "Record" : {
@@ -2401,8 +2458,35 @@
     "Terms of Use (EULA)" : {
 
     },
-    "This exceeds the free plan limit (%@ max). Upgrade to SnipNote Pro for longer meetings." : {
-
+    "This audio requires %lld minutes. You have %lld minutes remaining." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This audio requires %1$lld minutes. You have %2$lld minutes remaining."
+          }
+        }
+      }
+    },
+    "This recording will require %lld minutes. You have %lld minutes remaining." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This recording will require %1$lld minutes. You have %2$lld minutes remaining."
+          }
+        }
+      }
+    },
+    "This requires %lld minutes, but you only have %lld minutes remaining." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This requires %1$lld minutes, but you only have %2$lld minutes remaining."
+          }
+        }
+      }
     },
     "To provide the best experience, SnipNote needs access to your microphone and permission to send notifications." : {
       "localizations" : {
@@ -2423,6 +2507,9 @@
           }
         }
       }
+    },
+    "Top up your transcription minutes instantly" : {
+
     },
     "Transcript" : {
       "localizations" : {
@@ -2452,12 +2539,6 @@
     "Upgrade Now" : {
 
     },
-    "Upgrade Required" : {
-
-    },
-    "Upgrade to Pro" : {
-
-    },
     "VERSION" : {
 
     },
@@ -2481,7 +2562,11 @@
         }
       }
     },
+    "You don't have enough minutes to start recording. Purchase minute packs to continue." : {
+
+    },
     "You've reached your free tier limit of %lld total meetings. Upgrade to Pro for unlimited meetings." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {

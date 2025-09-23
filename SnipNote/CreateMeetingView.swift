@@ -26,6 +26,7 @@ struct CreateMeetingView: View {
     @StateObject private var audioRecorder = AudioRecorder()
     @StateObject private var openAIService = OpenAIService.shared
     @StateObject private var storeManager = StoreManager.shared
+    @StateObject private var minutesManager = MinutesManager.shared
     @Query private var allMeetings: [Meeting]
     
     @State private var meetingName = ""
@@ -48,6 +49,11 @@ struct CreateMeetingView: View {
     // Processing state
     @State private var isProcessingAudio = false
 
+    // Minutes management
+    @State private var showingInsufficientMinutesAlert = false
+    @State private var showingMinutesPaywall = false
+    @State private var estimatedMinutesNeeded = 0
+
     // Countdown state
     @State private var showingCountdown = false
     @State private var countdownValue = 3
@@ -55,9 +61,6 @@ struct CreateMeetingView: View {
     
     // Paywall state
     @State private var showingPaywall = false
-    @State private var showingLimitAlert = false
-    @State private var showingDurationAlert = false
-    @State private var durationAlertMessage = ""
     
     private enum FocusedField: Hashable {
         case name
@@ -100,9 +103,7 @@ struct CreateMeetingView: View {
     
     // Computed properties for imported audio mode
     private var hasImportedAudio: Bool {
-        let hasAudio = importedAudioURL != nil
-        print("🎵 hasImportedAudio: \(hasAudio), URL: \(importedAudioURL?.absoluteString ?? "nil")")
-        return hasAudio
+        return importedAudioURL != nil
     }
     
     private var importedAudioDuration: TimeInterval {
@@ -633,8 +634,9 @@ struct CreateMeetingView: View {
                 .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 .foregroundColor(theme.accentColor)
 
-            if exceedsFreeTierDuration(importedAudioDuration) {
-                Text("This exceeds the free plan limit (\(FreeTierLimits.durationDescription) max). Upgrade to SnipNote Pro for longer meetings.")
+            let requiredMinutes = max(1, Int(ceil(importedAudioDuration / 60.0)))
+            if minutesManager.currentBalance < requiredMinutes {
+                Text("This audio requires \(requiredMinutes) minutes. You have \(minutesManager.currentBalance) minutes remaining.")
                     .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(theme.warningColor)
                     .multilineTextAlignment(.center)
@@ -704,8 +706,9 @@ struct CreateMeetingView: View {
             )
             .frame(height: 60)
 
-            if exceedsFreeTierDuration(recordingDuration) {
-                Text("This exceeds the free plan limit (\(FreeTierLimits.durationDescription) max). Upgrade to SnipNote Pro for longer meetings.")
+            let requiredMinutes = max(1, Int(ceil(recordingDuration / 60.0)))
+            if recordingDuration > 0 && minutesManager.currentBalance < requiredMinutes {
+                Text("This recording will require \(requiredMinutes) minutes. You have \(minutesManager.currentBalance) minutes remaining.")
                     .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(theme.warningColor)
                     .multilineTextAlignment(.center)
@@ -860,27 +863,28 @@ struct CreateMeetingView: View {
         } message: {
             Text("Enter your OpenAI API key to enable transcription and summarization.")
         }
-        .alert("Limit Reached", isPresented: $showingLimitAlert) {
-            Button("Upgrade to Pro") {
-                showingPaywall = true
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("You've reached your free tier limit of \(FreeTierLimits.maxItemsTotal) total meetings. Upgrade to Pro for unlimited meetings.")
-        }
-        .alert("Upgrade Required", isPresented: $showingDurationAlert) {
-            Button("Upgrade to Pro") {
-                showingPaywall = true
-            }
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(durationAlertMessage)
-        }
         .sheet(isPresented: $showingDatePicker) {
             meetingDatePickerSheet()
         }
         .sheet(isPresented: $showingPaywall) {
             PaywallView()
+        }
+        .sheet(isPresented: $showingMinutesPaywall) {
+            MinutesPackPaywallView(onPurchaseComplete: {
+                Task { await minutesManager.refreshBalance() }
+            })
+        }
+        .alert("Insufficient Minutes", isPresented: $showingInsufficientMinutesAlert) {
+            Button("Buy Minutes") {
+                showingMinutesPaywall = true
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            if estimatedMinutesNeeded > 0 {
+                Text("This requires \(estimatedMinutesNeeded) minutes, but you only have \(minutesManager.currentBalance) minutes remaining.")
+            } else {
+                Text("You don't have enough minutes to start recording. Purchase minute packs to continue.")
+            }
         }
         .alert("Meeting Name Required", isPresented: $showingNameRequiredAlert) {
             Button("OK", role: .cancel) {}
@@ -889,6 +893,10 @@ struct CreateMeetingView: View {
         }
         .onAppear {
             print("🎵 CreateMeetingView appeared with importedAudioURL: \(importedAudioURL?.absoluteString ?? "nil")")
+            print("🎵 hasImportedAudio: \(hasImportedAudio)")
+
+            // Refresh minutes balance
+            Task { await minutesManager.refreshBalance() }
 
             // Check microphone permission (iOS 17+ compatible)
             microphonePermissionStatus = getCurrentPermissionStatus()
@@ -920,15 +928,13 @@ struct CreateMeetingView: View {
         guard !meetingNameTrimmed.isEmpty else {
             return
         }
-        
-        // Check subscription limits for free users
-        let subscribed = storeManager.hasActiveSubscription
-        let totalItems = allMeetings.count
-        if !subscribed && totalItems >= FreeTierLimits.maxItemsTotal {
-            showingLimitAlert = true
+
+        // Check if user has sufficient minutes (estimate 1 minute minimum)
+        if minutesManager.currentBalance <= 0 {
+            showingInsufficientMinutesAlert = true
             return
         }
-        
+
         recordingStartTime = Date()
         recordingDuration = 0
         currentRecordingURL = audioRecorder.startRecording()
@@ -977,11 +983,11 @@ struct CreateMeetingView: View {
             return 
         }
 
-        let subscribed = storeManager.hasActiveSubscription
-        let duration = importedAudioDuration
-        guard FreeTierLimits.allows(duration: duration, subscribed: subscribed) else {
-            durationAlertMessage = "Free tier imports are limited to \(FreeTierLimits.durationDescription). Upgrade to SnipNote Pro to analyze longer meetings."
-            showingDurationAlert = true
+        // Check if user has sufficient minutes for imported audio
+        let requiredMinutes = max(1, Int(ceil(importedAudioDuration / 60.0)))
+        if minutesManager.currentBalance < requiredMinutes {
+            estimatedMinutesNeeded = requiredMinutes
+            showingInsufficientMinutesAlert = true
             return
         }
 
@@ -1010,8 +1016,13 @@ struct CreateMeetingView: View {
                     progressCallback: { _ in }
                 )
                 
-                // Track successful transcription
+                // Debit minutes for transcription
                 let duration = Int(importedAudioDuration)
+                if let meetingId = createdMeetingId {
+                    _ = await minutesManager.debitMinutes(seconds: duration, meetingID: meetingId.uuidString)
+                }
+
+                // Track successful transcription
                 await UsageTracker.shared.trackMeetingCreated(transcribed: true, meetingSeconds: duration)
                 
                 await MainActor.run {
@@ -1070,11 +1081,12 @@ struct CreateMeetingView: View {
 
         recordingTimer?.invalidate()
         recordingTimer = nil
-        let subscribed = storeManager.hasActiveSubscription
-        let duration = recordingDuration
-        if !FreeTierLimits.allows(duration: duration, subscribed: subscribed) {
-            durationAlertMessage = "Recordings over \(FreeTierLimits.durationDescription) require SnipNote Pro. Upgrade to transcribe longer meetings."
-            showingDurationAlert = true
+
+        // Check if user has sufficient minutes for recorded audio
+        let requiredMinutes = max(1, Int(ceil(recordingDuration / 60.0)))
+        if minutesManager.currentBalance < requiredMinutes {
+            estimatedMinutesNeeded = requiredMinutes
+            showingInsufficientMinutesAlert = true
             audioRecorder.deleteRecording(at: recordingURL)
             currentRecordingURL = nil
             recordingDuration = 0
@@ -1106,8 +1118,13 @@ struct CreateMeetingView: View {
                 // Get transcript first
                 let transcript = try await openAIService.transcribeAudio(audioData: audioData)
                 
-                // Track successful transcription
+                // Debit minutes for transcription
                 let duration = Int(recordingDuration)
+                if let meetingId = createdMeetingId {
+                    _ = await minutesManager.debitMinutes(seconds: duration, meetingID: meetingId.uuidString)
+                }
+
+                // Track successful transcription
                 await UsageTracker.shared.trackMeetingCreated(transcribed: true, meetingSeconds: duration)
                 
                 await MainActor.run {
@@ -1162,9 +1179,6 @@ struct CreateMeetingView: View {
         }
     }
 
-    private func exceedsFreeTierDuration(_ duration: TimeInterval) -> Bool {
-        !storeManager.hasActiveSubscription && duration > TimeInterval(FreeTierLimits.maxTranscriptionSecondsPerRecording)
-    }
 
     private func createProcessingMeeting() {
         let meeting = Meeting(
@@ -1302,11 +1316,9 @@ struct CreateMeetingView: View {
             return
         }
 
-        // Check subscription limits for free users
-        let subscribed = storeManager.hasActiveSubscription
-        let totalItems = allMeetings.count
-        if !subscribed && totalItems >= FreeTierLimits.maxItemsTotal {
-            showingLimitAlert = true
+        // Check if user has minutes to start recording (minimum 1 minute)
+        if minutesManager.currentBalance <= 0 {
+            showingInsufficientMinutesAlert = true
             return
         }
 

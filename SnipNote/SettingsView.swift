@@ -34,6 +34,7 @@ struct SettingsView: View {
     @EnvironmentObject var localizationManager: LocalizationManager
     @EnvironmentObject var authManager: AuthenticationManager
     @StateObject private var storeManager = StoreManager.shared
+    @StateObject private var minutesManager = MinutesManager.shared
     @Query private var meetings: [Meeting]
     @AppStorage("showActionsTab") private var showActionsTab = false
     @State private var showingPermissionAlert = false
@@ -43,6 +44,7 @@ struct SettingsView: View {
     @State private var userUsage: UserUsage?
     @State private var isLoadingStats = false
     @State private var showingPaywall = false
+    @State private var showingMinutesPaywall = false
     @State private var showingDeleteAccountAlert = false
     @State private var showingDeleteConfirmation = false
     @State private var deleteConfirmationText = ""
@@ -117,9 +119,19 @@ struct SettingsView: View {
                                          Text(localized("settings.subscription.plan.unlimited"))
                                              .themedCaption()
                                      } else {
-                                         let used = meetings.count
-                                         Text(String(format: localized("settings.subscription.plan.usage"), used, FreeTierLimits.maxItemsTotal))
+                                          Text("Free Tier - Minutes-based usage")
                                              .themedCaption()
+                                     }
+
+                                     // Minutes balance display
+                                     HStack(spacing: 4) {
+                                         Image(systemName: "clock.fill")
+                                             .font(.caption)
+                                             .foregroundColor(minutesManager.currentBalance > 0 ? themeManager.currentTheme.accentColor : themeManager.currentTheme.warningColor)
+
+                                         Text(minutesManager.formattedBalance)
+                                             .themedCaption()
+                                             .foregroundColor(minutesManager.currentBalance > 0 ? themeManager.currentTheme.textColor : themeManager.currentTheme.warningColor)
                                      }
                                  }
 
@@ -150,7 +162,51 @@ struct SettingsView: View {
                              .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
                      )
                      .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-                    
+
+                     // MINUTES PACKS SECTION
+                     // Always show - allow users to buy extra minutes even with subscriptions
+                         VStack(alignment: .leading, spacing: 16) {
+                             Text(storeManager.hasActiveSubscription ? "EXTRA MINUTES" : "NEED MORE MINUTES?")
+                                 .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+
+                             VStack(spacing: 12) {
+                                 HStack {
+                                     VStack(alignment: .leading, spacing: 4) {
+                                         Text(storeManager.hasActiveSubscription ? "Buy Extra Minutes" : "Buy Minutes Packs")
+                                             .themedBody()
+                                             .fontWeight(.bold)
+
+                                         Text("Get instant minutes that never expire")
+                                             .themedCaption()
+                                     }
+
+                                     Spacer()
+
+                                     Button("Buy Packs") {
+                                         showingMinutesPaywall = true
+                                     }
+                                     .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                     .foregroundColor(.white)
+                                     .padding(.horizontal, 16)
+                                     .padding(.vertical, 8)
+                                     .background(minutesManager.currentBalance <= 0 ? themeManager.currentTheme.warningColor : themeManager.currentTheme.accentColor)
+                                     .cornerRadius(themeManager.currentTheme.cornerRadius)
+                                 }
+                             }
+                             .padding()
+                             .background(themeManager.currentTheme.materialStyle)
+                             .cornerRadius(themeManager.currentTheme.cornerRadius)
+                             .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+                         }
+                         .padding(.horizontal, 10)
+                         .padding(.vertical, 12)
+                         .background(
+                             RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
+                                 .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
+                         )
+                         .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
+
                      // APPEARANCE SECTION
                      VStack(alignment: .leading, spacing: 16) {
                          Text(localized("settings.section.appearance.title").uppercased())
@@ -562,6 +618,11 @@ struct SettingsView: View {
         .sheet(isPresented: $showingPaywall) {
             PaywallView()
         }
+        .sheet(isPresented: $showingMinutesPaywall) {
+            MinutesPackPaywallView(onPurchaseComplete: {
+                Task { await minutesManager.refreshBalance() }
+            })
+        }
         .sheet(isPresented: $showingAboutSheet) {
             AboutSheetView()
         }
@@ -569,6 +630,7 @@ struct SettingsView: View {
             checkPermissionStatus()
             updateNotifications()
             fetchUsageStats()
+            Task { await minutesManager.refreshBalance() }
         }
     }
 

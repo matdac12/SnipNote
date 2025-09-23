@@ -286,21 +286,9 @@ struct MeetingsView: View {
     }
     
     private func checkLimitAndCreate() {
-        // Check if user is subscribed
-        if storeManager.hasActiveSubscription {
-            navigateToCreate = true
-            return
-        }
-        
-        // Count total items (meetings only)
-        let totalItems = meetings.count
-        
-        // Free users limited to 2 items total
-        if totalItems >= FreeTierLimits.maxItemsTotal {
-            showingPaywall = true
-        } else {
-            navigateToCreate = true
-        }
+        // With minutes-based system, CreateMeetingView will handle minutes validation
+        // No need to check meeting count limits anymore
+        navigateToCreate = true
     }
 
     private func deleteMeetings(offsets: IndexSet) {

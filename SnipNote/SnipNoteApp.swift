@@ -51,6 +51,8 @@ struct SnipNoteApp: App {
                 .onAppear {
                     Task {
                         await refreshNotificationsAndBadge()
+                        // Initialize minutes manager - grant free tier if needed and refresh balance
+                        await MinutesManager.shared.handleAppLaunch()
                     }
                     // Set up the navigation handler in app delegate
                     appDelegate.onNavigateToActions = {

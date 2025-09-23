@@ -23,7 +23,12 @@ struct PaywallView: View {
     
     var dismissible: Bool = true
     var onPurchaseComplete: (() -> Void)?
-    
+
+    // Filter products to show only subscriptions (not consumable packs)
+    private var subscriptionProducts: [Product] {
+        store.products.filter { $0.type == .autoRenewable }
+    }
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -97,7 +102,7 @@ struct PaywallView: View {
                 .font(.system(.title, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 .foregroundColor(themeManager.currentTheme.textColor)
             
-            Text("Get unlimited access to all premium features")
+            Text("Get premium features with generous minute allowances")
                 .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                 .multilineTextAlignment(.center)
@@ -112,7 +117,7 @@ struct PaywallView: View {
                 .font(.system(.subheadline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 .foregroundColor(themeManager.currentTheme.textColor)
             
-            FeatureRow(icon: "infinity", title: "Unlimited Meetings & Notes", description: "No monthly limits")
+            FeatureRow(icon: "clock.fill", title: "Generous Minutes Included", description: "200-9,600 minutes depending on plan")
             FeatureRow(icon: "sparkles", title: "AI Features", description: "Eve chat, smart summaries & action extraction")
             FeatureRow(icon: "icloud.fill", title: "Cloud Sync", description: "Access your data across all devices")
         }
@@ -136,7 +141,7 @@ struct PaywallView: View {
                 .frame(maxWidth: .infinity)
                 .background(themeManager.currentTheme.materialStyle)
                 .cornerRadius(themeManager.currentTheme.cornerRadius)
-            } else if store.products.isEmpty {
+            } else if subscriptionProducts.isEmpty {
                 // Show loading or error state
                 VStack(spacing: 12) {
                     Image(systemName: "exclamationmark.triangle")
@@ -193,7 +198,7 @@ struct PaywallView: View {
                 .background(themeManager.currentTheme.materialStyle)
                 .cornerRadius(themeManager.currentTheme.cornerRadius)
             } else {
-                ForEach(store.products, id: \.id) { product in
+                ForEach(subscriptionProducts, id: \.id) { product in
                     SubscriptionTierCard(
                         product: product,
                         isSelected: selectedProduct?.id == product.id,
@@ -365,18 +370,37 @@ struct SubscriptionTierCard: View {
     }
     
     private func getSubscriptionDescription(for product: Product) -> String {
+        // First check for our specific product descriptions with minutes
+        let minutesDescription = getMinutesDescription(for: product)
+        if !minutesDescription.isEmpty {
+            return minutesDescription
+        }
+
         let storeDescription = product.description.trimmingCharacters(in: .whitespacesAndNewlines)
         if storeDescription.isEmpty {
             if let period = product.subscription?.subscriptionPeriod {
                 return "Billed \(getPeriodText(for: period).lowercased()), cancel anytime"
             }
-            return "Unlimited access to all premium features"
+            return "Premium features with generous minute allowances"
         }
         if let period = product.subscription?.subscriptionPeriod,
            !storeDescription.lowercased().contains("billed") {
             return "\(storeDescription). Billed \(getPeriodText(for: period).lowercased())."
         }
         return storeDescription
+    }
+
+    private func getMinutesDescription(for product: Product) -> String {
+        switch product.id {
+        case SubscriptionTier.weekly.rawValue:
+            return "200 minutes/week • Minutes roll over • Buy extra packs anytime"
+        case SubscriptionTier.monthly.rawValue:
+            return "800 minutes/month • Minutes roll over • Buy extra packs anytime"
+        case SubscriptionTier.annual.rawValue:
+            return "9,600 minutes/year • Minutes roll over • Buy extra packs anytime"
+        default:
+            return ""
+        }
     }
     
     private func getPeriodText(for period: Product.SubscriptionPeriod) -> String {

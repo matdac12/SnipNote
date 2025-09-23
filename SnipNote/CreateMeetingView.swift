@@ -49,6 +49,30 @@ struct CreateMeetingView: View {
     // Processing state
     @State private var isProcessingAudio = false
 
+    // Processing phases
+    enum ProcessingPhase {
+        case transcribing
+        case generatingOverview
+        case generatingSummary
+        case extractingActions
+        case complete
+    }
+    @State private var currentProcessingPhase: ProcessingPhase = .transcribing
+
+    // Transcription progress tracking
+    @State private var transcriptionProgress: Double = 0.0
+    @State private var currentChunk: Int = 0
+    @State private var totalChunks: Int = 0
+    @State private var processingStage: String = ""
+    @State private var partialTranscripts: [String] = []
+
+    // AI-generated content as it's being created
+    @State private var liveOverview: String = ""
+    @State private var liveSummary: String = ""
+
+    // Cached audio duration to prevent repeated calculations
+    @State private var cachedAudioDuration: TimeInterval = 0
+
     // Minutes management
     @State private var showingInsufficientMinutesAlert = false
     @State private var showingMinutesPaywall = false
@@ -106,19 +130,20 @@ struct CreateMeetingView: View {
         return importedAudioURL != nil
     }
     
-    private var importedAudioDuration: TimeInterval {
-        guard let url = importedAudioURL else { 
+    private func calculateAudioDuration() {
+        guard let url = importedAudioURL else {
             print("❌ No imported audio URL")
-            return 0 
+            cachedAudioDuration = 0
+            return
         }
         do {
             let audioFile = try AVAudioFile(forReading: url)
             let duration = Double(audioFile.length) / audioFile.fileFormat.sampleRate
             print("🎵 Audio duration calculated: \(duration) seconds")
-            return duration
+            cachedAudioDuration = duration
         } catch {
             print("❌ Failed to read audio file: \(error)")
-            return 0
+            cachedAudioDuration = 0
         }
     }
 
@@ -596,7 +621,11 @@ struct CreateMeetingView: View {
         let theme = themeManager.currentTheme
 
         VStack(spacing: 20) {
-            if hasImportedAudio {
+            if isProcessingAudio && currentProcessingPhase == .transcribing {
+                processingCard(theme: theme)
+            } else if isProcessingAudio && (currentProcessingPhase == .generatingOverview || currentProcessingPhase == .generatingSummary || currentProcessingPhase == .extractingActions) {
+                meetingResultsCard(theme: theme)
+            } else if hasImportedAudio {
                 importedAudioCard(theme: theme)
             } else if audioRecorder.isRecording {
                 activeRecordingCard(theme: theme)
@@ -630,11 +659,11 @@ struct CreateMeetingView: View {
                 .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 .foregroundColor(theme.accentColor)
 
-            Text("Duration: \(formatDuration(importedAudioDuration))")
+            Text("Duration: \(formatDuration(cachedAudioDuration))")
                 .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 .foregroundColor(theme.accentColor)
 
-            let requiredMinutes = max(1, Int(ceil(importedAudioDuration / 60.0)))
+            let requiredMinutes = max(1, Int(ceil(cachedAudioDuration / 60.0)))
             if minutesManager.currentBalance < requiredMinutes {
                 Text("This audio requires \(requiredMinutes) minutes. You have \(minutesManager.currentBalance) minutes remaining.")
                     .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
@@ -647,26 +676,15 @@ struct CreateMeetingView: View {
                 .frame(width: 200, height: 4)
                 .opacity(0.7)
 
-            if hasFinishedRecording || isProcessingAudio {
-                VStack(spacing: 20) {
-                    Text(theme.headerStyle == .brackets ? "PROCESSING MEETING..." : "Processing meeting...")
-                        .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                        .foregroundColor(theme.warningColor)
-
-                    ProgressView()
-                        .scaleEffect(1.5)
-                }
-            } else {
-                Button(theme.headerStyle == .brackets ? "ANALYZE MEETING" : "Analyze Meeting") {
-                    analyzeImportedAudio()
-                }
-                .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                .foregroundColor(theme.backgroundColor)
-                .padding()
-                .background(theme.accentColor)
-                .cornerRadius(theme.cornerRadius)
-                .disabled(meetingNameTrimmed.isEmpty)
+            Button(theme.headerStyle == .brackets ? "ANALYZE MEETING" : "Analyze Meeting") {
+                analyzeImportedAudio()
             }
+            .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+            .foregroundColor(theme.backgroundColor)
+            .padding()
+            .background(theme.accentColor)
+            .cornerRadius(theme.cornerRadius)
+            .disabled(meetingNameTrimmed.isEmpty)
         }
     }
 
@@ -760,12 +778,213 @@ struct CreateMeetingView: View {
     @ViewBuilder
     private func processingCard(theme: AppTheme) -> some View {
         VStack(spacing: 20) {
+            // Main title
             Text(theme.headerStyle == .brackets ? "PROCESSING MEETING..." : "Processing meeting...")
                 .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 .foregroundColor(theme.warningColor)
 
-            ProgressView()
-                .scaleEffect(1.5)
+            // Progress percentage and stage
+            VStack(spacing: 8) {
+                Text("\(Int(transcriptionProgress))% Complete")
+                    .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                    .foregroundColor(theme.accentColor)
+
+                // Progress bar
+                ProgressView(value: transcriptionProgress, total: 100)
+                    .progressViewStyle(LinearProgressViewStyle(tint: theme.accentColor))
+                    .frame(height: 8)
+                    .scaleEffect(x: 1, y: 1.5, anchor: .center)
+
+                // Current stage description
+                if !processingStage.isEmpty {
+                    Text(processingStage)
+                        .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                        .foregroundColor(theme.secondaryTextColor)
+                        .multilineTextAlignment(.center)
+                }
+
+                // Chunk progress (only show if we have chunks)
+                if totalChunks > 1 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "waveform")
+                            .font(.caption2)
+                            .foregroundColor(theme.accentColor)
+                        Text("Chunk \(currentChunk) of \(totalChunks)")
+                            .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                            .foregroundColor(theme.secondaryTextColor)
+                    }
+                }
+            }
+
+            // Live transcript preview (show last few chunks)
+            if !partialTranscripts.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "text.bubble")
+                            .font(.caption)
+                            .foregroundColor(theme.accentColor)
+                        Text(theme.headerStyle == .brackets ? "PREVIEW:" : "Preview:")
+                            .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(theme.accentColor)
+                        Spacer()
+                    }
+
+                    ScrollView(.vertical, showsIndicators: false) {
+                        Text(partialTranscripts.suffix(3).joined(separator: " "))
+                            .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default))
+                            .foregroundColor(theme.secondaryTextColor)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .lineLimit(4)
+                    }
+                    .frame(maxHeight: 60)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: theme.cornerRadius)
+                            .fill(theme.secondaryBackgroundColor.opacity(0.3))
+                    )
+                }
+            }
+
+            // Fallback spinner for when no detailed progress is available
+            if transcriptionProgress == 0 && totalChunks == 0 {
+                ProgressView()
+                    .scaleEffect(1.5)
+            }
+        }
+        .padding(.horizontal, 8)
+    }
+
+    @ViewBuilder
+    private func meetingResultsCard(theme: AppTheme) -> some View {
+        VStack(spacing: 20) {
+            // Header
+            VStack(spacing: 8) {
+                Text(theme.headerStyle == .brackets ? "GENERATING MEETING INSIGHTS..." : "Generating meeting insights...")
+                    .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(theme.accentColor)
+
+                // Current phase indicator
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text(phaseDescription(for: currentProcessingPhase))
+                        .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                        .foregroundColor(theme.secondaryTextColor)
+                }
+            }
+
+            Divider()
+                .background(theme.secondaryTextColor.opacity(0.3))
+
+            // Live content display
+            VStack(alignment: .leading, spacing: 16) {
+                // Overview section
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "eye")
+                            .font(.caption)
+                            .foregroundColor(theme.accentColor)
+                        Text(theme.headerStyle == .brackets ? "OVERVIEW:" : "Overview:")
+                            .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(theme.accentColor)
+                        Spacer()
+                        if currentProcessingPhase == .generatingOverview {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                        } else if !liveOverview.isEmpty {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                    }
+
+                    Text(liveOverview.isEmpty ? "Analyzing meeting content..." : liveOverview)
+                        .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default))
+                        .foregroundColor(liveOverview.isEmpty ? theme.secondaryTextColor.opacity(0.6) : theme.secondaryTextColor)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: theme.cornerRadius)
+                                .fill(theme.secondaryBackgroundColor.opacity(0.3))
+                        )
+                }
+
+                // Summary section
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "doc.text")
+                            .font(.caption)
+                            .foregroundColor(theme.accentColor)
+                        Text(theme.headerStyle == .brackets ? "SUMMARY:" : "Summary:")
+                            .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(theme.accentColor)
+                        Spacer()
+                        if currentProcessingPhase == .generatingSummary {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                        } else if !liveSummary.isEmpty {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                        }
+                    }
+
+                    ScrollView(.vertical, showsIndicators: false) {
+                        Text(liveSummary.isEmpty ? "Generating detailed summary..." : liveSummary)
+                            .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default))
+                            .foregroundColor(liveSummary.isEmpty ? theme.secondaryTextColor.opacity(0.6) : theme.secondaryTextColor)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: 120)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: theme.cornerRadius)
+                            .fill(theme.secondaryBackgroundColor.opacity(0.3))
+                    )
+                }
+
+                // Actions section
+                HStack {
+                    Image(systemName: "list.bullet")
+                        .font(.caption)
+                        .foregroundColor(theme.accentColor)
+                    Text(theme.headerStyle == .brackets ? "EXTRACTING ACTIONS..." : "Extracting actions...")
+                        .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(theme.accentColor)
+                    Spacer()
+                    if currentProcessingPhase == .extractingActions {
+                        ProgressView()
+                            .scaleEffect(0.6)
+                    } else if currentProcessingPhase == .complete {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 8)
+    }
+
+    private func phaseDescription(for phase: ProcessingPhase) -> String {
+        let theme = themeManager.currentTheme
+        switch phase {
+        case .transcribing:
+            return theme.headerStyle == .brackets ? "TRANSCRIBING AUDIO..." : "Transcribing audio..."
+        case .generatingOverview:
+            return theme.headerStyle == .brackets ? "GENERATING OVERVIEW..." : "Generating overview..."
+        case .generatingSummary:
+            return theme.headerStyle == .brackets ? "CREATING SUMMARY..." : "Creating summary..."
+        case .extractingActions:
+            return theme.headerStyle == .brackets ? "EXTRACTING ACTIONS..." : "Extracting actions..."
+        case .complete:
+            return theme.headerStyle == .brackets ? "COMPLETE!" : "Complete!"
         }
     }
 
@@ -817,7 +1036,10 @@ struct CreateMeetingView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 20) {
-                        meetingDetailsSection()
+                        // Only show meeting details section if not processing
+                        if !isProcessingAudio {
+                            meetingDetailsSection()
+                        }
                         microphonePermissionSection()
                         progressStepsSection()
                         recordingSection()
@@ -904,6 +1126,9 @@ struct CreateMeetingView: View {
             if let url = importedAudioURL {
                 print("🎵 File exists: \(FileManager.default.fileExists(atPath: url.path))")
 
+                // Calculate audio duration once
+                calculateAudioDuration()
+
                 // Use filename as default meeting name if it's empty
                 if meetingName.isEmpty {
                     let fileName = url.lastPathComponent
@@ -978,13 +1203,13 @@ struct CreateMeetingView: View {
     }
     
     private func analyzeImportedAudio() {
-        guard let audioURL = importedAudioURL else { 
+        guard let audioURL = importedAudioURL else {
             print("❌ No audio URL to analyze")
-            return 
+            return
         }
 
         // Check if user has sufficient minutes for imported audio
-        let requiredMinutes = max(1, Int(ceil(importedAudioDuration / 60.0)))
+        let requiredMinutes = max(1, Int(ceil(cachedAudioDuration / 60.0)))
         if minutesManager.currentBalance < requiredMinutes {
             estimatedMinutesNeeded = requiredMinutes
             showingInsufficientMinutesAlert = true
@@ -993,31 +1218,53 @@ struct CreateMeetingView: View {
 
         print("🎵 Starting analysis of imported audio: \(audioURL)")
         isProcessingAudio = true
+        currentProcessingPhase = .transcribing
+
+        // Reset progress state
+        transcriptionProgress = 0.0
+        currentChunk = 0
+        totalChunks = 0
+        processingStage = "Starting transcription..."
+        partialTranscripts.removeAll()
+
+        // Reset live content
+        liveOverview = ""
+        liveSummary = ""
 
         // Create meeting immediately with form data
         createProcessingMeeting()
-        
+
         // Track meeting creation (without transcription yet)
         Task {
-            let duration = Int(importedAudioDuration)
+            let duration = Int(cachedAudioDuration)
             await UsageTracker.shared.trackMeetingCreated(transcribed: false, meetingSeconds: duration)
         }
-        
-        // Notify parent to handle navigation
-        if let meeting = createdMeeting {
-            onMeetingCreated?(meeting)
-        }
+
+        // DON'T navigate immediately - let user see the enhanced processing UI
+        // Navigation will happen after processing completes
         
         Task {
             do {
                 // Use the chunked transcription method
                 let transcript = try await openAIService.transcribeAudioFromURL(
                     audioURL: audioURL,
-                    progressCallback: { _ in }
+                    progressCallback: { progress in
+                        Task { @MainActor in
+                            transcriptionProgress = progress.percentComplete
+                            currentChunk = progress.currentChunk
+                            totalChunks = progress.totalChunks
+                            processingStage = progress.currentStage
+
+                            // Add completed chunk transcript to our array
+                            if let chunkTranscript = progress.partialTranscript {
+                                partialTranscripts.append(chunkTranscript)
+                            }
+                        }
+                    }
                 )
                 
                 // Debit minutes for transcription
-                let duration = Int(importedAudioDuration)
+                let duration = Int(cachedAudioDuration)
                 if let meetingId = createdMeetingId {
                     _ = await minutesManager.debitMinutes(seconds: duration, meetingID: meetingId.uuidString)
                 }
@@ -1035,7 +1282,7 @@ struct CreateMeetingView: View {
                         _ = try await SupabaseManager.shared.uploadAudioRecording(
                             audioURL: audioURL,
                             meetingId: meeting.id,
-                            duration: importedAudioDuration
+                            duration: cachedAudioDuration
                         )
                         
                         // Update meeting to indicate it has a recording
@@ -1047,10 +1294,27 @@ struct CreateMeetingView: View {
                     }
                 }
                 
-                // Process AI analysis
+                // Process AI analysis with live updates
+                await MainActor.run {
+                    currentProcessingPhase = .generatingOverview
+                }
+
                 let overview = try await openAIService.generateMeetingOverview(transcript)
+                await MainActor.run {
+                    liveOverview = overview
+                    currentProcessingPhase = .generatingSummary
+                }
+
                 let summary = try await openAIService.summarizeMeeting(transcript)
+                await MainActor.run {
+                    liveSummary = summary
+                    currentProcessingPhase = .extractingActions
+                }
+
                 let actionItems = try await openAIService.extractActions(transcript)
+                await MainActor.run {
+                    currentProcessingPhase = .complete
+                }
                 
                 // Track AI usage
                 await UsageTracker.shared.trackAIUsage(
@@ -1061,15 +1325,50 @@ struct CreateMeetingView: View {
                 await MainActor.run {
                     updateMeetingWithAI(overview: overview, summary: summary, actionItems: actionItems)
                     isProcessingAudio = false
+                    currentProcessingPhase = .transcribing
+
+                    // Reset progress state
+                    transcriptionProgress = 0.0
+                    currentChunk = 0
+                    totalChunks = 0
+                    processingStage = ""
+                    partialTranscripts.removeAll()
+
+                    // Reset live content
+                    liveOverview = ""
+                    liveSummary = ""
+
+                    // NOW navigate after processing is complete
+                    if let meeting = createdMeeting {
+                        onMeetingCreated?(meeting)
+                    }
                 }
                 
             } catch {
                 await MainActor.run {
                     print("Error processing imported audio: \(error)")
                     isProcessingAudio = false
+                    currentProcessingPhase = .transcribing
+
+                    // Reset progress state
+                    transcriptionProgress = 0.0
+                    currentChunk = 0
+                    totalChunks = 0
+                    processingStage = ""
+                    partialTranscripts.removeAll()
+
+                    // Reset live content
+                    liveOverview = ""
+                    liveSummary = ""
+
                     // Cancel processing notification on error
                     if let meetingId = createdMeetingId {
                         NotificationService.shared.cancelProcessingNotification(for: meetingId)
+                    }
+
+                    // Navigate to meeting even on error (meeting was created, just processing failed)
+                    if let meeting = createdMeeting {
+                        onMeetingCreated?(meeting)
                     }
                 }
             }

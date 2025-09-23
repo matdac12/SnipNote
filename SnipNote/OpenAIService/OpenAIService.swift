@@ -232,7 +232,8 @@ class OpenAIService: ObservableObject {
                 currentChunk: 1,
                 totalChunks: 1,
                 currentStage: "Processing audio file",
-                percentComplete: 50.0
+                percentComplete: 50.0,
+                partialTranscript: nil
             ))
 
             let audioData = try Data(contentsOf: audioURL)
@@ -242,7 +243,8 @@ class OpenAIService: ObservableObject {
                 currentChunk: 1,
                 totalChunks: 1,
                 currentStage: "Transcription complete",
-                percentComplete: 100.0
+                percentComplete: 100.0,
+                partialTranscript: transcript
             ))
 
             return transcript
@@ -269,7 +271,8 @@ class OpenAIService: ObservableObject {
                     currentChunk: chunkProgress.currentChunk,
                     totalChunks: chunkProgress.totalChunks,
                     currentStage: chunkProgress.currentStage,
-                    percentComplete: chunkProgress.percentComplete * 0.3
+                    percentComplete: chunkProgress.percentComplete * 0.3,
+                    partialTranscript: chunkProgress.partialTranscript
                 )
                 progressCallback(adjustedProgress)
             }
@@ -286,7 +289,8 @@ class OpenAIService: ObservableObject {
                 currentChunk: chunkNumber,
                 totalChunks: totalChunks,
                 currentStage: "Transcribing chunk \(chunkNumber) of \(totalChunks)",
-                percentComplete: 30.0 + (Double(index) / Double(totalChunks)) * 70.0
+                percentComplete: 30.0 + (Double(index) / Double(totalChunks)) * 70.0,
+                partialTranscript: nil
             ))
 
             print("🎵 Transcribing chunk \(chunkNumber)/\(totalChunks)")
@@ -296,6 +300,15 @@ class OpenAIService: ObservableObject {
                 transcripts.append(chunkTranscript)
                 print("🎵 Chunk \(chunkNumber) transcribed successfully")
 
+                // Report progress with the completed chunk transcript
+                progressCallback(AudioChunkerProgress(
+                    currentChunk: chunkNumber,
+                    totalChunks: totalChunks,
+                    currentStage: "Chunk \(chunkNumber) completed",
+                    percentComplete: 30.0 + (Double(chunkNumber) / Double(totalChunks)) * 70.0,
+                    partialTranscript: chunkTranscript
+                ))
+
             } catch {
                 // Retry once before giving up
                 print("🎵 Retrying chunk \(chunkNumber)...")
@@ -303,9 +316,27 @@ class OpenAIService: ObservableObject {
                     let retryTranscript = try await transcribeAudio(audioData: chunk.data)
                     transcripts.append(retryTranscript)
                     print("🎵 Chunk \(chunkNumber) retry successful")
+
+                    // Report progress with the completed retry transcript
+                    progressCallback(AudioChunkerProgress(
+                        currentChunk: chunkNumber,
+                        totalChunks: totalChunks,
+                        currentStage: "Chunk \(chunkNumber) completed (retry)",
+                        percentComplete: 30.0 + (Double(chunkNumber) / Double(totalChunks)) * 70.0,
+                        partialTranscript: retryTranscript
+                    ))
                 } catch {
                     print("🎵 Chunk \(chunkNumber) failed after retry")
                     transcripts.append("[Transcription failed for chunk \(chunkNumber) after retry]")
+
+                    // Report progress for failed chunk
+                    progressCallback(AudioChunkerProgress(
+                        currentChunk: chunkNumber,
+                        totalChunks: totalChunks,
+                        currentStage: "Chunk \(chunkNumber) failed",
+                        percentComplete: 30.0 + (Double(chunkNumber) / Double(totalChunks)) * 70.0,
+                        partialTranscript: "[Transcription failed for chunk \(chunkNumber)]"
+                    ))
                 }
             }
         }
@@ -314,7 +345,8 @@ class OpenAIService: ObservableObject {
             currentChunk: totalChunks,
             totalChunks: totalChunks,
             currentStage: "Combining transcripts",
-            percentComplete: 100.0
+            percentComplete: 100.0,
+            partialTranscript: nil
         ))
 
         // Combine all transcripts

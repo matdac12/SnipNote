@@ -22,6 +22,7 @@ struct AudioChunkerProgress {
     let totalChunks: Int
     let currentStage: String
     let percentComplete: Double
+    let partialTranscript: String? // Optional field for completed chunk transcripts
 }
 
 class AudioChunker {
@@ -105,7 +106,8 @@ class AudioChunker {
                 currentChunk: 1,
                 totalChunks: 1,
                 currentStage: "Processing audio file",
-                percentComplete: 50.0
+                percentComplete: 50.0,
+                partialTranscript: nil
             ))
             
             let audioData = try Data(contentsOf: audioURL)
@@ -116,7 +118,8 @@ class AudioChunker {
                 currentChunk: 1,
                 totalChunks: 1,
                 currentStage: "Audio ready for processing",
-                percentComplete: 100.0
+                percentComplete: 100.0,
+                partialTranscript: nil
             ))
             
             return [AudioChunk(
@@ -168,7 +171,8 @@ class AudioChunker {
                 currentChunk: chunkIndex + 1,
                 totalChunks: estimatedChunks,
                 currentStage: "Creating audio chunk \(chunkIndex + 1)",
-                percentComplete: (Double(chunkIndex) / Double(estimatedChunks)) * 100.0
+                percentComplete: (Double(chunkIndex) / Double(estimatedChunks)) * 100.0,
+                partialTranscript: nil
             ))
             
             // Create chunk with overlap (except for the last chunk)
@@ -216,7 +220,8 @@ class AudioChunker {
             currentChunk: chunks.count,
             totalChunks: chunks.count,
             currentStage: "Audio chunks ready",
-            percentComplete: 100.0
+            percentComplete: 100.0,
+            partialTranscript: nil
         ))
         
         return finalChunks

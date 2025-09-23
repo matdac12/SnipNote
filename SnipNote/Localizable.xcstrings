@@ -60,6 +60,9 @@
     "%lld Minutes" : {
 
     },
+    "%lld%% Complete" : {
+
+    },
     "•" : {
 
     },
@@ -324,6 +327,16 @@
     "Choose Your Pack" : {
 
     },
+    "Chunk %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chunk %1$lld of %2$lld"
+          }
+        }
+      }
+    },
     "Close" : {
       "localizations" : {
         "it" : {
@@ -479,6 +492,12 @@
         }
       }
     },
+    "Extracting actions..." : {
+
+    },
+    "EXTRACTING ACTIONS..." : {
+
+    },
     "Extracting..." : {
       "localizations" : {
         "it" : {
@@ -511,6 +530,12 @@
           }
         }
       }
+    },
+    "Generating meeting insights..." : {
+
+    },
+    "GENERATING MEETING INSIGHTS..." : {
+
     },
     "Get automatic summaries, action item extraction, and smart organization. Focus on the conversation while SnipNote handles the notes." : {
       "localizations" : {
@@ -829,6 +854,12 @@
     "OpenAI API Key" : {
 
     },
+    "Overview:" : {
+
+    },
+    "OVERVIEW:" : {
+
+    },
     "Password" : {
       "localizations" : {
         "it" : {
@@ -892,6 +923,12 @@
 
     },
     "Premium Features" : {
+
+    },
+    "Preview:" : {
+
+    },
+    "PREVIEW:" : {
 
     },
     "Privacy Policy" : {
@@ -2370,6 +2407,12 @@
           }
         }
       }
+    },
+    "Summary:" : {
+
+    },
+    "SUMMARY:" : {
+
     },
     "tab.actions" : {
       "extractionState" : "manual",

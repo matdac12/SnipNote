@@ -105,7 +105,7 @@ class OpenAIService: ObservableObject {
         try audioData.write(to: tempInputURL)
 
         // Create asset and export session
-        let asset = AVAsset(url: tempInputURL)
+        let asset = AVURLAsset(url: tempInputURL)
         guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else {
             throw OpenAIError.apiError("Failed to create export session")
         }
@@ -115,13 +115,13 @@ class OpenAIService: ObservableObject {
         exportSession.audioTimePitchAlgorithm = .spectral // Maintains pitch quality
 
         // Speed up by 1.5x (reduce duration by 1/1.5 = 0.667)
-        let originalDuration = asset.duration
+        let originalDuration = try await asset.load(.duration)
         let newDuration = CMTimeMultiplyByFloat64(originalDuration, multiplier: 1.0 / 1.5)
         exportSession.timeRange = CMTimeRange(start: .zero, duration: originalDuration)
 
         // Use a custom audio mix to change playback rate
-        let audioMix = AVMutableAudioMix()
-        let audioTrack = asset.tracks(withMediaType: .audio).first
+        _ = AVMutableAudioMix()
+        let audioTrack = try await asset.loadTracks(withMediaType: .audio).first
 
         if let track = audioTrack {
             let audioMixParams = AVMutableAudioMixInputParameters(track: track)
@@ -152,13 +152,12 @@ class OpenAIService: ObservableObject {
             compositionExportSession.outputFileType = .m4a
             compositionExportSession.audioTimePitchAlgorithm = .spectral
 
-            await compositionExportSession.export()
-
-            if compositionExportSession.status == .completed {
+            do {
+                try await compositionExportSession.export(to: tempOutputURL, as: .m4a)
                 print("🚀 [OpenAI] Audio sped up 1.5x - cost savings: 33%")
                 return try Data(contentsOf: tempOutputURL)
-            } else {
-                print("⚠️ [OpenAI] Audio speed-up failed, using original: \(compositionExportSession.error?.localizedDescription ?? "unknown")")
+            } catch {
+                print("⚠️ [OpenAI] Audio speed-up failed, using original: \(error.localizedDescription)")
                 return audioData // Fallback to original
             }
         } else {

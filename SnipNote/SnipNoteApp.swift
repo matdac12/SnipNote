@@ -127,9 +127,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
-        
+
+        // Register background tasks for transcription
+        BackgroundTaskManager.shared.registerBackgroundTasks()
+
         // No third-party purchase SDK initialization needed for StoreKit 2
-        
+
         return true
     }
     

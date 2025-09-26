@@ -958,6 +958,7 @@
       }
     },
     "Processing meeting summary..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {

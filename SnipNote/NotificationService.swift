@@ -195,6 +195,39 @@ class NotificationService: ObservableObject {
         }
     }
 
+    /// Send progress notification during transcription
+    func sendProgressNotification(meetingId: UUID, meetingName: String, progress: Int) async {
+        // Only send if we have permission
+        Task {
+            let status = await checkNotificationPermission()
+            guard status == .authorized else { return }
+
+            let identifier = "meeting-progress-\(meetingId.uuidString)-\(progress)"
+
+            let content = UNMutableNotificationContent()
+            content.title = "Processing Update"
+            content.body = "'\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)' is \(progress)% complete"
+            content.sound = .default
+            content.categoryIdentifier = "PROGRESS_NOTIFICATION"
+
+            // Send immediately
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+
+            let request = UNNotificationRequest(
+                identifier: identifier,
+                content: content,
+                trigger: trigger
+            )
+
+            do {
+                try await notificationCenter.add(request)
+                print("📊 Progress notification sent: \(progress)% for meeting: \(meetingName)")
+            } catch {
+                print("Error sending progress notification: \(error)")
+            }
+        }
+    }
+
     /// Cancel processing notification for a specific meeting
     func cancelProcessingNotification(for meetingId: UUID) {
         let identifier = "\(processingNotificationIdentifierPrefix)\(meetingId.uuidString)"

@@ -27,6 +27,7 @@ struct CreateMeetingView: View {
     @StateObject private var openAIService = OpenAIService.shared
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var minutesManager = MinutesManager.shared
+    @StateObject private var backgroundTaskManager = BackgroundTaskManager.shared
     @Query private var allMeetings: [Meeting]
     
     @State private var meetingName = ""
@@ -85,6 +86,9 @@ struct CreateMeetingView: View {
     
     // Paywall state
     @State private var showingPaywall = false
+
+    // Background task tracking
+    @State private var currentBackgroundTaskId: UIBackgroundTaskIdentifier = .invalid
     
     private enum FocusedField: Hashable {
         case name
@@ -1234,6 +1238,11 @@ struct CreateMeetingView: View {
         // Create meeting immediately with form data
         createProcessingMeeting()
 
+        // FIXED: Start background task AFTER meeting is created (so meetingId is available)
+        if let meetingId = createdMeetingId {
+            currentBackgroundTaskId = backgroundTaskManager.startBackgroundTask(for: meetingId)
+        }
+
         // Track meeting creation (without transcription yet)
         Task {
             let duration = Int(cachedAudioDuration)
@@ -1260,7 +1269,9 @@ struct CreateMeetingView: View {
                                 partialTranscripts.append(chunkTranscript)
                             }
                         }
-                    }
+                    },
+                    meetingName: meetingNameTrimmed.isEmpty ? "Untitled Meeting" : meetingNameTrimmed,
+                    meetingId: createdMeetingId
                 )
                 
                 // Debit minutes for transcription
@@ -1338,6 +1349,12 @@ struct CreateMeetingView: View {
                     liveOverview = ""
                     liveSummary = ""
 
+                    // End background task on success
+                    if currentBackgroundTaskId != .invalid {
+                        backgroundTaskManager.endBackgroundTask(currentBackgroundTaskId)
+                        currentBackgroundTaskId = .invalid
+                    }
+
                     // NOW navigate after processing is complete
                     if let meeting = createdMeeting {
                         onMeetingCreated?(meeting)
@@ -1366,8 +1383,30 @@ struct CreateMeetingView: View {
                         NotificationService.shared.cancelProcessingNotification(for: meetingId)
                     }
 
-                    // Navigate to meeting even on error (meeting was created, just processing failed)
+                    // End background task on failure
+                    if currentBackgroundTaskId != .invalid {
+                        backgroundTaskManager.endBackgroundTask(currentBackgroundTaskId)
+                        currentBackgroundTaskId = .invalid
+                    }
+
+                    // FIXED: Properly handle meeting error state
                     if let meeting = createdMeeting {
+                        meeting.setProcessingError("Transcription failed. Please try again.")
+                        meeting.audioTranscript = "Transcription failed"
+                        meeting.shortSummary = "Processing failed"
+                        meeting.aiSummary = "This meeting could not be processed. You can try again using the retry button."
+
+                        // Save the audio file path for retry
+                        if let audioURL = importedAudioURL {
+                            meeting.localAudioPath = audioURL.path
+                        }
+
+                        do {
+                            try modelContext.save()
+                        } catch {
+                            print("Error saving meeting after failure: \(error)")
+                        }
+
                         onMeetingCreated?(meeting)
                     }
                 }
@@ -1398,7 +1437,22 @@ struct CreateMeetingView: View {
 
         // Create meeting immediately with form data
         createProcessingMeeting()
-        
+
+        // FIXED: Store recording path immediately for retry capability
+        if let meeting = createdMeeting {
+            meeting.localAudioPath = recordingURL.path
+            do {
+                try modelContext.save()
+            } catch {
+                print("Error saving meeting with audio path: \(error)")
+            }
+        }
+
+        // Start background task for recorded audio transcription
+        if let meetingId = createdMeetingId {
+            currentBackgroundTaskId = backgroundTaskManager.startBackgroundTask(for: meetingId)
+        }
+
         // Track meeting creation (without transcription yet)
         Task {
             let duration = Int(recordingDuration)
@@ -1412,10 +1466,21 @@ struct CreateMeetingView: View {
         
         Task {
             do {
-                let audioData = try Data(contentsOf: recordingURL)
-                
-                // Get transcript first
-                let transcript = try await openAIService.transcribeAudio(audioData: audioData)
+                let transcript = try await openAIService.transcribeAudioFromURL(
+                    audioURL: recordingURL,
+                    progressCallback: { progress in
+                        Task { @MainActor in
+                            if let meeting = createdMeeting {
+                                meeting.updateChunkProgress(
+                                    completed: progress.currentChunk,
+                                    total: progress.totalChunks
+                                )
+                            }
+                        }
+                    },
+                    meetingName: meetingNameTrimmed.isEmpty ? "Untitled Meeting" : meetingNameTrimmed,
+                    meetingId: createdMeetingId
+                )
                 
                 // Debit minutes for transcription
                 let duration = Int(recordingDuration)
@@ -1447,10 +1512,10 @@ struct CreateMeetingView: View {
                         print("Error uploading audio to Supabase: \(error)")
                     }
                 }
-                
-                // Delete local recording after successful upload
-                audioRecorder.deleteRecording(at: recordingURL)
-                
+
+                // FIXED: Don't delete recording yet - wait until AI processing completes successfully
+                // Deletion will happen in updateMeetingWithAI after everything succeeds
+
                 // Process AI in background after navigation
                 let overview = try await openAIService.generateMeetingOverview(transcript)
                 let summary = try await openAIService.summarizeMeeting(transcript)
@@ -1464,14 +1529,44 @@ struct CreateMeetingView: View {
                 
                 await MainActor.run {
                     updateMeetingWithAI(overview: overview, summary: summary, actionItems: actionItems)
+
+                    // End background task on success
+                    if currentBackgroundTaskId != .invalid {
+                        backgroundTaskManager.endBackgroundTask(currentBackgroundTaskId)
+                        currentBackgroundTaskId = .invalid
+                    }
                 }
                 
             } catch {
                 await MainActor.run {
                     print("Error processing meeting audio: \(error)")
+
                     // Cancel processing notification on error
                     if let meetingId = createdMeetingId {
                         NotificationService.shared.cancelProcessingNotification(for: meetingId)
+                    }
+
+                    // End background task on failure
+                    if currentBackgroundTaskId != .invalid {
+                        backgroundTaskManager.endBackgroundTask(currentBackgroundTaskId)
+                        currentBackgroundTaskId = .invalid
+                    }
+
+                    // FIXED: Properly handle meeting error state
+                    if let meeting = createdMeeting {
+                        meeting.setProcessingError("Transcription failed. Please try again.")
+                        meeting.audioTranscript = "Transcription failed"
+                        meeting.shortSummary = "Processing failed"
+                        meeting.aiSummary = "This meeting could not be processed. You can try again using the retry button."
+
+                        // Save the recorded audio file path for retry
+                        meeting.localAudioPath = recordingURL.path
+
+                        do {
+                            try modelContext.save()
+                        } catch {
+                            print("Error saving meeting after failure: \(error)")
+                        }
                     }
                 }
             }
@@ -1491,11 +1586,21 @@ struct CreateMeetingView: View {
         )
         meeting.dateCreated = meetingDate
 
+        // Initialize processing state for new error handling
+        meeting.updateProcessingState(.transcribing)
+        meeting.clearProcessingError()
+
+        // Set local audio path for imported audio
+        if let audioURL = importedAudioURL {
+            meeting.localAudioPath = audioURL.path
+        }
+        // Note: For recorded audio, localAudioPath will be set in stopMeetingRecording()
+
         if let startTime = recordingStartTime {
             meeting.startTime = startTime
             meeting.stopRecording() // Sets end time
         }
-        
+
         modelContext.insert(meeting)
         createdMeeting = meeting
         createdMeetingId = meeting.id
@@ -1544,8 +1649,15 @@ struct CreateMeetingView: View {
             
             meeting.shortSummary = overview
             meeting.aiSummary = summary
-            meeting.isProcessing = false
-            meeting.dateModified = Date()
+
+            // FIXED: Use new state management methods
+            meeting.markCompleted()
+
+            // Clean up local audio file now that processing is complete
+            if let localPath = meeting.localAudioPath {
+                try? FileManager.default.removeItem(atPath: localPath)
+                meeting.localAudioPath = nil
+            }
 
             // Send processing complete notification
             Task {

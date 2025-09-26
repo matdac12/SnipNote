@@ -217,7 +217,9 @@ class OpenAIService: ObservableObject {
 
     func transcribeAudioFromURL(
         audioURL: URL,
-        progressCallback: @escaping (AudioChunkerProgress) -> Void
+        progressCallback: @escaping (AudioChunkerProgress) -> Void,
+        meetingName: String = "",
+        meetingId: UUID? = nil
     ) async throws -> String {
         // Validate audio file first
         try AudioChunker.validateAudioFile(url: audioURL)
@@ -235,8 +237,10 @@ class OpenAIService: ObservableObject {
                 partialTranscript: nil
             ))
 
+            let audioFile = try AVAudioFile(forReading: audioURL)
+            let durationSeconds = Double(audioFile.length) / audioFile.fileFormat.sampleRate
             let audioData = try Data(contentsOf: audioURL)
-            let transcript = try await transcribeAudio(audioData: audioData)
+            let transcript = try await transcribeAudioWithRetry(audioData: audioData, duration: durationSeconds)
 
             progressCallback(AudioChunkerProgress(
                 currentChunk: 1,
@@ -251,14 +255,18 @@ class OpenAIService: ObservableObject {
             // For large files, use chunked processing
             return try await transcribeAudioInChunks(
                 audioURL: audioURL,
-                progressCallback: progressCallback
+                progressCallback: progressCallback,
+                meetingName: meetingName,
+                meetingId: meetingId
             )
         }
     }
 
     private func transcribeAudioInChunks(
         audioURL: URL,
-        progressCallback: @escaping (AudioChunkerProgress) -> Void
+        progressCallback: @escaping (AudioChunkerProgress) -> Void,
+        meetingName: String = "",
+        meetingId: UUID? = nil
     ) async throws -> String {
 
         // Create chunks
@@ -280,6 +288,9 @@ class OpenAIService: ObservableObject {
         var transcripts: [String] = []
         let totalChunks = chunks.count
 
+        // Progress notification tracking
+        var halfwayNotificationSent = false
+
         // Process each chunk
         for (index, chunk) in chunks.enumerated() {
             let chunkNumber = index + 1
@@ -295,48 +306,36 @@ class OpenAIService: ObservableObject {
             print("🎵 Transcribing chunk \(chunkNumber)/\(totalChunks)")
 
             do {
-                let chunkTranscript = try await transcribeAudio(audioData: chunk.data)
+                // Use new retry logic with exponential backoff
+                let chunkTranscript = try await transcribeChunkWithRetry(chunk: chunk)
                 transcripts.append(chunkTranscript)
-                print("🎵 Chunk \(chunkNumber) transcribed successfully")
+
+                // Calculate progress percentage
+                let progressPercent = 30.0 + (Double(chunkNumber) / Double(totalChunks)) * 70.0
+
+                // Send 50% progress notification
+                if progressPercent >= 50.0 && !halfwayNotificationSent && !meetingName.isEmpty, let meetingId = meetingId {
+                    halfwayNotificationSent = true
+                    await NotificationService.shared.sendProgressNotification(
+                        meetingId: meetingId,
+                        meetingName: meetingName,
+                        progress: 50
+                    )
+                }
 
                 // Report progress with the completed chunk transcript
                 progressCallback(AudioChunkerProgress(
                     currentChunk: chunkNumber,
                     totalChunks: totalChunks,
                     currentStage: "Chunk \(chunkNumber) completed",
-                    percentComplete: 30.0 + (Double(chunkNumber) / Double(totalChunks)) * 70.0,
+                    percentComplete: progressPercent,
                     partialTranscript: chunkTranscript
                 ))
 
             } catch {
-                // Retry once before giving up
-                print("🎵 Retrying chunk \(chunkNumber)...")
-                do {
-                    let retryTranscript = try await transcribeAudio(audioData: chunk.data)
-                    transcripts.append(retryTranscript)
-                    print("🎵 Chunk \(chunkNumber) retry successful")
-
-                    // Report progress with the completed retry transcript
-                    progressCallback(AudioChunkerProgress(
-                        currentChunk: chunkNumber,
-                        totalChunks: totalChunks,
-                        currentStage: "Chunk \(chunkNumber) completed (retry)",
-                        percentComplete: 30.0 + (Double(chunkNumber) / Double(totalChunks)) * 70.0,
-                        partialTranscript: retryTranscript
-                    ))
-                } catch {
-                    print("🎵 Chunk \(chunkNumber) failed after retry")
-                    transcripts.append("[Transcription failed for chunk \(chunkNumber) after retry]")
-
-                    // Report progress for failed chunk
-                    progressCallback(AudioChunkerProgress(
-                        currentChunk: chunkNumber,
-                        totalChunks: totalChunks,
-                        currentStage: "Chunk \(chunkNumber) failed",
-                        percentComplete: 30.0 + (Double(chunkNumber) / Double(totalChunks)) * 70.0,
-                        partialTranscript: "[Transcription failed for chunk \(chunkNumber)]"
-                    ))
-                }
+                // FIXED: Don't continue with partial transcripts - fail completely if any chunk fails
+                print("🎵 Chunk \(chunkNumber) failed after all retries: \(error)")
+                throw OpenAIError.transcriptionFailed
             }
         }
 
@@ -348,10 +347,23 @@ class OpenAIService: ObservableObject {
             partialTranscript: nil
         ))
 
-        // Combine all transcripts
-        let fullTranscript = transcripts
-            .filter { !$0.isEmpty && !$0.contains("[Transcription failed") }
-            .joined(separator: " ")
+        // Send 100% completion notification for transcription phase
+        if !meetingName.isEmpty, let meetingId = meetingId {
+            await NotificationService.shared.sendProgressNotification(
+                meetingId: meetingId,
+                meetingName: meetingName,
+                progress: 100
+            )
+        }
+
+        // Combine all transcripts (all chunks succeeded if we reach here)
+        let fullTranscript = transcripts.joined(separator: " ")
+
+        // Validate that we got a meaningful transcript
+        let trimmedTranscript = fullTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedTranscript.isEmpty {
+            throw OpenAIError.transcriptionFailed
+        }
 
         return fullTranscript
     }
@@ -986,8 +998,114 @@ class OpenAIService: ObservableObject {
     private func shouldRetry(error: Error) -> Bool {
         if error is URLError { return true }
         if case OpenAIError.apiError(let message) = error {
-            return message.contains("429") || message.contains("500") || message.contains("503")
+            return message.contains("429") || message.contains("500") || message.contains("502") || message.contains("503") || message.contains("504")
         }
         return false
+    }
+
+    // MARK: - Timeout Protection
+
+    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping () async throws -> T) async throws -> T {
+        return try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask {
+                try await operation()
+            }
+
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                throw OpenAIError.apiError("Operation timed out after \(seconds) seconds")
+            }
+
+            guard let result = try await group.next() else {
+                throw OpenAIError.apiError("Task group completed without result")
+            }
+
+            group.cancelAll()
+            return result
+        }
+    }
+
+    private func timeoutForAudio(duration: TimeInterval?, minimum: TimeInterval = 120, maximum: TimeInterval = 360) -> TimeInterval {
+        guard let duration, duration > 0 else { return minimum }
+        let scaled = duration * 2.5
+        return min(maximum, max(minimum, scaled))
+    }
+
+    // MARK: - Enhanced Retry Logic for Transcription
+
+    func transcribeAudioWithRetry(audioData: Data, duration: TimeInterval? = nil, maxRetries: Int = 3) async throws -> String {
+        var lastError: Error?
+
+        for attempt in 0..<maxRetries {
+            do {
+                print("🎵 Transcribing audio data (attempt \(attempt + 1))")
+
+                // Add timeout protection to each transcription attempt (duration-aware)
+                let timeout = timeoutForAudio(duration: duration)
+                let transcript = try await withTimeout(seconds: timeout) {
+                    try await self.transcribeAudio(audioData: audioData)
+                }
+
+                print("🎵 Audio transcribed successfully (timeout window: \(Int(timeout))s)")
+                return transcript
+
+            } catch {
+                lastError = error
+                print("🎵 Audio transcription failed on attempt \(attempt + 1): \(error)")
+
+                // Don't retry if it's not a retryable error
+                if !shouldRetry(error: error) {
+                    throw error
+                }
+
+                // Don't delay after the last attempt
+                if attempt < maxRetries - 1 {
+                    let delay = pow(2.0, Double(attempt)) // 1s, 2s, 4s exponential backoff
+                    print("🎵 Retrying audio transcription in \(delay) seconds...")
+                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                }
+            }
+        }
+
+        // If we get here, all retries failed
+        throw lastError ?? OpenAIError.transcriptionFailed
+    }
+
+    private func transcribeChunkWithRetry(chunk: AudioChunk, maxRetries: Int = 3) async throws -> String {
+        var lastError: Error?
+
+        for attempt in 0..<maxRetries {
+            do {
+                print("🎵 Transcribing chunk \(chunk.chunkIndex + 1) (attempt \(attempt + 1))")
+
+                // Add timeout protection to each chunk based on duration
+                let timeout = timeoutForAudio(duration: chunk.duration)
+                let transcript = try await withTimeout(seconds: timeout) {
+                    try await self.transcribeAudio(audioData: chunk.data)
+                }
+
+                print("🎵 Chunk \(chunk.chunkIndex + 1) transcribed successfully (timeout window: \(Int(timeout))s)")
+                return transcript
+
+            } catch {
+                lastError = error
+                print("🎵 Chunk \(chunk.chunkIndex + 1) failed on attempt \(attempt + 1): \(error)")
+
+                // Don't retry if it's not a retryable error
+                if !shouldRetry(error: error) {
+                    throw error
+                }
+
+                // Don't delay after the last attempt
+                if attempt < maxRetries - 1 {
+                    let delay = pow(2.0, Double(attempt)) // 1s, 2s, 4s exponential backoff
+                    print("🎵 Retrying chunk \(chunk.chunkIndex + 1) in \(delay) seconds...")
+                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                }
+            }
+        }
+
+        // If we get here, all retries failed
+        throw lastError ?? OpenAIError.transcriptionFailed
     }
 }

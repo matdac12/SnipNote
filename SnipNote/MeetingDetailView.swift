@@ -30,6 +30,11 @@ struct MeetingDetailView: View {
     @State private var downloadProgress: Double = 0
     @State private var showDownloadAlert = false
     @StateObject private var audioPlayer = AudioPlayerManager()
+
+    // Retry functionality
+    @State private var isRetrying = false
+    @StateObject private var openAIService = OpenAIService.shared
+    @StateObject private var backgroundTaskManager = BackgroundTaskManager.shared
     
     private var relatedActions: [Action] {
         allActions.filter { $0.sourceNoteId == meeting.id }
@@ -188,14 +193,22 @@ struct MeetingDetailView: View {
 
             MeetingDetailCard {
                 HStack {
-                    Text(meeting.shortSummary)
+                    Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : meeting.shortSummary)
                         .themedBody()
                         .opacity(meeting.isProcessing ? 0.6 : 1.0)
+                        .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    if meeting.isProcessing {
+                    if meeting.isProcessing || isRetrying {
                         ProgressView()
                             .scaleEffect(0.8)
+                    } else if meeting.processingState == .failed && meeting.canRetry {
+                        Button("Retry") {
+                            retryTranscription()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(themeManager.currentTheme.accentColor)
+                        .disabled(isRetrying)
                     }
                 }
             }
@@ -233,30 +246,48 @@ struct MeetingDetailView: View {
                         showingFullScreenSummary = true
                     }) {
                         HStack {
-                            Text(formatMarkdownText(meeting.aiSummary))
+                            Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : formatMarkdownText(meeting.aiSummary))
                                 .themedBody()
                                 .opacity(meeting.isProcessing ? 0.6 : 1.0)
+                                .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                            if meeting.isProcessing {
+                            if meeting.isProcessing || isRetrying {
                                 ProgressView()
                                     .scaleEffect(0.8)
+                            } else if meeting.processingState == .failed && meeting.canRetry {
+                                Button("Retry") {
+                                    retryTranscription()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(themeManager.currentTheme.accentColor)
+                                .disabled(isRetrying)
                             }
                         }
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
-            } else if meeting.isProcessing {
-                // Show processing state even when collapsed
+            } else if meeting.isProcessing || isRetrying || meeting.processingState == .failed {
+                // Show processing or error state even when collapsed
                 MeetingDetailCard {
                     HStack {
-                        Text("Processing meeting summary...")
+                        Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : "Processing meeting summary...")
                             .themedBody()
-                            .opacity(0.6)
+                            .opacity(meeting.isProcessing || isRetrying ? 0.6 : 1.0)
+                            .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
                             .frame(maxWidth: .infinity, alignment: .leading)
 
-                        ProgressView()
-                            .scaleEffect(0.8)
+                        if meeting.isProcessing || isRetrying {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else if meeting.processingState == .failed && meeting.canRetry {
+                            Button("Retry") {
+                                retryTranscription()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(themeManager.currentTheme.accentColor)
+                            .disabled(isRetrying)
+                        }
                     }
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -757,6 +788,127 @@ struct MeetingDetailView: View {
                     print("❌ Error sharing audio: \(error)")
                     print("❌ Error details: \(error.localizedDescription)")
                 }
+            }
+        }
+    }
+
+    // MARK: - Retry Functionality
+
+    private func retryTranscription() {
+        guard meeting.canRetry, let localPath = meeting.localAudioPath else {
+            print("⚠️ Cannot retry: meeting cannot retry or no local audio path")
+            return
+        }
+
+        let audioURL = URL(fileURLWithPath: localPath)
+        guard FileManager.default.fileExists(atPath: localPath) else {
+            print("⚠️ Cannot retry: audio file no longer exists at \(localPath)")
+            // Update meeting to reflect that retry is no longer possible
+            meeting.localAudioPath = nil
+            try? modelContext.save()
+            return
+        }
+
+        isRetrying = true
+
+        // Clear previous error and reset state
+        meeting.clearProcessingError()
+        meeting.updateProcessingState(.transcribing)
+        meeting.audioTranscript = "Transcribing meeting audio..."
+        meeting.shortSummary = "Generating overview..."
+        meeting.aiSummary = "Generating meeting summary..."
+
+        // Start background task
+        let backgroundTaskId = backgroundTaskManager.startBackgroundTask(for: meeting.id)
+
+        Task {
+            do {
+                // Transcribe the audio with progress tracking
+                let transcript = try await openAIService.transcribeAudioFromURL(
+                    audioURL: audioURL,
+                    progressCallback: { progress in
+                        Task { @MainActor in
+                            meeting.updateChunkProgress(
+                                completed: progress.currentChunk,
+                                total: progress.totalChunks
+                            )
+                        }
+                    },
+                    meetingName: meeting.name,
+                    meetingId: meeting.id
+                )
+
+                // Update meeting with transcript
+                await MainActor.run {
+                    meeting.audioTranscript = transcript
+                    meeting.updateProcessingState(.generatingSummary)
+                }
+
+                // Generate AI summaries
+                let overview = try await openAIService.generateMeetingOverview(transcript)
+                let summary = try await openAIService.summarizeMeeting(transcript)
+                let actionItems = try await openAIService.extractActions(transcript)
+
+                await MainActor.run {
+                    meeting.shortSummary = overview
+                    meeting.aiSummary = summary
+                    meeting.markCompleted()
+
+                    // Create Action entities from extracted action items
+                    for actionItem in actionItems {
+                        let priority: ActionPriority
+                        switch actionItem.priority.uppercased() {
+                        case "HIGH":
+                            priority = .high
+                        case "MED", "MEDIUM":
+                            priority = .medium
+                        case "LOW":
+                            priority = .low
+                        default:
+                            priority = .medium
+                        }
+
+                        let action = Action(
+                            title: actionItem.action,
+                            priority: priority,
+                            sourceNoteId: meeting.id
+                        )
+                        modelContext.insert(action)
+                    }
+
+                    // Clean up local audio file since processing succeeded
+                    if let localPath = meeting.localAudioPath {
+                        try? FileManager.default.removeItem(atPath: localPath)
+                        meeting.localAudioPath = nil
+                    }
+
+                    do {
+                        try modelContext.save()
+                    } catch {
+                        print("Error saving retry results: \(error)")
+                    }
+
+                    isRetrying = false
+                }
+
+                // End background task
+                backgroundTaskManager.endBackgroundTask(backgroundTaskId)
+
+                // Send completion notification
+                await NotificationService.shared.sendProcessingCompleteNotification(
+                    for: meeting.id,
+                    meetingName: meeting.name
+                )
+
+            } catch {
+                await MainActor.run {
+                    print("Error during retry: \(error)")
+                    meeting.setProcessingError("Transcription failed again. Please try later.")
+                    isRetrying = false
+                }
+
+                // End background task on error
+                backgroundTaskManager.endBackgroundTask(backgroundTaskId)
             }
         }
     }

@@ -48,6 +48,15 @@ class ProcessedTransactions: ObservableObject {
         return false
     }
 
+    /// Check if transaction is currently being processed
+    func isInFlight(_ transactionID: String) -> Bool {
+        if inFlightTransactions.contains(transactionID) {
+            print("⏳ [ProcessedTransactions] Currently in-flight: \(transactionID)")
+            return true
+        }
+        return false
+    }
+
     /// Mark a transaction as in-flight (being processed) - MUST call before async work
     func markAsInFlight(_ transactionID: String) {
         inFlightTransactions.insert(transactionID)

@@ -165,7 +165,10 @@ class BackgroundTaskManager: ObservableObject {
         meeting.updateProcessingState(.transcribing)
         try? context.save()
 
+        _ = await MinutesManager.shared.refreshBalance()
+
         var durationSeconds = 0
+        var debitSucceeded = true
         if let audioFile = try? AVAudioFile(forReading: audioURL) {
             durationSeconds = Int(Double(audioFile.length) / audioFile.fileFormat.sampleRate)
         }
@@ -198,7 +201,11 @@ class BackgroundTaskManager: ObservableObject {
             }
 
             if durationSeconds > 0 {
-                _ = await MinutesManager.shared.debitMinutes(seconds: durationSeconds, meetingID: meetingId.uuidString)
+                let debitSuccess = await MinutesManager.shared.debitMinutes(seconds: durationSeconds, meetingID: meetingId.uuidString)
+                debitSucceeded = debitSuccess
+                if !debitSuccess {
+                    print("⚠️ Minutes debit failed during background resume for meeting \(meetingId)")
+                }
                 await UsageTracker.shared.trackMeetingCreated(transcribed: true, meetingSeconds: durationSeconds)
             }
 
@@ -225,6 +232,10 @@ class BackgroundTaskManager: ObservableObject {
                 meetingToFinalize.aiSummary = summary
                 meetingToFinalize.markCompleted()
 
+                if durationSeconds > 0 && !debitSucceeded {
+                    meetingToFinalize.setProcessingError("Minutes debit failed for this transcription. Please refresh your balance.")
+                }
+
                 for actionItem in actionItems {
                     let priority: ActionPriority
                     switch actionItem.priority.uppercased() {
@@ -246,7 +257,9 @@ class BackgroundTaskManager: ObservableObject {
                     context.insert(action)
                 }
 
-                if FileManager.default.fileExists(atPath: audioURL.path) {
+                if meetingToFinalize.hasRecording,
+                   debitSucceeded,
+                   FileManager.default.fileExists(atPath: audioURL.path) {
                     try? FileManager.default.removeItem(at: audioURL)
                     meetingToFinalize.localAudioPath = nil
                 }

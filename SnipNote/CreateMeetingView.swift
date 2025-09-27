@@ -1653,8 +1653,10 @@ struct CreateMeetingView: View {
             // FIXED: Use new state management methods
             meeting.markCompleted()
 
-            // Clean up local audio file now that processing is complete
-            if let localPath = meeting.localAudioPath {
+            // Clean up local audio file now that processing is complete (only after successful upload)
+            if meeting.hasRecording,
+               let localPath = meeting.localAudioPath,
+               FileManager.default.fileExists(atPath: localPath) {
                 try? FileManager.default.removeItem(atPath: localPath)
                 meeting.localAudioPath = nil
             }

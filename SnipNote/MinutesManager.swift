@@ -24,7 +24,13 @@ class MinutesManager: ObservableObject {
     // MARK: - Balance Management
 
     /// Refresh the current balance from Supabase
-    func refreshBalance() async {
+    @discardableResult
+    func refreshBalance() async -> Bool {
+        guard SupabaseManager.shared.client.auth.currentUser != nil else {
+            print("ℹ️ [MinutesManager] Skipping balance refresh - no authenticated session")
+            return false
+        }
+
         isLoading = true
         defer { isLoading = false }
 
@@ -37,18 +43,26 @@ class MinutesManager: ObservableObject {
             if let balanceValue = try? JSONDecoder().decode(Int.self, from: data) {
                 currentBalance = max(0, balanceValue)
                 lastError = nil
+                return true
             } else {
                 print("❌ [MinutesManager] Failed to decode balance response")
                 lastError = "Failed to decode balance"
+                return false
             }
         } catch {
             print("❌ [MinutesManager] Failed to refresh balance: \(error)")
             lastError = error.localizedDescription
+            return false
         }
     }
 
     /// Grant free tier minutes (30 minutes, one-time per user)
     func grantFreeTierMinutes() async -> Bool {
+        guard SupabaseManager.shared.client.auth.currentUser != nil else {
+            print("ℹ️ [MinutesManager] Skipping free tier grant - no authenticated session")
+            return false
+        }
+
         do {
             let response = try await SupabaseManager.shared.client
                 .rpc("grant_free_tier_minutes")
@@ -316,6 +330,11 @@ extension MinutesManager {
 
     /// Handle app launch - refresh balance and grant free tier if needed
     func handleAppLaunch() async {
+        guard SupabaseManager.shared.client.auth.currentUser != nil else {
+            print("ℹ️ [MinutesManager] Skipping launch balance refresh - user not authenticated")
+            return
+        }
+
         // Add cooldown to prevent rapid refreshes on multiple view appears
         let lastRefreshKey = "lastBalanceRefreshTime"
         let cooldownSeconds: TimeInterval = 300 // 5 minutes
@@ -328,12 +347,16 @@ extension MinutesManager {
         }
 
         print("🔄 [MinutesManager] Refreshing balance on app launch")
-        await refreshBalance()
-        UserDefaults.standard.set(Date(), forKey: lastRefreshKey)
+        let refreshSucceeded = await refreshBalance()
+        if refreshSucceeded {
+            UserDefaults.standard.set(Date(), forKey: lastRefreshKey)
+        }
 
         // Only grant free tier if never granted before (don't rely on balance == 0)
         let freeGrantedKey = "freeTierGranted"
-        if currentBalance == 0 && !UserDefaults.standard.bool(forKey: freeGrantedKey) {
+        if refreshSucceeded,
+           currentBalance == 0,
+           !UserDefaults.standard.bool(forKey: freeGrantedKey) {
             print("🎁 [MinutesManager] Attempting to grant free tier minutes")
             let granted = await grantFreeTierMinutes()
             if granted {

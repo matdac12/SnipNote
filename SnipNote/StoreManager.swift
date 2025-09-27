@@ -322,9 +322,20 @@ class StoreManager: ObservableObject {
     private func handleMinutesForTransaction(_ transaction: Transaction, product: Product) async -> Bool {
         let transactionID = String(transaction.id)
 
-        // CRITICAL: Check if this transaction was already processed OR currently in-flight
-        if ProcessedTransactions.shared.isProcessedOrInFlight(transactionID) {
-            print("⚠️ [StoreKit] DUPLICATE/IN-FLIGHT PREVENTED! Transaction \(transactionID) for product \(product.id)")
+        if let revocationDate = transaction.revocationDate {
+            let reason = transaction.revocationReason.map { String(describing: $0) } ?? "unknown"
+            print("⚠️ [StoreKit] Skipping revoked transaction \(transactionID) (reason: \(reason)) on \(revocationDate)")
+            ProcessedTransactions.shared.completeProcessing(transactionID, success: true)
+            return true
+        }
+
+        if ProcessedTransactions.shared.isProcessed(transactionID) {
+            print("⚠️ [StoreKit] Transaction already processed, finishing without re-credit: \(transactionID)")
+            return true
+        }
+
+        if ProcessedTransactions.shared.isInFlight(transactionID) {
+            print("⏳ [StoreKit] Transaction already in-flight, skipping duplicate processing: \(transactionID)")
             return false
         }
 

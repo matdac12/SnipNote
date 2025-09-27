@@ -26,6 +26,7 @@ struct AuthenticationView: View {
                         // Ensure products and subscription status are ready for the paywall
                         await StoreManager.shared.loadProducts()
                         await StoreManager.shared.updateSubscriptionStatus()
+                        await MinutesManager.shared.handleAppLaunch()
                     }
                     .onAppear {
                         // Show onboarding if user hasn't completed it yet

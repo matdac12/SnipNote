@@ -357,7 +357,7 @@ class OpenAIService: ObservableObject {
         }
 
         // Combine all transcripts (all chunks succeeded if we reach here)
-        let fullTranscript = transcripts.joined(separator: " ")
+        let fullTranscript = mergeChunkTranscripts(transcripts)
 
         // Validate that we got a meaningful transcript
         let trimmedTranscript = fullTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1107,5 +1107,62 @@ class OpenAIService: ObservableObject {
 
         // If we get here, all retries failed
         throw lastError ?? OpenAIError.transcriptionFailed
+    }
+}
+
+// MARK: - Transcript Overlap Helpers
+
+extension OpenAIService {
+    private func mergeChunkTranscripts(_ transcripts: [String]) -> String {
+        guard var merged = transcripts.first?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+            return ""
+        }
+
+        for transcript in transcripts.dropFirst() {
+            let trimmedNext = trimOverlapBetween(merged, next: transcript)
+            guard !trimmedNext.isEmpty else { continue }
+
+            if merged.last?.isWhitespace ?? false {
+                merged += trimmedNext
+            } else {
+                merged += " " + trimmedNext
+            }
+        }
+
+        return merged
+    }
+
+    private func trimOverlapBetween(_ previous: String, next: String) -> String {
+        let maxOverlapCharacters = 200
+        let minOverlapCharacters = 20
+
+        let sanitizedPrevious = previous.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sanitizedNext = next.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if sanitizedPrevious.isEmpty { return sanitizedNext }
+
+        let previousSuffix = String(sanitizedPrevious.suffix(maxOverlapCharacters)).lowercased()
+        let nextLower = sanitizedNext.lowercased()
+
+        let maxCheck = min(previousSuffix.count, nextLower.count)
+        var overlapLength = 0
+
+        if maxCheck >= minOverlapCharacters {
+            for length in stride(from: maxCheck, through: minOverlapCharacters, by: -1) {
+                let candidate = previousSuffix.suffix(length)
+                if nextLower.hasPrefix(candidate) {
+                    overlapLength = length
+                    break
+                }
+            }
+        }
+
+        if overlapLength > 0 {
+            let index = sanitizedNext.index(sanitizedNext.startIndex, offsetBy: overlapLength)
+            let remainder = sanitizedNext[index...]
+            return remainder.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return sanitizedNext
     }
 }

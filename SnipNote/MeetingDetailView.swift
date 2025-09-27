@@ -796,6 +796,15 @@ struct MeetingDetailView: View {
     // MARK: - Retry Functionality
 
     private func retryTranscription() {
+        Task {
+            await performRetryTranscription()
+        }
+    }
+
+    @MainActor
+    private func performRetryTranscription() async {
+        await minutesManager.refreshBalance()
+
         guard meeting.canRetry, let localPath = meeting.localAudioPath else {
             print("⚠️ Cannot retry: meeting cannot retry or no local audio path")
             return
@@ -804,156 +813,142 @@ struct MeetingDetailView: View {
         let audioURL = URL(fileURLWithPath: localPath)
         guard FileManager.default.fileExists(atPath: localPath) else {
             print("⚠️ Cannot retry: audio file no longer exists at \(localPath)")
-            // Update meeting to reflect that retry is no longer possible
             meeting.localAudioPath = nil
             try? modelContext.save()
             return
         }
 
-        // Check if user has sufficient minutes for retry
         let requiredMinutes = max(1, Int(ceil(meeting.duration / 60.0)))
         if minutesManager.currentBalance < requiredMinutes {
             print("⚠️ Cannot retry: insufficient minutes. Required: \(requiredMinutes), Available: \(minutesManager.currentBalance)")
-            // Could show an alert here or set a specific error message
             meeting.setProcessingError("Insufficient minutes for retry. Required: \(requiredMinutes) minutes.")
             return
         }
 
         isRetrying = true
-
-        // Clear previous error and reset state
         meeting.clearProcessingError()
         meeting.updateProcessingState(.transcribing)
         meeting.audioTranscript = "Transcribing meeting audio..."
         meeting.shortSummary = "Generating overview..."
         meeting.aiSummary = "Generating meeting summary..."
 
-        // Start background task
+        do {
+            try modelContext.save()
+        } catch {
+            print("Error saving retry preparation state: \(error)")
+        }
+
         let backgroundTaskId = backgroundTaskManager.startBackgroundTask(for: meeting.id)
+        defer {
+            backgroundTaskManager.endBackgroundTask(backgroundTaskId)
+            isRetrying = false
+        }
 
-        Task {
-            do {
-                // Transcribe the audio with progress tracking
-                let transcript = try await openAIService.transcribeAudioFromURL(
-                    audioURL: audioURL,
-                    progressCallback: { progress in
-                        Task { @MainActor in
-                            meeting.updateChunkProgress(
-                                completed: progress.currentChunk,
-                                total: progress.totalChunks
-                            )
-                        }
-                    },
-                    meetingName: meeting.name,
-                    meetingId: meeting.id
-                )
-
-                // Update meeting with transcript
-                await MainActor.run {
-                    meeting.audioTranscript = transcript
-                    meeting.updateProcessingState(.generatingSummary)
-                }
-
-                // Debit minutes for transcription
-                let durationSeconds = Int(meeting.duration)
-                if durationSeconds > 0 {
-                    _ = await minutesManager.debitMinutes(
-                        seconds: durationSeconds,
-                        meetingID: meeting.id.uuidString
-                    )
-                }
-
-                // Upload audio to Supabase
-                if let localPath = meeting.localAudioPath {
-                    let audioURL = URL(fileURLWithPath: localPath)
-                    do {
-                        _ = try await SupabaseManager.shared.uploadAudioRecording(
-                            audioURL: audioURL,
-                            meetingId: meeting.id,
-                            duration: meeting.duration
+        do {
+            let transcript = try await openAIService.transcribeAudioFromURL(
+                audioURL: audioURL,
+                progressCallback: { progress in
+                    Task { @MainActor in
+                        meeting.updateChunkProgress(
+                            completed: progress.currentChunk,
+                            total: progress.totalChunks
                         )
-
-                        // Mark meeting as having recording
-                        await MainActor.run {
-                            meeting.hasRecording = true
-                        }
-                    } catch {
-                        print("Error uploading audio during retry: \(error)")
                     }
-                }
+                },
+                meetingName: meeting.name,
+                meetingId: meeting.id
+            )
 
-                // Track usage metrics
+            meeting.audioTranscript = transcript
+            meeting.updateProcessingState(.generatingSummary)
+            try? modelContext.save()
+
+            let durationSeconds = Int(meeting.duration)
+            var debitSucceeded = true
+            if durationSeconds > 0 {
+                let debitSuccess = await minutesManager.debitMinutes(
+                    seconds: durationSeconds,
+                    meetingID: meeting.id.uuidString
+                )
+                debitSucceeded = debitSuccess
+                if !debitSuccess {
+                    print("⚠️ Minutes debit failed during retry for meeting \(meeting.id)")
+                }
                 await UsageTracker.shared.trackMeetingCreated(
                     transcribed: true,
                     meetingSeconds: durationSeconds
                 )
-
-                // Generate AI summaries
-                let overview = try await openAIService.generateMeetingOverview(transcript)
-                let summary = try await openAIService.summarizeMeeting(transcript)
-                let actionItems = try await openAIService.extractActions(transcript)
-
-                await MainActor.run {
-                    meeting.shortSummary = overview
-                    meeting.aiSummary = summary
-                    meeting.markCompleted()
-
-                    // Create Action entities from extracted action items
-                    for actionItem in actionItems {
-                        let priority: ActionPriority
-                        switch actionItem.priority.uppercased() {
-                        case "HIGH":
-                            priority = .high
-                        case "MED", "MEDIUM":
-                            priority = .medium
-                        case "LOW":
-                            priority = .low
-                        default:
-                            priority = .medium
-                        }
-
-                        let action = Action(
-                            title: actionItem.action,
-                            priority: priority,
-                            sourceNoteId: meeting.id
-                        )
-                        modelContext.insert(action)
-                    }
-
-                    // Clean up local audio file since processing succeeded
-                    if let localPath = meeting.localAudioPath {
-                        try? FileManager.default.removeItem(atPath: localPath)
-                        meeting.localAudioPath = nil
-                    }
-
-                    do {
-                        try modelContext.save()
-                    } catch {
-                        print("Error saving retry results: \(error)")
-                    }
-
-                    isRetrying = false
-                }
-
-                // End background task
-                backgroundTaskManager.endBackgroundTask(backgroundTaskId)
-
-                // Send completion notification
-                await NotificationService.shared.sendProcessingCompleteNotification(
-                    for: meeting.id,
-                    meetingName: meeting.name
-                )
-
-            } catch {
-                await MainActor.run {
-                    print("Error during retry: \(error)")
-                    meeting.setProcessingError("Transcription failed again. Please try later.")
-                    isRetrying = false
-                }
-
-                // End background task on error
-                backgroundTaskManager.endBackgroundTask(backgroundTaskId)
             }
+
+            if let latestLocalPath = meeting.localAudioPath {
+                let latestURL = URL(fileURLWithPath: latestLocalPath)
+                do {
+                    _ = try await SupabaseManager.shared.uploadAudioRecording(
+                        audioURL: latestURL,
+                        meetingId: meeting.id,
+                        duration: meeting.duration
+                    )
+                    meeting.hasRecording = true
+                } catch {
+                    print("Error uploading audio during retry: \(error)")
+                }
+            }
+
+            let overview = try await openAIService.generateMeetingOverview(transcript)
+            let summary = try await openAIService.summarizeMeeting(transcript)
+            let actionItems = try await openAIService.extractActions(transcript)
+
+            meeting.shortSummary = overview
+            meeting.aiSummary = summary
+            meeting.markCompleted()
+
+            for actionItem in actionItems {
+                let priority: ActionPriority
+                switch actionItem.priority.uppercased() {
+                case "HIGH":
+                    priority = .high
+                case "MED", "MEDIUM":
+                    priority = .medium
+                case "LOW":
+                    priority = .low
+                default:
+                    priority = .medium
+                }
+
+                let action = Action(
+                    title: actionItem.action,
+                    priority: priority,
+                    sourceNoteId: meeting.id
+                )
+                modelContext.insert(action)
+            }
+
+            if meeting.hasRecording,
+               debitSucceeded,
+               let latestLocalPath = meeting.localAudioPath,
+               FileManager.default.fileExists(atPath: latestLocalPath) {
+                try? FileManager.default.removeItem(atPath: latestLocalPath)
+                meeting.localAudioPath = nil
+            }
+
+            if durationSeconds > 0 && !debitSucceeded {
+                meeting.setProcessingError("Minutes debit failed for this transcription. Please refresh your balance.")
+            }
+
+            do {
+                try modelContext.save()
+            } catch {
+                print("Error saving retry results: \(error)")
+            }
+
+            await NotificationService.shared.sendProcessingCompleteNotification(
+                for: meeting.id,
+                meetingName: meeting.name
+            )
+
+        } catch {
+            print("Error during retry: \(error)")
+            meeting.setProcessingError("Transcription failed again. Please try later.")
         }
     }
 }

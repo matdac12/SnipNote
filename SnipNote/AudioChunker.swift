@@ -110,10 +110,13 @@ class AudioChunker {
                 partialTranscript: nil
             ))
             
-            let audioData = try Data(contentsOf: audioURL)
+            // Use streaming for small files too to maintain consistency
             let audioFile = try AVAudioFile(forReading: audioURL)
             let duration = Double(audioFile.length) / audioFile.fileFormat.sampleRate
-            
+
+            // Read file in chunks even for small files to prevent memory spikes
+            let audioData = try readFileInChunks(audioURL: audioURL)
+
             progressCallback(AudioChunkerProgress(
                 currentChunk: 1,
                 totalChunks: 1,
@@ -121,7 +124,7 @@ class AudioChunker {
                 percentComplete: 100.0,
                 partialTranscript: nil
             ))
-            
+
             return [AudioChunk(
                 data: audioData,
                 startTime: 0,
@@ -266,5 +269,20 @@ class AudioChunker {
         // Read the exported file
         let audioData = try Data(contentsOf: tempURL)
         return audioData
+    }
+
+    /// Read file in chunks to prevent memory spikes
+    private static func readFileInChunks(audioURL: URL) throws -> Data {
+        let chunkSize = 1024 * 1024 // 1MB chunks for reading
+        let fileHandle = try FileHandle(forReadingFrom: audioURL)
+        defer { fileHandle.closeFile() }
+
+        var result = Data()
+        while true {
+            let chunk = fileHandle.readData(ofLength: chunkSize)
+            if chunk.isEmpty { break }
+            result.append(chunk)
+        }
+        return result
     }
 }

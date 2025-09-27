@@ -23,7 +23,12 @@ class BackgroundTaskManager: ObservableObject {
     func registerBackgroundTasks() {
         // Register the background processing task
         BGTaskScheduler.shared.register(forTaskWithIdentifier: transcriptionTaskIdentifier, using: nil) { task in
-            self.handleTranscriptionBackgroundTask(task: task as! BGProcessingTask)
+            guard let processingTask = task as? BGProcessingTask else {
+                print("❌ [BackgroundTask] Expected BGProcessingTask but got \(type(of: task))")
+                task.setTaskCompleted(success: false)
+                return
+            }
+            self.handleTranscriptionBackgroundTask(task: processingTask)
         }
     }
 
@@ -147,7 +152,11 @@ class BackgroundTaskManager: ObservableObject {
         guard let localPath = meeting.localAudioPath else {
             print("🔄 Meeting missing local audio path: \(meetingId)")
             meeting.setProcessingError("Original audio file unavailable for retry.")
-            try? context.save()
+            do {
+                try context.save()
+            } catch {
+                print("❌ [BackgroundTask] Failed to save meeting error state: \(error)")
+            }
             return
         }
 
@@ -156,14 +165,22 @@ class BackgroundTaskManager: ObservableObject {
             print("🔄 Local audio file missing at path: \(audioURL.path)")
             meeting.localAudioPath = nil
             meeting.setProcessingError("Original audio file unavailable for retry.")
-            try? context.save()
+            do {
+                try context.save()
+            } catch {
+                print("❌ [BackgroundTask] Failed to save missing file error: \(error)")
+            }
             return
         }
 
         let meetingName = meeting.name
         meeting.clearProcessingError()
         meeting.updateProcessingState(.transcribing)
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            print("❌ [BackgroundTask] Failed to save transcribing state: \(error)")
+        }
 
         _ = await MinutesManager.shared.refreshBalance()
 
@@ -178,15 +195,19 @@ class BackgroundTaskManager: ObservableObject {
                 audioURL: audioURL,
                 progressCallback: { progress in
                     Task { @MainActor in
-                        guard let container = try? self.makeModelContainer() else { return }
-                        let progressContext = ModelContext(container)
-                        let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
-                        if let meetingToUpdate = try? progressContext.fetch(descriptor).first {
-                            meetingToUpdate.updateChunkProgress(
-                                completed: progress.currentChunk,
-                                total: progress.totalChunks
-                            )
-                            try? progressContext.save()
+                        do {
+                            let container = try self.makeModelContainer()
+                            let progressContext = ModelContext(container)
+                            let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
+                            if let meetingToUpdate = try progressContext.fetch(descriptor).first {
+                                meetingToUpdate.updateChunkProgress(
+                                    completed: progress.currentChunk,
+                                    total: progress.totalChunks
+                                )
+                                try progressContext.save()
+                            }
+                        } catch {
+                            print("❌ [BackgroundTask] Failed to update chunk progress: \(error)")
                         }
                     }
                 },
@@ -194,10 +215,14 @@ class BackgroundTaskManager: ObservableObject {
                 meetingId: meetingId
             )
 
-            if let meetingToUpdate = try? context.fetch(descriptor).first {
-                meetingToUpdate.audioTranscript = transcript
-                meetingToUpdate.updateProcessingState(.generatingSummary)
-                try? context.save()
+            do {
+                if let meetingToUpdate = try context.fetch(descriptor).first {
+                    meetingToUpdate.audioTranscript = transcript
+                    meetingToUpdate.updateProcessingState(.generatingSummary)
+                    try context.save()
+                }
+            } catch {
+                print("❌ [BackgroundTask] Failed to save transcript: \(error)")
             }
 
             if durationSeconds > 0 {

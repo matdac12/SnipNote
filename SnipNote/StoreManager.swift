@@ -176,7 +176,10 @@ class StoreManager: ObservableObject {
                 print("✅ [StoreKit] Transaction finished after successful credit: \(transaction.id)")
 
                 // Sync transaction to Supabase after successful credit
-                await syncTransactionToSupabase(transaction)
+                let syncSuccess = await syncTransactionToSupabase(transaction)
+                if !syncSuccess {
+                    print("⚠️ [StoreKit] Supabase sync failed but transaction already credited and finished")
+                }
             } else {
                 print("⚠️ [StoreKit] Transaction NOT finished - crediting failed. Will retry on next app launch: \(transaction.id)")
                 // Don't finish transaction - StoreKit will retry it automatically
@@ -253,7 +256,7 @@ class StoreManager: ObservableObject {
                     // CRITICAL: Only finish transaction if we successfully credited minutes
                     if credited {
                         await transaction.finish()
-                        await self.syncTransactionToSupabase(transaction)
+                        _ = await self.syncTransactionToSupabase(transaction)
                         print("✅ [StoreKit] Transaction update finished successfully: \(transaction.id) product=\(transaction.productID)")
                     } else {
                         print("⚠️ [StoreKit] Transaction update NOT finished - will retry: \(transaction.id) product=\(transaction.productID)")
@@ -375,7 +378,7 @@ class StoreManager: ObservableObject {
 
     // MARK: - Supabase Sync
 
-    private func syncTransactionToSupabase(_ transaction: Transaction) async {
+    private func syncTransactionToSupabase(_ transaction: Transaction) async -> Bool {
         let transactionID = String(transaction.id)
 
         do {
@@ -384,6 +387,7 @@ class StoreManager: ObservableObject {
 
             // Remove from failed queue if it was there
             FailedTransactionQueue.shared.removeTransaction(transactionID)
+            return true
 
         } catch {
             print("⚠️ [StoreKit] Supabase sync failed: \(error)")
@@ -396,6 +400,7 @@ class StoreManager: ObservableObject {
             } else {
                 print("🚫 [StoreKit] Transaction sync failed permanently (non-retryable): \(transactionID)")
             }
+            return false
         }
     }
 
@@ -424,13 +429,40 @@ class StoreManager: ObservableObject {
         print("🔄 [StoreKit] Retrying \(failedTransactions.count) failed Supabase transactions")
 
         for transactionData in failedTransactions {
-            // Recreate Transaction object from stored data
-            // Note: In a real implementation, you might need to store more transaction data
-            // For now, we'll just remove old failed transactions
-            print("🔄 [StoreKit] Would retry transaction: \(transactionData.transactionID)")
+            print("🔄 [StoreKit] Retrying transaction: \(transactionData.transactionID)")
 
-            // For this implementation, we'll just clean up old entries
-            FailedTransactionQueue.shared.removeTransaction(transactionData.transactionID)
+            // Fetch the latest transaction from StoreKit
+            guard let latestTransaction = await Transaction.latest(for: transactionData.productID) else {
+                print("⚠️ [StoreKit] No latest transaction found for product \(transactionData.productID)")
+                FailedTransactionQueue.shared.removeTransaction(transactionData.transactionID)
+                continue
+            }
+
+            // Verify and extract the transaction
+            guard case .verified(let transaction) = latestTransaction else {
+                print("⚠️ [StoreKit] Transaction verification failed for \(transactionData.transactionID)")
+                FailedTransactionQueue.shared.removeTransaction(transactionData.transactionID)
+                continue
+            }
+
+            // Check if this is the same transaction we're trying to retry
+            if String(transaction.id) == transactionData.transactionID ||
+               String(transaction.originalID) == transactionData.originalTransactionID {
+
+                // Retry the Supabase validation
+                let success = await syncTransactionToSupabase(transaction)
+
+                if success {
+                    print("✅ [StoreKit] Successfully retried transaction: \(transactionData.transactionID)")
+                    FailedTransactionQueue.shared.removeTransaction(transactionData.transactionID)
+                } else {
+                    print("❌ [StoreKit] Retry failed for transaction: \(transactionData.transactionID)")
+                    // Leave in queue for another retry attempt
+                }
+            } else {
+                print("ℹ️ [StoreKit] Transaction ID mismatch, removing stale entry: \(transactionData.transactionID)")
+                FailedTransactionQueue.shared.removeTransaction(transactionData.transactionID)
+            }
         }
 
         // In a production app, you might want to re-fetch current entitlements
@@ -443,7 +475,7 @@ class StoreManager: ObservableObject {
         for await result in Transaction.currentEntitlements {
             if case .verified(let transaction) = result,
                transaction.productType == .autoRenewable {
-                await syncTransactionToSupabase(transaction)
+                _ = await syncTransactionToSupabase(transaction)
             }
         }
     }

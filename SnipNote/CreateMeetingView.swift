@@ -430,7 +430,7 @@ struct CreateMeetingView: View {
                                        summary: String?,
                                        action: @escaping () -> Void) -> some View {
         let displayTitle = theme.headerStyle == .brackets ? title.uppercased() : title
-        let detailText = summary?.isEmpty == false ? summary! : subtitle
+        let detailText = summary?.isEmpty == false ? (summary ?? subtitle) : subtitle
 
         return Button(action: action) {
         HStack(alignment: .center, spacing: 9) {

@@ -34,7 +34,17 @@ struct SnipNoteApp: App {
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            print("❌ Failed to create ModelContainer: \(error)")
+            // Create fallback in-memory container to prevent app crash
+            let fallbackConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            do {
+                return try ModelContainer(for: schema, configurations: [fallbackConfiguration])
+            } catch {
+                print("❌ Critical: Even fallback ModelContainer failed: \(error)")
+                // Last resort: minimal schema
+                let minimalSchema = Schema([Meeting.self])
+                return try! ModelContainer(for: minimalSchema, configurations: [ModelConfiguration(schema: minimalSchema, isStoredInMemoryOnly: true)])
+            }
         }
     }()
 

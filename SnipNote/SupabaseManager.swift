@@ -134,47 +134,127 @@ class SupabaseManager {
 
     // MARK: - Subscription Functions
 
-    /// Validate and sync StoreKit transaction with server
+    /// Validate and sync StoreKit transaction with server with retry logic
     func validateTransaction(_ transaction: Transaction) async throws {
-        guard let session = try? await client.auth.session else {
-            throw SupabaseError.authRequired
-        }
+        try await validateTransactionWithRetry(transaction, maxRetries: 3)
+    }
 
-        let userId = session.user.id.uuidString
-        let accessToken = session.accessToken
+    /// Internal method with retry logic and enhanced error handling
+    private func validateTransactionWithRetry(_ transaction: Transaction, maxRetries: Int) async throws {
+        var lastError: Error?
 
-        // Prepare transaction data for validation
-        let transactionData = TransactionData(
-            transactionId: String(transaction.id),
-            originalTransactionId: String(transaction.originalID),
-            productId: transaction.productID,
-            purchaseDate: ISO8601DateFormatter().string(from: transaction.purchaseDate),
-            expiresDate: transaction.expirationDate.map { ISO8601DateFormatter().string(from: $0) },
-            isUpgraded: transaction.isUpgraded,
-            subscriptionGroupId: transaction.subscriptionGroupID,
-            environment: transaction.environment.rawValue,
-            signedTransactionInfo: transaction.jsonRepresentation.base64EncodedString()
-        )
+        for attempt in 1...maxRetries {
+            do {
+                print("🔄 [Supabase] Validating transaction (attempt \(attempt)/\(maxRetries)): \(transaction.productID)")
 
-        let requestData = ValidationRequest(
-            userId: userId,
-            transactionData: transactionData
-        )
+                guard let session = try? await client.auth.session else {
+                    throw SupabaseError.authRequired
+                }
 
-        // Call edge function to validate transaction
-        do {
-            try await client.functions.invoke(
-                "validate-storekit-transaction",
-                options: FunctionInvokeOptions(
-                    headers: ["Authorization": "Bearer \(accessToken)"],
-                    body: requestData
+                let userId = session.user.id.uuidString
+                let accessToken = session.accessToken
+
+                // Prepare transaction data for validation
+                let transactionData = TransactionData(
+                    transactionId: String(transaction.id),
+                    originalTransactionId: String(transaction.originalID),
+                    productId: transaction.productID,
+                    purchaseDate: ISO8601DateFormatter().string(from: transaction.purchaseDate),
+                    expiresDate: transaction.expirationDate.map { ISO8601DateFormatter().string(from: $0) },
+                    isUpgraded: transaction.isUpgraded,
+                    subscriptionGroupId: transaction.subscriptionGroupID,
+                    environment: transaction.environment.rawValue,
+                    signedTransactionInfo: transaction.jsonRepresentation.base64EncodedString()
                 )
-            )
-        } catch {
-            throw SupabaseError.transactionValidationFailed("Transaction validation failed: \(error.localizedDescription)")
+
+                let requestData = ValidationRequest(
+                    userId: userId,
+                    transactionData: transactionData
+                )
+
+                // Call edge function with timeout using async race pattern
+                try await withThrowingTaskGroup(of: Void.self) { group in
+                    // Add the actual validation task
+                    group.addTask {
+                        try await self.client.functions.invoke(
+                            "validate-storekit-transaction",
+                            options: FunctionInvokeOptions(
+                                headers: ["Authorization": "Bearer \(accessToken)"],
+                                body: requestData
+                            )
+                        )
+                    }
+
+                    // Add timeout task
+                    group.addTask {
+                        try await Task.sleep(nanoseconds: 30_000_000_000) // 30 seconds
+                        throw SupabaseError.networkTimeout
+                    }
+
+                    // Wait for the first task to complete (either success or timeout)
+                    try await group.next()
+
+                    // Cancel remaining tasks
+                    group.cancelAll()
+                }
+
+                print("✅ [Supabase] Transaction validated successfully: \(transaction.productID)")
+                return
+
+            } catch {
+                lastError = error
+
+                // Check if this is a retryable error
+                if isRetryableError(error) && attempt < maxRetries {
+                    let delay = exponentialBackoffDelay(attempt: attempt)
+                    print("⚠️ [Supabase] Validation failed (attempt \(attempt)/\(maxRetries)), retrying in \(delay)s: \(error.localizedDescription)")
+
+                    try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    continue
+                } else {
+                    // Non-retryable error or max retries reached
+                    print("❌ [Supabase] Transaction validation failed permanently: \(error.localizedDescription)")
+                    break
+                }
+            }
         }
 
-        print("✅ [Supabase] Transaction validated successfully: \(transaction.productID)")
+        // If we get here, all retries failed
+        if let error = lastError {
+            throw SupabaseError.transactionValidationFailed("Transaction validation failed after \(maxRetries) attempts: \(error.localizedDescription)")
+        } else {
+            throw SupabaseError.transactionValidationFailed("Transaction validation failed after \(maxRetries) attempts")
+        }
+    }
+
+    /// Check if an error is retryable (network/timeout errors) vs permanent (auth/validation errors)
+    private func isRetryableError(_ error: Error) -> Bool {
+        if error is SupabaseError {
+            switch error as! SupabaseError {
+            case .networkTimeout:
+                return true
+            case .authRequired:
+                return false // Don't retry auth errors
+            case .transactionValidationFailed:
+                return false // Don't retry validation errors
+            }
+        }
+
+        // Check for common network error patterns
+        let errorString = error.localizedDescription.lowercased()
+        return errorString.contains("network") ||
+               errorString.contains("timeout") ||
+               errorString.contains("connection") ||
+               errorString.contains("unreachable") ||
+               errorString.contains("cancelled")
+    }
+
+    /// Calculate exponential backoff delay
+    private func exponentialBackoffDelay(attempt: Int) -> Double {
+        let baseDelay = 1.0 // 1 second base
+        let maxDelay = 16.0 // 16 seconds max
+        let delay = baseDelay * pow(2.0, Double(attempt - 1))
+        return min(delay, maxDelay)
     }
 
     /// Get current subscription status from server
@@ -227,13 +307,16 @@ class SupabaseManager {
 enum SupabaseError: LocalizedError {
     case authRequired
     case transactionValidationFailed(String)
-    
+    case networkTimeout
+
     var errorDescription: String? {
         switch self {
         case .authRequired:
             return "User must be authenticated"
         case .transactionValidationFailed(let message):
             return "Transaction validation failed: \(message)"
+        case .networkTimeout:
+            return "Network request timed out"
         }
     }
 }

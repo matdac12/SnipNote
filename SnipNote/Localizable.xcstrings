@@ -1714,6 +1714,23 @@
         }
       }
     },
+    "settings.notifications.actionsDisabled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Actions to schedule daily reminders"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attiva Azioni per programmare i promemoria giornalieri"
+          }
+        }
+      }
+    },
     "settings.notifications.description" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1727,6 +1744,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ricevi una notifica per le azioni ad alta priorità"
+          }
+        }
+      }
+    },
+    "settings.notifications.processing.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stay informed when recordings start, progress, and complete. Manage these alerts from iOS Settings."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimani informato quando le registrazioni iniziano, progrediscono e si completano. Gestisci questi avvisi dalle Impostazioni iOS."
+          }
+        }
+      }
+    },
+    "settings.notifications.processing.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing Notifications"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifiche di elaborazione"
           }
         }
       }

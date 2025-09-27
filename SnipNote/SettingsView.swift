@@ -280,83 +280,111 @@ struct SettingsView: View {
                      )
                      .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
 
-                    if showActionsTab {
-                         VStack(alignment: .leading, spacing: 16) {
-                             Text(localized("settings.section.notifications.title").uppercased())
-                                 .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                     VStack(alignment: .leading, spacing: 16) {
+                         Text(localized("settings.section.notifications.title").uppercased())
+                             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
 
-                             VStack(spacing: 12) {
+                         VStack(alignment: .leading, spacing: 12) {
+                             Text(localized("settings.notifications.processing.title"))
+                                 .themedBody()
+                                 .fontWeight(.bold)
+
+                             Text(localized("settings.notifications.processing.description"))
+                                 .themedCaption()
+
+                             HStack {
+                                 Text(localized("settings.notifications.permission.status"))
+                                     .themedBody()
+                                     .fontWeight(.bold)
+
+                                 Spacer()
+
+                                 Text(permissionStatusText)
+                                     .themedCaption()
+                                     .fontWeight(.bold)
+                                     .foregroundColor(permissionStatusColor)
+                                     .padding(.horizontal, 6)
+                                     .padding(.vertical, 2)
+                                     .background(permissionStatusColor.opacity(0.2))
+                                     .cornerRadius(3)
+                             }
+
+                             Button(action: openNotificationSettings) {
                                  HStack {
-                                     VStack(alignment: .leading, spacing: 4) {
-                                         Text(localized("settings.notifications.dailyReminders"))
-                                             .themedBody()
-                                             .fontWeight(.bold)
-                                         Text(localized("settings.notifications.description"))
-                                             .themedCaption()
-                                     }
-
                                      Spacer()
+                                     Text(localized("settings.notifications.permission.settings"))
+                                         .themedBody()
+                                         .fontWeight(.bold)
+                                     Spacer()
+                                 }
+                                 .padding(.vertical, 10)
+                                 .background(themeManager.currentTheme.accentColor.opacity(0.15))
+                                 .cornerRadius(themeManager.currentTheme.cornerRadius)
+                             }
+                             .buttonStyle(.plain)
+                             .foregroundColor(themeManager.currentTheme.accentColor)
+                         }
+                         .padding()
+                         .background(themeManager.currentTheme.materialStyle)
+                         .cornerRadius(themeManager.currentTheme.cornerRadius)
+                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
 
-                                     Toggle("", isOn: $notificationService.isNotificationEnabled)
-                                         .toggleStyle(SwitchToggleStyle(tint: themeManager.currentTheme.accentColor))
-                                         .onChange(of: notificationService.isNotificationEnabled) { _, newValue in
-                                             handleNotificationToggle(newValue)
-                                         }
+                         VStack(spacing: 12) {
+                             VStack(alignment: .leading, spacing: 4) {
+                                 Text(localized("settings.notifications.dailyReminders"))
+                                     .themedBody()
+                                     .fontWeight(.bold)
+                                 Text(localized("settings.notifications.description"))
+                                     .themedCaption()
+                                 if !showActionsTab {
+                                     Text(localized("settings.notifications.actionsDisabled"))
+                                         .themedCaption()
+                                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                 }
+                             }
+
+                             Toggle("", isOn: $notificationService.isNotificationEnabled)
+                                 .toggleStyle(SwitchToggleStyle(tint: themeManager.currentTheme.accentColor))
+                                 .disabled(!showActionsTab)
+                                 .onChange(of: notificationService.isNotificationEnabled) { _, newValue in
+                                     handleNotificationToggle(newValue)
                                  }
 
-                                 if notificationService.isNotificationEnabled {
-                                     HStack {
-                                         Text(localized("settings.notifications.time"))
-                                             .themedBody()
-                                             .fontWeight(.bold)
-
-                                         Spacer()
-
-                                         Button(action: { showingTimeSheet = true }) {
-                                             Text(DateFormatter.timeFormatter.string(from: notificationService.notificationTime))
-                                                 .themedBody()
-                                                 .foregroundColor(themeManager.currentTheme.accentColor)
-                                                 .padding(.horizontal, 12)
-                                                 .padding(.vertical, 6)
-                                                 .overlay(
-                                                     Rectangle()
-                                                         .stroke(themeManager.currentTheme.accentColor, lineWidth: 1)
-                                                 )
-                                         }
-                                     }
-                                 }
-
+                             if showActionsTab && notificationService.isNotificationEnabled {
                                  HStack {
-                                     Text(localized("settings.notifications.permission.status"))
+                                     Text(localized("settings.notifications.time"))
                                          .themedBody()
                                          .fontWeight(.bold)
 
                                      Spacer()
 
-                                     Text(permissionStatusText)
-                                         .themedCaption()
-                                         .fontWeight(.bold)
-                                         .foregroundColor(permissionStatusColor)
-                                         .padding(.horizontal, 6)
-                                         .padding(.vertical, 2)
-                                         .background(permissionStatusColor.opacity(0.2))
-                                         .cornerRadius(3)
+                                     Button(action: { showingTimeSheet = true }) {
+                                         Text(DateFormatter.timeFormatter.string(from: notificationService.notificationTime))
+                                             .themedBody()
+                                             .foregroundColor(themeManager.currentTheme.accentColor)
+                                             .padding(.horizontal, 12)
+                                             .padding(.vertical, 6)
+                                             .overlay(
+                                                 Rectangle()
+                                                     .stroke(themeManager.currentTheme.accentColor, lineWidth: 1)
+                                             )
+                                     }
                                  }
                              }
-                             .padding()
-                             .background(themeManager.currentTheme.materialStyle)
-                             .cornerRadius(themeManager.currentTheme.cornerRadius)
-                             .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
                          }
-                         .padding(.horizontal, 10)
-                         .padding(.vertical, 12)
-                         .background(
-                             RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                                 .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                         )
-                         .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-                    }
+                         .padding()
+                         .background(themeManager.currentTheme.materialStyle)
+                         .cornerRadius(themeManager.currentTheme.cornerRadius)
+                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+                     }
+                     .padding(.horizontal, 10)
+                     .padding(.vertical, 12)
+                     .background(
+                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
+                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
+                     )
+                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
 
                     if showActionsTab {
                          VStack(alignment: .leading, spacing: 16) {
@@ -564,9 +592,7 @@ struct SettingsView: View {
         }
         .alert(localized("settings.notifications.permission.title"), isPresented: $showingPermissionAlert) {
             Button(localized("settings.notifications.permission.settings")) {
-                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(settingsURL)
-                }
+                openNotificationSettings()
             }
             Button(localized("settings.notifications.permission.cancel"), role: .cancel) {
                 notificationService.isNotificationEnabled = false
@@ -625,6 +651,13 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingAboutSheet) {
             AboutSheetView()
+        }
+        .onChange(of: showActionsTab) { _, isEnabled in
+            if !isEnabled, notificationService.isNotificationEnabled {
+                notificationService.isNotificationEnabled = false
+            } else if isEnabled {
+                updateNotifications()
+            }
         }
         .onAppear {
             checkPermissionStatus()
@@ -727,7 +760,10 @@ struct SettingsView: View {
     }
     
     private func updateNotifications() {
-        guard notificationService.isNotificationEnabled else { return }
+        guard showActionsTab, notificationService.isNotificationEnabled else {
+            notificationService.cancelAllNotifications()
+            return
+        }
         notificationService.scheduleNotification(with: actions)
     }
     
@@ -842,6 +878,12 @@ struct SettingsView: View {
                 }
             }
             #endif
+        }
+    }
+
+    private func openNotificationSettings() {
+        if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(settingsURL)
         }
     }
 }

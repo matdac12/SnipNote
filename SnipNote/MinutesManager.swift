@@ -82,6 +82,14 @@ class MinutesManager: ObservableObject {
             return false
         }
 
+        // CRITICAL: Check local duplicate - treat as benign success (prevents user lock-out)
+        if let transactionID = appleTransactionID,
+           ProcessedTransactions.shared.isProcessed(transactionID) {
+            print("✅ [MinutesManager] Transaction already processed locally - treating as success: \(transactionID)")
+            await refreshBalance()  // Get latest balance from server
+            return true  // Benign duplicate - prevents user lock-out after app reinstall
+        }
+
         do {
             let params = CreditMinutesParams(
                 p_amount: amount,
@@ -104,6 +112,28 @@ class MinutesManager: ObservableObject {
                 return false
             }
         } catch {
+            // CRITICAL: Handle duplicate errors as success to prevent user lock-out
+            let errorString = String(describing: error).lowercased()
+
+            if let transactionID = appleTransactionID {
+                // Check for duplicate-related error messages from Supabase
+                if errorString.contains("duplicate") ||
+                   errorString.contains("already") ||
+                   errorString.contains("conflict") ||
+                   errorString.contains("unique") ||
+                   errorString.contains("23505") ||  // PostgreSQL unique violation code
+                   errorString.contains("constraint") {
+
+                    print("✅ [MinutesManager] Supabase duplicate detected - treating as success: \(transactionID)")
+                    print("🔍 [MinutesManager] Duplicate error details: \(error)")
+
+                    // Refresh balance to ensure we have correct state from server
+                    await refreshBalance()
+
+                    return true  // Transaction was already processed on server - this is fine
+                }
+            }
+
             print("❌ [MinutesManager] Failed to credit minutes: \(error)")
             lastError = error.localizedDescription
             return false
@@ -286,9 +316,34 @@ extension MinutesManager {
 
     /// Handle app launch - refresh balance and grant free tier if needed
     func handleAppLaunch() async {
+        // Add cooldown to prevent rapid refreshes on multiple view appears
+        let lastRefreshKey = "lastBalanceRefreshTime"
+        let cooldownSeconds: TimeInterval = 300 // 5 minutes
+
+        if let lastRefresh = UserDefaults.standard.object(forKey: lastRefreshKey) as? Date,
+           Date().timeIntervalSince(lastRefresh) < cooldownSeconds {
+            let elapsed = Date().timeIntervalSince(lastRefresh)
+            print("⏱️ [MinutesManager] Skipping refresh, last refresh was \(Int(elapsed))s ago (cooldown: \(Int(cooldownSeconds))s)")
+            return
+        }
+
+        print("🔄 [MinutesManager] Refreshing balance on app launch")
         await refreshBalance()
-        if currentBalance == 0 {
-            _ = await grantFreeTierMinutes()
+        UserDefaults.standard.set(Date(), forKey: lastRefreshKey)
+
+        // Only grant free tier if never granted before (don't rely on balance == 0)
+        let freeGrantedKey = "freeTierGranted"
+        if currentBalance == 0 && !UserDefaults.standard.bool(forKey: freeGrantedKey) {
+            print("🎁 [MinutesManager] Attempting to grant free tier minutes")
+            let granted = await grantFreeTierMinutes()
+            if granted {
+                UserDefaults.standard.set(true, forKey: freeGrantedKey)
+                print("✅ [MinutesManager] Free tier granted and marked as complete")
+            } else {
+                print("⚠️ [MinutesManager] Free tier grant failed (may already be granted)")
+            }
+        } else if UserDefaults.standard.bool(forKey: freeGrantedKey) {
+            print("✅ [MinutesManager] Free tier already granted for this user")
         }
     }
 }

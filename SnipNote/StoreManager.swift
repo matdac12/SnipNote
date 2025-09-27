@@ -158,14 +158,25 @@ class StoreManager: ObservableObject {
         switch result {
         case .success(let verification):
             let transaction = try checkVerified(verification)
-            await transaction.finish()
+            // CRITICAL: DON'T finish transaction yet - wait until minutes are safely credited
+
             await updateSubscriptionStatus()
 
-            // Handle minutes crediting based on product type
-            await handleMinutesForTransaction(transaction, product: product)
+            // Try to credit minutes BEFORE finishing transaction
+            let credited = await handleMinutesForTransaction(transaction, product: product)
 
-            // Sync transaction to Supabase
-            await syncTransactionToSupabase(transaction)
+            // CRITICAL: Only finish transaction if crediting succeeded
+            if credited {
+                await transaction.finish()
+                print("✅ [StoreKit] Transaction finished after successful credit: \(transaction.id)")
+
+                // Sync transaction to Supabase after successful credit
+                await syncTransactionToSupabase(transaction)
+            } else {
+                print("⚠️ [StoreKit] Transaction NOT finished - crediting failed. Will retry on next app launch: \(transaction.id)")
+                // Don't finish transaction - StoreKit will retry it automatically
+                throw StorePurchaseError.unknown // Let user know something went wrong
+            }
         case .userCancelled:
             throw StorePurchaseError.cancelled
         case .pending:
@@ -207,15 +218,42 @@ class StoreManager: ObservableObject {
                 if case .verified(let transaction) = update {
                     await self.updateSubscriptionStatus()
 
-                    // Handle minutes for updated transactions
-                    if let product = self.products.first(where: { $0.id == transaction.productID }) {
-                        await self.handleMinutesForTransaction(transaction, product: product)
+                    // Get product - check cache first, then load on-demand if needed
+                    var product = self.products.first(where: { $0.id == transaction.productID })
+
+                    // CRITICAL: If product not in cache, try loading it on-demand
+                    if product == nil {
+                        print("⚠️ [StoreKit] Product not in cache, loading on-demand: \(transaction.productID)")
+                        do {
+                            let loadedProducts = try await Product.products(for: [transaction.productID])
+                            product = loadedProducts.first
+                            if let loadedProduct = product {
+                                print("✅ [StoreKit] Successfully loaded product on-demand: \(loadedProduct.id)")
+                            } else {
+                                print("❌ [StoreKit] Failed to load product on-demand: \(transaction.productID)")
+                            }
+                        } catch {
+                            print("❌ [StoreKit] Error loading product on-demand: \(error)")
+                        }
                     }
 
-                    await transaction.finish()
-                    // Sync updated transaction to Supabase
-                    await self.syncTransactionToSupabase(transaction)
-                    print("🛒 [StoreKit] Transaction update finished id=\(transaction.id) product=\(transaction.productID)")
+                    // Only process if we have the product
+                    var credited = false
+                    if let product = product {
+                        credited = await self.handleMinutesForTransaction(transaction, product: product)
+                    } else {
+                        print("❌ [StoreKit] Cannot process transaction - product unavailable: \(transaction.productID)")
+                    }
+
+                    // CRITICAL: Only finish transaction if we successfully credited minutes
+                    if credited {
+                        await transaction.finish()
+                        await self.syncTransactionToSupabase(transaction)
+                        print("✅ [StoreKit] Transaction update finished successfully: \(transaction.id) product=\(transaction.productID)")
+                    } else {
+                        print("⚠️ [StoreKit] Transaction update NOT finished - will retry: \(transaction.id) product=\(transaction.productID)")
+                        // Don't finish - StoreKit will retry this transaction
+                    }
                 }
             }
         }
@@ -281,12 +319,23 @@ class StoreManager: ObservableObject {
 
     // MARK: - Minutes Management
 
-    private func handleMinutesForTransaction(_ transaction: Transaction, product: Product) async {
+    private func handleMinutesForTransaction(_ transaction: Transaction, product: Product) async -> Bool {
         let transactionID = String(transaction.id)
+
+        // CRITICAL: Check if this transaction was already processed OR currently in-flight
+        if ProcessedTransactions.shared.isProcessedOrInFlight(transactionID) {
+            print("⚠️ [StoreKit] DUPLICATE/IN-FLIGHT PREVENTED! Transaction \(transactionID) for product \(product.id)")
+            return false
+        }
+
+        // CRITICAL: Mark as in-flight BEFORE any async work to prevent race conditions
+        ProcessedTransactions.shared.markAsInFlight(transactionID)
+
+        var success = false
 
         if product.type == .autoRenewable {
             // Handle subscription renewal
-            let success = await MinutesManager.shared.creditForSubscription(product, transactionID: transactionID)
+            success = await MinutesManager.shared.creditForSubscription(product, transactionID: transactionID)
             if success {
                 print("✅ [StoreKit] Successfully credited subscription minutes for \(product.id)")
             } else {
@@ -294,13 +343,18 @@ class StoreManager: ObservableObject {
             }
         } else if product.type == .consumable {
             // Handle consumable pack purchase
-            let success = await MinutesManager.shared.creditForPack(product, transactionID: transactionID)
+            success = await MinutesManager.shared.creditForPack(product, transactionID: transactionID)
             if success {
                 print("✅ [StoreKit] Successfully credited pack minutes for \(product.id)")
             } else {
                 print("❌ [StoreKit] Failed to credit pack minutes for \(product.id)")
             }
         }
+
+        // CRITICAL: Complete processing (removes from in-flight, marks as processed if successful)
+        ProcessedTransactions.shared.completeProcessing(transactionID, success: success)
+
+        return success
     }
 
     // MARK: - Supabase Sync

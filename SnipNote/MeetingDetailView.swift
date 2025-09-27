@@ -35,6 +35,7 @@ struct MeetingDetailView: View {
     @State private var isRetrying = false
     @StateObject private var openAIService = OpenAIService.shared
     @StateObject private var backgroundTaskManager = BackgroundTaskManager.shared
+    @StateObject private var minutesManager = MinutesManager.shared
     
     private var relatedActions: [Action] {
         allActions.filter { $0.sourceNoteId == meeting.id }
@@ -809,6 +810,15 @@ struct MeetingDetailView: View {
             return
         }
 
+        // Check if user has sufficient minutes for retry
+        let requiredMinutes = max(1, Int(ceil(meeting.duration / 60.0)))
+        if minutesManager.currentBalance < requiredMinutes {
+            print("⚠️ Cannot retry: insufficient minutes. Required: \(requiredMinutes), Available: \(minutesManager.currentBalance)")
+            // Could show an alert here or set a specific error message
+            meeting.setProcessingError("Insufficient minutes for retry. Required: \(requiredMinutes) minutes.")
+            return
+        }
+
         isRetrying = true
 
         // Clear previous error and reset state
@@ -843,6 +853,40 @@ struct MeetingDetailView: View {
                     meeting.audioTranscript = transcript
                     meeting.updateProcessingState(.generatingSummary)
                 }
+
+                // Debit minutes for transcription
+                let durationSeconds = Int(meeting.duration)
+                if durationSeconds > 0 {
+                    _ = await minutesManager.debitMinutes(
+                        seconds: durationSeconds,
+                        meetingID: meeting.id.uuidString
+                    )
+                }
+
+                // Upload audio to Supabase
+                if let localPath = meeting.localAudioPath {
+                    let audioURL = URL(fileURLWithPath: localPath)
+                    do {
+                        _ = try await SupabaseManager.shared.uploadAudioRecording(
+                            audioURL: audioURL,
+                            meetingId: meeting.id,
+                            duration: meeting.duration
+                        )
+
+                        // Mark meeting as having recording
+                        await MainActor.run {
+                            meeting.hasRecording = true
+                        }
+                    } catch {
+                        print("Error uploading audio during retry: \(error)")
+                    }
+                }
+
+                // Track usage metrics
+                await UsageTracker.shared.trackMeetingCreated(
+                    transcribed: true,
+                    meetingSeconds: durationSeconds
+                )
 
                 // Generate AI summaries
                 let overview = try await openAIService.generateMeetingOverview(transcript)

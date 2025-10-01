@@ -357,8 +357,13 @@ class OpenAIService: ObservableObject {
         // Check for cancellation before starting
         try Task.checkCancellation()
 
-        // Create chunks
-        let chunks = try await AudioChunker.createChunks(
+        // Stream chunks one at a time for memory efficiency
+        var transcripts: [String] = []
+        var chunkNumber = 0
+        var totalChunks = 1 // Will be updated as we receive chunks
+        var halfwayNotificationSent = false
+
+        for try await chunk in AudioChunker.streamChunks(
             from: audioURL,
             progressCallback: { chunkProgress in
                 // Update progress for chunking phase (0-10%)
@@ -371,26 +376,18 @@ class OpenAIService: ObservableObject {
                 )
                 progressCallback(adjustedProgress)
             }
-        )
-
-        var transcripts: [String] = []
-        let totalChunks = chunks.count
-
-        // Progress notification tracking
-        var halfwayNotificationSent = false
-
-        // Process each chunk
-        for (index, chunk) in chunks.enumerated() {
+        ) {
             // Check for cancellation before processing each chunk
             try Task.checkCancellation()
 
-            let chunkNumber = index + 1
+            chunkNumber = chunk.chunkIndex + 1
+            totalChunks = chunk.totalChunks
 
             progressCallback(AudioChunkerProgress(
                 currentChunk: chunkNumber,
                 totalChunks: totalChunks,
                 currentStage: "Transcribing chunk \(chunkNumber) of \(totalChunks)",
-                percentComplete: 10.0 + (Double(index) / Double(totalChunks)) * 90.0,
+                percentComplete: 10.0 + (Double(chunkNumber - 1) / Double(totalChunks)) * 90.0,
                 partialTranscript: nil
             ))
 

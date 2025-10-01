@@ -275,8 +275,163 @@ class AudioChunker {
         
         return finalChunks
     }
-    
-    
+
+    // MARK: - Streaming API
+
+    /// Streams audio chunks one at a time to minimize memory usage
+    /// - Parameters:
+    ///   - audioURL: URL of the audio file to chunk
+    ///   - progressCallback: Callback for progress updates
+    /// - Returns: AsyncThrowingStream that yields AudioChunks one at a time
+    static func streamChunks(
+        from audioURL: URL,
+        progressCallback: @escaping (AudioChunkerProgress) -> Void
+    ) -> AsyncThrowingStream<AudioChunk, Error> {
+        return AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    // Validate file exists
+                    guard FileManager.default.fileExists(atPath: audioURL.path) else {
+                        continuation.finish(throwing: ChunkerError.fileNotFound)
+                        return
+                    }
+
+                    let fileSize = try getFileSize(url: audioURL)
+
+                    // Check disk space before starting
+                    let estimatedChunks = try estimateChunkCount(url: audioURL)
+                    let requiredSpace = (fileSize * 2) + (UInt64(estimatedChunks) * 2 * 1024 * 1024)
+                    try checkDiskSpace(required: requiredSpace)
+
+                    // Handle small files (single chunk)
+                    if fileSize <= maxChunkSizeBytes {
+                        progressCallback(AudioChunkerProgress(
+                            currentChunk: 1,
+                            totalChunks: 1,
+                            currentStage: "Processing audio file",
+                            percentComplete: 50.0,
+                            partialTranscript: nil
+                        ))
+
+                        let audioFile = try AVAudioFile(forReading: audioURL)
+                        let duration = Double(audioFile.length) / audioFile.fileFormat.sampleRate
+                        let audioData = try readFileInChunks(audioURL: audioURL)
+
+                        progressCallback(AudioChunkerProgress(
+                            currentChunk: 1,
+                            totalChunks: 1,
+                            currentStage: "Audio ready for processing",
+                            percentComplete: 100.0,
+                            partialTranscript: nil
+                        ))
+
+                        let chunk = AudioChunk(
+                            data: audioData,
+                            startTime: 0,
+                            duration: duration,
+                            chunkIndex: 0,
+                            totalChunks: 1
+                        )
+
+                        continuation.yield(chunk)
+                        continuation.finish()
+                        return
+                    }
+
+                    // Handle large files with streaming chunking
+                    try await streamAudioChunks(
+                        from: audioURL,
+                        fileSize: fileSize,
+                        progressCallback: progressCallback,
+                        continuation: continuation
+                    )
+
+                    continuation.finish()
+
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Internal method that streams chunks for large files
+    private static func streamAudioChunks(
+        from audioURL: URL,
+        fileSize: UInt64,
+        progressCallback: @escaping (AudioChunkerProgress) -> Void,
+        continuation: AsyncThrowingStream<AudioChunk, Error>.Continuation
+    ) async throws {
+        // Get total duration
+        let asset = AVURLAsset(url: audioURL)
+        let totalDuration = try await asset.load(.duration).seconds
+
+        // Calculate chunk duration
+        let avgBytesPerSecond = Double(fileSize) / totalDuration
+        let targetChunkDuration = Double(maxChunkSizeBytes) / avgBytesPerSecond
+        let chunkDuration = max(targetChunkDuration, 60.0)
+
+        var currentTime: TimeInterval = 0
+        var chunkIndex = 0
+
+        // Estimate total chunks
+        let estimatedChunks = Int(ceil(totalDuration / chunkDuration))
+
+        while currentTime < totalDuration {
+            // Check for cancellation
+            try Task.checkCancellation()
+
+            let endTime = min(currentTime + chunkDuration, totalDuration)
+            let actualChunkDuration = endTime - currentTime
+
+            progressCallback(AudioChunkerProgress(
+                currentChunk: chunkIndex + 1,
+                totalChunks: estimatedChunks,
+                currentStage: "Creating audio chunk \(chunkIndex + 1)",
+                percentComplete: (Double(chunkIndex) / Double(estimatedChunks)) * 100.0,
+                partialTranscript: nil
+            ))
+
+            // Create chunk with overlap
+            let chunkStartTime = currentTime
+            let chunkEndTime = endTime
+            let chunkWithOverlap = min(chunkEndTime + overlapSeconds, totalDuration)
+
+            let chunkData = try await extractAudioSegment(
+                from: audioURL,
+                startTime: chunkStartTime,
+                endTime: chunkWithOverlap
+            )
+
+            let chunkSizeMB = Double(chunkData.count) / (1024 * 1024)
+            print("🎵 Streaming chunk \(chunkIndex + 1): \(String(format: "%.1f", chunkSizeMB)) MB")
+
+            let chunk = AudioChunk(
+                data: chunkData,
+                startTime: chunkStartTime,
+                duration: actualChunkDuration,
+                chunkIndex: chunkIndex,
+                totalChunks: estimatedChunks
+            )
+
+            // Yield chunk immediately - consumer can process while we create next chunk
+            continuation.yield(chunk)
+
+            // Move to next chunk
+            currentTime = endTime
+            chunkIndex += 1
+        }
+
+        progressCallback(AudioChunkerProgress(
+            currentChunk: chunkIndex,
+            totalChunks: chunkIndex,
+            currentStage: "Audio chunks ready",
+            percentComplete: 100.0,
+            partialTranscript: nil
+        ))
+    }
+
+
     private static func extractAudioSegment(
         from sourceURL: URL,
         startTime: TimeInterval,

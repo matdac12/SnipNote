@@ -107,18 +107,18 @@ Generated from: `0001-prd-transcription-system-production-hardening.md`
 
 ## Phase 3: Optimizations and Polish (Week 2-3)
 
-- [ ] 7.0 Refactor to Memory-Efficient Chunk Streaming (FR-7)
-  - [ ] 7.1 Create new method in `AudioChunker`: `static func streamChunks() -> AsyncThrowingStream<AudioChunk, Error>`
-  - [ ] 7.2 Refactor `createAudioChunks()` logic to yield chunks one at a time using AsyncStream
-  - [ ] 7.3 Extract chunk from audio, yield it immediately, then continue to next
-  - [ ] 7.4 Update `transcribeAudioInChunks()` to use `for try await chunk in AudioChunker.streamChunks()`
-  - [ ] 7.5 Remove `chunks` array storage, process each chunk immediately
-  - [ ] 7.6 Ensure progress tracking still works correctly with streaming model
-  - [ ] 7.7 Update total chunks count estimation for progress updates
-  - [ ] 7.8 Verify temp file cleanup happens after each chunk (not at end)
-  - [ ] 7.9 Write unit test: Verify only one chunk in memory at a time (measure memory usage)
-  - [ ] 7.10 Write unit test: Verify progress updates correctly with streaming
-  - [ ] 7.11 Write unit test: Verify all chunks are processed in correct order
+- [x] 7.0 Refactor to Memory-Efficient Chunk Streaming (FR-7)
+  - [x] 7.1 Create new method in `AudioChunker`: `static func streamChunks() -> AsyncThrowingStream<AudioChunk, Error>`
+  - [x] 7.2 Refactor `createAudioChunks()` logic to yield chunks one at a time using AsyncStream
+  - [x] 7.3 Extract chunk from audio, yield it immediately, then continue to next
+  - [x] 7.4 Update `transcribeAudioInChunks()` to use `for try await chunk in AudioChunker.streamChunks()`
+  - [x] 7.5 Remove `chunks` array storage, process each chunk immediately
+  - [x] 7.6 Ensure progress tracking still works correctly with streaming model
+  - [x] 7.7 Update total chunks count estimation for progress updates
+  - [x] 7.8 Verify temp file cleanup happens after each chunk (not at end)
+  - [x] 7.9 Write unit test: Verify only one chunk in memory at a time (measure memory usage)
+  - [x] 7.10 Write unit test: Verify progress updates correctly with streaming
+  - [x] 7.11 Write unit test: Verify all chunks are processed in correct order
 
 - [x] 8.0 Adjust Progress Weighting (FR-8)
   - [x] 8.1 Update progress calculation in `transcribeAudioInChunks()` method

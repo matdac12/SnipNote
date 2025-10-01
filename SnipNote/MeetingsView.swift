@@ -278,7 +278,11 @@ struct MeetingsView: View {
         }
         .onChange(of: navigateToCreate) { _, isNavigating in
             print("🎵 navigateToCreate changed: \(isNavigating), audioURL: \(deepLinkAudioURL?.absoluteString ?? "nil")")
-            // Don't clear the deep link immediately - let CreateMeetingView handle it
+            // Clear deep link when navigating away from CreateMeetingView (back button or cancel)
+            if !isNavigating && deepLinkAudioURL != nil {
+                print("🎵 Clearing deep link audio URL on navigation away")
+                deepLinkAudioURL = nil
+            }
         }
         .sheet(isPresented: $showingPaywall) {
             PaywallView()

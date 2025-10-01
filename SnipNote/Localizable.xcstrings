@@ -251,6 +251,9 @@
     "API Key Required" : {
 
     },
+    "Are you sure you want to cancel? All progress will be lost." : {
+
+    },
     "Are you sure you want to start a new chat? Current conversation will be cleared." : {
       "localizations" : {
         "it" : {
@@ -320,6 +323,12 @@
       }
     },
     "Cancel anytime from Settings" : {
+
+    },
+    "Cancel Transcription" : {
+
+    },
+    "Cancel Transcription?" : {
 
     },
     "Chat with Eve about this meeting" : {

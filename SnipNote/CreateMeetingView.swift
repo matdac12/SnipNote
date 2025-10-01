@@ -1627,17 +1627,20 @@ struct CreateMeetingView: View {
         liveOverview = ""
         liveSummary = ""
 
-        // Update meeting status in database if it was created
+        // Delete the meeting from database if it was created
         if let meetingId = createdMeetingId {
-            Task {
-                let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
-                if let meeting = try? modelContext.fetch(descriptor).first {
-                    meeting.setProcessingError("Transcription cancelled by user")
-                    meeting.isProcessing = false
-                    try? modelContext.save()
-                    print("🚫 [CreateMeeting] Updated meeting status to cancelled")
-                }
+            let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
+            if let meeting = try? modelContext.fetch(descriptor).first {
+                modelContext.delete(meeting)
+                try? modelContext.save()
+                print("🚫 [CreateMeeting] Deleted cancelled meeting from database")
             }
+        }
+
+        // Clear imported audio state to ensure fresh start on next create
+        if importedAudioURL != nil {
+            // The imported audio will be cleared when view dismisses
+            print("🚫 [CreateMeeting] Will clear imported audio state on dismiss")
         }
 
         // Dismiss the view

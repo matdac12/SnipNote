@@ -232,8 +232,13 @@ class OpenAIService: ObservableObject {
                 return try await speedUpAndCompress(audioData: audioData, inputURL: tempInputURL, outputURL: tempOutputURL)
             }
         } catch {
-            print("⚠️ [OpenAI] Audio processing failed, using original: \(error.localizedDescription)")
-            return audioData // Fallback to original
+            // Log detailed error context for debugging
+            print("❌ [OpenAI] Audio processing failed with error: \(error)")
+            print("❌ [OpenAI] Error type: \(type(of: error))")
+            print("❌ [OpenAI] Error description: \(error.localizedDescription)")
+
+            // Throw user-friendly error instead of using fallback
+            throw OpenAIError.audioProcessingFailed("Audio processing failed: \(error.localizedDescription). Please try again or contact support if the issue persists.")
         }
     }
 

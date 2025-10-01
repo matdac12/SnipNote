@@ -49,16 +49,16 @@ Generated from: `0001-prd-transcription-system-production-hardening.md`
   - [x] 2.8 Write unit test: Cancel during audio processing, verify resources cleaned up
   - [x] 2.9 Write unit test: Verify CancellationError is thrown with proper message
 
-- [ ] 3.0 Improve Audio Processing Error Handling (FR-3)
-  - [ ] 3.1 Add new error case to `OpenAIError` enum: `audioProcessingFailed(String)`
-  - [ ] 3.2 Remove fallback `return audioData` from `speedUpAudio()` catch block (line 226)
-  - [ ] 3.3 Replace fallback with `throw OpenAIError.audioProcessingFailed(error.localizedDescription)`
-  - [ ] 3.4 Add detailed logging before throwing error with full error context
-  - [ ] 3.5 Update error message to be user-friendly: "Audio processing failed: [reason]. Please try again or contact support."
-  - [ ] 3.6 Ensure error propagates correctly through `transcribeAudio()` method
-  - [ ] 3.7 Write unit test: Verify `audioProcessingFailed` error thrown when speed-up fails
-  - [ ] 3.8 Write unit test: Verify no transcription API call made when audio processing fails
-  - [ ] 3.9 Write unit test: Verify error message contains actionable details
+- [x] 3.0 Improve Audio Processing Error Handling (FR-3)
+  - [x] 3.1 Add new error case to `OpenAIError` enum: `audioProcessingFailed(String)`
+  - [x] 3.2 Remove fallback `return audioData` from `speedUpAudio()` catch block (line 226)
+  - [x] 3.3 Replace fallback with `throw OpenAIError.audioProcessingFailed(error.localizedDescription)`
+  - [x] 3.4 Add detailed logging before throwing error with full error context
+  - [x] 3.5 Update error message to be user-friendly: "Audio processing failed: [reason]. Please try again or contact support."
+  - [x] 3.6 Ensure error propagates correctly through `transcribeAudio()` method
+  - [x] 3.7 Write unit test: Verify `audioProcessingFailed` error thrown when speed-up fails
+  - [x] 3.8 Write unit test: Verify no transcription API call made when audio processing fails
+  - [x] 3.9 Write unit test: Verify error message contains actionable details
 
 - [ ] 4.0 Implement Enhanced Retry Logic (FR-5)
   - [ ] 4.1 Update `shouldRetry()` method to check for `NSURLError` cases

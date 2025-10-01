@@ -11,6 +11,7 @@ enum OpenAIError: Error {
     case noAPIKey
     case transcriptionFailed
     case summarizationFailed
+    case audioProcessingFailed(String)
     case apiError(String)
     case vectorStoreUnavailable(String)
 }

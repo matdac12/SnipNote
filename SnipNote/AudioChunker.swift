@@ -26,7 +26,7 @@ struct AudioChunkerProgress {
 }
 
 class AudioChunker {
-    static let maxChunkSizeBytes = Int(2.5 * 1024 * 1024) // 2.5MB for better progress granularity
+    static let maxChunkSizeBytes = Int(1.5 * 1024 * 1024) // 1.5MB for more frequent progress updates
     static let overlapSeconds: TimeInterval = 2.0 // 2 seconds overlap between chunks
     
     enum ChunkerError: Error {

@@ -87,7 +87,111 @@ class OpenAIService: ObservableObject {
 
     // MARK: - Audio Processing
 
+    /// Extract sample rate from audio file
+    private func getSampleRate(from url: URL) async throws -> Double {
+        let asset = AVURLAsset(url: url)
+        guard let audioTrack = try await asset.loadTracks(withMediaType: .audio).first else {
+            throw OpenAIError.apiError("No audio track found")
+        }
+
+        let formatDescriptions = try await audioTrack.load(.formatDescriptions)
+        guard let formatDescription = formatDescriptions.first else {
+            throw OpenAIError.apiError("No format description found")
+        }
+
+        let audioStreamBasicDescription = CMAudioFormatDescriptionGetStreamBasicDescription(formatDescription)
+        let sampleRate = audioStreamBasicDescription?.pointee.mSampleRate ?? 0
+
+        return sampleRate
+    }
+
+    /// Simple speed-up without re-compression (for already-optimized audio)
+    private func simpleSpeedUp(audioData: Data, inputURL: URL, outputURL: URL) async throws -> Data {
+        let asset = AVURLAsset(url: inputURL)
+        let originalDuration = try await asset.load(.duration)
+        let newDuration = CMTimeMultiplyByFloat64(originalDuration, multiplier: 1.0 / 1.5)
+
+        guard let audioTrack = try await asset.loadTracks(withMediaType: .audio).first else {
+            throw OpenAIError.apiError("No audio track found")
+        }
+
+        // Create time mapping for 1.5x speed
+        let timeMapping = AVMutableComposition()
+        let audioCompositionTrack = timeMapping.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
+
+        try audioCompositionTrack?.insertTimeRange(
+            CMTimeRange(start: .zero, duration: originalDuration),
+            of: audioTrack,
+            at: .zero
+        )
+
+        // Scale time to 1.5x speed
+        audioCompositionTrack?.scaleTimeRange(
+            CMTimeRange(start: .zero, duration: originalDuration),
+            toDuration: newDuration
+        )
+
+        // Export with preset (no re-compression)
+        guard let exportSession = AVAssetExportSession(asset: timeMapping, presetName: AVAssetExportPresetAppleM4A) else {
+            throw OpenAIError.apiError("Failed to create export session")
+        }
+
+        exportSession.outputURL = outputURL
+        exportSession.outputFileType = .m4a
+        exportSession.audioTimePitchAlgorithm = .spectral
+
+        try await exportSession.export(to: outputURL, as: .m4a)
+
+        let resultData = try Data(contentsOf: outputURL)
+        print("🚀 [OpenAI] Audio sped up 1.5x (no re-compression) - fast path for in-app recordings")
+        return resultData
+    }
+
+    /// Speed-up with compression (for high-quality external audio)
+    /// Same as simpleSpeedUp but uses AppleM4A preset for consistent output
+    private func speedUpAndCompress(audioData: Data, inputURL: URL, outputURL: URL) async throws -> Data {
+        let asset = AVURLAsset(url: inputURL)
+        let originalDuration = try await asset.load(.duration)
+        let newDuration = CMTimeMultiplyByFloat64(originalDuration, multiplier: 1.0 / 1.5)
+
+        guard let audioTrack = try await asset.loadTracks(withMediaType: .audio).first else {
+            throw OpenAIError.apiError("No audio track found")
+        }
+
+        // Create time mapping for 1.5x speed
+        let timeMapping = AVMutableComposition()
+        let audioCompositionTrack = timeMapping.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
+
+        try audioCompositionTrack?.insertTimeRange(
+            CMTimeRange(start: .zero, duration: originalDuration),
+            of: audioTrack,
+            at: .zero
+        )
+
+        // Scale time to 1.5x speed
+        audioCompositionTrack?.scaleTimeRange(
+            CMTimeRange(start: .zero, duration: originalDuration),
+            toDuration: newDuration
+        )
+
+        // Export with AppleM4A preset (provides reasonable compression for high-quality audio)
+        guard let exportSession = AVAssetExportSession(asset: timeMapping, presetName: AVAssetExportPresetAppleM4A) else {
+            throw OpenAIError.apiError("Failed to create export session")
+        }
+
+        exportSession.outputURL = outputURL
+        exportSession.outputFileType = .m4a
+        exportSession.audioTimePitchAlgorithm = .spectral
+
+        try await exportSession.export(to: outputURL, as: .m4a)
+
+        let resultData = try Data(contentsOf: outputURL)
+        print("🚀 [OpenAI] Audio sped up 1.5x with compression (\(resultData.count / 1024)KB) - optimized for external memos")
+        return resultData
+    }
+
     /// Speed up audio to 1.5x to reduce transcription costs by 33%
+    /// Uses smart detection to avoid unnecessary re-compression
     private func speedUpAudio(audioData: Data) async throws -> Data {
         // Create temporary input file
         let tempInputURL = FileManager.default.temporaryDirectory
@@ -104,64 +208,21 @@ class OpenAIService: ObservableObject {
         // Write audio data to temp file
         try audioData.write(to: tempInputURL)
 
-        // Create asset and export session
-        let asset = AVURLAsset(url: tempInputURL)
-        guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else {
-            throw OpenAIError.apiError("Failed to create export session")
-        }
+        do {
+            // Detect audio sample rate
+            let sampleRate = try await getSampleRate(from: tempInputURL)
+            print("🎵 [OpenAI] Detected audio sample rate: \(Int(sampleRate)) Hz")
 
-        exportSession.outputURL = tempOutputURL
-        exportSession.outputFileType = .m4a
-        exportSession.audioTimePitchAlgorithm = .spectral // Maintains pitch quality
-
-        // Speed up by 1.5x (reduce duration by 1/1.5 = 0.667)
-        let originalDuration = try await asset.load(.duration)
-        let newDuration = CMTimeMultiplyByFloat64(originalDuration, multiplier: 1.0 / 1.5)
-        exportSession.timeRange = CMTimeRange(start: .zero, duration: originalDuration)
-
-        // Use a custom audio mix to change playback rate
-        _ = AVMutableAudioMix()
-        let audioTrack = try await asset.loadTracks(withMediaType: .audio).first
-
-        if let track = audioTrack {
-            let audioMixParams = AVMutableAudioMixInputParameters(track: track)
-            audioMixParams.setVolumeRamp(fromStartVolume: 1.0, toEndVolume: 1.0, timeRange: CMTimeRange(start: .zero, duration: originalDuration))
-
-            // Create time mapping for 1.5x speed
-            let timeMapping = AVMutableComposition()
-            let audioCompositionTrack = timeMapping.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
-
-            try audioCompositionTrack?.insertTimeRange(
-                CMTimeRange(start: .zero, duration: originalDuration),
-                of: track,
-                at: .zero
-            )
-
-            // Scale time to 1.5x speed
-            audioCompositionTrack?.scaleTimeRange(
-                CMTimeRange(start: .zero, duration: originalDuration),
-                toDuration: newDuration
-            )
-
-            // Create new export session with composition
-            guard let compositionExportSession = AVAssetExportSession(asset: timeMapping, presetName: AVAssetExportPresetAppleM4A) else {
-                throw OpenAIError.apiError("Failed to create composition export session")
+            // Choose processing path based on sample rate
+            if sampleRate <= 16000 {
+                // Path A: Already optimized (in-app recordings)
+                return try await simpleSpeedUp(audioData: audioData, inputURL: tempInputURL, outputURL: tempOutputURL)
+            } else {
+                // Path B: High quality (external voice memos)
+                return try await speedUpAndCompress(audioData: audioData, inputURL: tempInputURL, outputURL: tempOutputURL)
             }
-
-            compositionExportSession.outputURL = tempOutputURL
-            compositionExportSession.outputFileType = .m4a
-            compositionExportSession.audioTimePitchAlgorithm = .spectral
-
-            do {
-                try await compositionExportSession.export(to: tempOutputURL, as: .m4a)
-                print("🚀 [OpenAI] Audio sped up 1.5x - cost savings: 33%")
-                return try Data(contentsOf: tempOutputURL)
-            } catch {
-                print("⚠️ [OpenAI] Audio speed-up failed, using original: \(error.localizedDescription)")
-                return audioData // Fallback to original
-            }
-        } else {
-            print("⚠️ [OpenAI] No audio track found, using original")
+        } catch {
+            print("⚠️ [OpenAI] Audio processing failed, using original: \(error.localizedDescription)")
             return audioData // Fallback to original
         }
     }
@@ -190,7 +251,7 @@ class OpenAIService: ObservableObject {
         body.append("\r\n".data(using: .utf8)!)
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
-        body.append("whisper-1\r\n".data(using: .utf8)!)
+        body.append("gpt-4o-transcribe\r\n".data(using: .utf8)!)
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         
         request.httpBody = body

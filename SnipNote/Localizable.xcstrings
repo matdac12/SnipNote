@@ -208,6 +208,7 @@
       }
     },
     "Allow" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -365,6 +366,16 @@
     },
     "CONTACT" : {
 
+    },
+    "Continue" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua"
+          }
+        }
+      }
     },
     "Copied!" : {
 
@@ -1697,23 +1708,6 @@
         }
       }
     },
-    "settings.notifications.dailyReminders" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Daily Reminders"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Promemoria giornalieri"
-          }
-        }
-      }
-    },
     "settings.notifications.actionsDisabled" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1731,6 +1725,23 @@
         }
       }
     },
+    "settings.notifications.dailyReminders" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily Reminders"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Promemoria giornalieri"
+          }
+        }
+      }
+    },
     "settings.notifications.description" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1744,40 +1755,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ricevi una notifica per le azioni ad alta priorità"
-          }
-        }
-      }
-    },
-    "settings.notifications.processing.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stay informed when recordings start, progress, and complete. Manage these alerts from iOS Settings."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rimani informato quando le registrazioni iniziano, progrediscono e si completano. Gestisci questi avvisi dalle Impostazioni iOS."
-          }
-        }
-      }
-    },
-    "settings.notifications.processing.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Processing Notifications"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notifiche di elaborazione"
           }
         }
       }
@@ -1931,6 +1908,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Autorizzazione alle notifiche richiesta"
+          }
+        }
+      }
+    },
+    "settings.notifications.processing.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stay informed when recordings start, progress, and complete. Manage these alerts from iOS Settings."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimani informato quando le registrazioni iniziano, progrediscono e si completano. Gestisci questi avvisi dalle Impostazioni iOS."
+          }
+        }
+      }
+    },
+    "settings.notifications.processing.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing Notifications"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifiche di elaborazione"
           }
         }
       }
@@ -2658,7 +2669,14 @@
       }
     },
     "You don't have enough minutes to start recording. Purchase minute packs to continue." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non hai abbastanza minuti per iniziare una traduzione. Acquista un pacchetto minuti per continuare."
+          }
+        }
+      }
     },
     "You've reached your free tier limit of %lld total meetings. Upgrade to Pro for unlimited meetings." : {
       "extractionState" : "stale",

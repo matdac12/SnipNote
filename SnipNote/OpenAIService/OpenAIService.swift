@@ -300,6 +300,15 @@ class OpenAIService: ObservableObject {
         // Validate audio file first
         try AudioChunker.validateAudioFile(url: audioURL)
 
+        // Get file size for disk space calculation
+        let fileSize = try AudioChunker.getFileSize(url: audioURL)
+
+        // Check disk space before starting transcription
+        // Required space: (original file × 2) + (estimated chunks × 2MB per chunk)
+        let estimatedChunks = try AudioChunker.estimateChunkCount(url: audioURL)
+        let requiredSpace = (fileSize * 2) + (UInt64(estimatedChunks) * 2 * 1024 * 1024)
+        try checkDiskSpace(required: requiredSpace)
+
         // Check if file needs chunking
         let needsChunking = try AudioChunker.needsChunking(url: audioURL)
 
@@ -1123,6 +1132,45 @@ class OpenAIService: ObservableObject {
         }
 
         return false
+    }
+
+    // MARK: - Disk Space Management
+
+    /// Checks if sufficient disk space is available for audio processing
+    /// - Parameter required: Required disk space in bytes
+    /// - Throws: OpenAIError.insufficientDiskSpace if not enough space available
+    private func checkDiskSpace(required: UInt64) throws {
+        do {
+            let fileManager = FileManager.default
+            let systemAttributes = try fileManager.attributesOfFileSystem(forPath: NSHomeDirectory())
+
+            guard let availableSpace = systemAttributes[.systemFreeSize] as? UInt64 else {
+                print("⚠️ [OpenAI] Could not determine available disk space")
+                // Proceed optimistically if we can't determine space
+                return
+            }
+
+            // Add 100MB safety buffer
+            let safetyBuffer: UInt64 = 100 * 1024 * 1024  // 100MB
+            let totalRequired = required + safetyBuffer
+
+            if availableSpace < totalRequired {
+                let requiredMB = Double(totalRequired) / (1024 * 1024)
+                let availableMB = Double(availableSpace) / (1024 * 1024)
+
+                print("❌ [OpenAI] Insufficient disk space: need \(String(format: "%.1f", requiredMB))MB, have \(String(format: "%.1f", availableMB))MB")
+                throw OpenAIError.insufficientDiskSpace(required: totalRequired, available: availableSpace)
+            }
+
+            let availableMB = Double(availableSpace) / (1024 * 1024)
+            print("✅ [OpenAI] Disk space check passed: \(String(format: "%.1f", availableMB))MB available")
+        } catch let error as OpenAIError {
+            // Re-throw OpenAIError (including insufficientDiskSpace)
+            throw error
+        } catch {
+            // For other errors (e.g., FileManager errors), log and proceed optimistically
+            print("⚠️ [OpenAI] Disk space check failed: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Timeout Protection

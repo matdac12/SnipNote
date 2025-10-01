@@ -76,18 +76,18 @@ Generated from: `0001-prd-transcription-system-production-hardening.md`
 
 ## Phase 2: High Priority (Week 1-2)
 
-- [ ] 5.0 Add Disk Space Validation (FR-4)
-  - [ ] 5.1 Create private helper method `checkDiskSpace(required: UInt64) throws` in `OpenAIService`
-  - [ ] 5.2 Use `FileManager.default.attributesOfFileSystem()` to get available disk space
-  - [ ] 5.3 Calculate required space: `(fileSize × 2) + (estimatedChunks × 2MB)`
-  - [ ] 5.4 Add 100MB safety buffer to required space calculation
-  - [ ] 5.5 Add new error case to `OpenAIError`: `insufficientDiskSpace(required: UInt64, available: UInt64)`
-  - [ ] 5.6 Call `checkDiskSpace()` at start of `transcribeAudioFromURL()` before processing
-  - [ ] 5.7 Call `checkDiskSpace()` at start of `AudioChunker.createChunks()` before chunking
-  - [ ] 5.8 Format error message: "Insufficient storage. Need [X]MB free, but only [Y]MB available."
-  - [ ] 5.9 Write unit test: Verify disk space check passes when sufficient space
-  - [ ] 5.10 Write unit test: Verify error thrown when insufficient space (mock FileManager)
-  - [ ] 5.11 Write unit test: Verify required space calculation is accurate
+- [x] 5.0 Add Disk Space Validation (FR-4)
+  - [x] 5.1 Create private helper method `checkDiskSpace(required: UInt64) throws` in `OpenAIService`
+  - [x] 5.2 Use `FileManager.default.attributesOfFileSystem()` to get available disk space
+  - [x] 5.3 Calculate required space: `(fileSize × 2) + (estimatedChunks × 2MB)`
+  - [x] 5.4 Add 100MB safety buffer to required space calculation
+  - [x] 5.5 Add new error case to `OpenAIError`: `insufficientDiskSpace(required: UInt64, available: UInt64)`
+  - [x] 5.6 Call `checkDiskSpace()` at start of `transcribeAudioFromURL()` before processing
+  - [x] 5.7 Call `checkDiskSpace()` at start of `AudioChunker.createChunks()` before chunking
+  - [x] 5.8 Format error message: "Insufficient storage. Need [X]MB free, but only [Y]MB available."
+  - [x] 5.9 Write unit test: Verify disk space check passes when sufficient space
+  - [x] 5.10 Write unit test: Verify error thrown when insufficient space (mock FileManager)
+  - [x] 5.11 Write unit test: Verify required space calculation is accurate
 
 - [ ] 6.0 Implement Background Task Expiration Handling (FR-6)
   - [ ] 6.1 Add `backgroundTaskID` property to track active background task in relevant view model

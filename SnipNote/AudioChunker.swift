@@ -77,10 +77,10 @@ class AudioChunker {
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw ChunkerError.fileNotFound
         }
-        
+
         // Remove the 25MB limit check - we'll handle large files with chunking
         // Individual chunks will be validated to stay under 25MB
-        
+
         // Test if file can be read as audio
         do {
             _ = try AVAudioFile(forReading: url)
@@ -88,17 +88,60 @@ class AudioChunker {
             throw ChunkerError.invalidAudioFile
         }
     }
+
+    /// Checks if sufficient disk space is available for audio chunking
+    /// - Parameter required: Required disk space in bytes
+    /// - Throws: ChunkerError if not enough space available
+    private static func checkDiskSpace(required: UInt64) throws {
+        do {
+            let fileManager = FileManager.default
+            let systemAttributes = try fileManager.attributesOfFileSystem(forPath: NSHomeDirectory())
+
+            guard let availableSpace = systemAttributes[.systemFreeSize] as? UInt64 else {
+                print("⚠️ [AudioChunker] Could not determine available disk space")
+                // Proceed optimistically if we can't determine space
+                return
+            }
+
+            // Add 100MB safety buffer
+            let safetyBuffer: UInt64 = 100 * 1024 * 1024  // 100MB
+            let totalRequired = required + safetyBuffer
+
+            if availableSpace < totalRequired {
+                let requiredMB = Double(totalRequired) / (1024 * 1024)
+                let availableMB = Double(availableSpace) / (1024 * 1024)
+
+                print("❌ [AudioChunker] Insufficient disk space: need \(String(format: "%.1f", requiredMB))MB, have \(String(format: "%.1f", availableMB))MB")
+                throw ChunkerError.chunkingFailed  // Use existing error type
+            }
+
+            let availableMB = Double(availableSpace) / (1024 * 1024)
+            print("✅ [AudioChunker] Disk space check passed: \(String(format: "%.1f", availableMB))MB available")
+        } catch let error as ChunkerError {
+            // Re-throw ChunkerError
+            throw error
+        } catch {
+            // For other errors (e.g., FileManager errors), log and proceed optimistically
+            print("⚠️ [AudioChunker] Disk space check failed: \(error.localizedDescription)")
+        }
+    }
     
     static func createChunks(
         from audioURL: URL,
         progressCallback: @escaping (AudioChunkerProgress) -> Void
     ) async throws -> [AudioChunk] {
-        
+
         guard FileManager.default.fileExists(atPath: audioURL.path) else {
             throw ChunkerError.fileNotFound
         }
-        
+
         let fileSize = try getFileSize(url: audioURL)
+
+        // Check disk space before starting chunking
+        // Required space: (original file × 2) + (estimated chunks × 2MB per chunk)
+        let estimatedChunks = try estimateChunkCount(url: audioURL)
+        let requiredSpace = (fileSize * 2) + (UInt64(estimatedChunks) * 2 * 1024 * 1024)
+        try checkDiskSpace(required: requiredSpace)
         
         // If file is small enough, return single chunk
         if fileSize <= maxChunkSizeBytes {

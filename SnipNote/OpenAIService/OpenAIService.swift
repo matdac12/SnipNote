@@ -891,7 +891,7 @@ class OpenAIService: ObservableObject {
                 encoder.keyEncodingStrategy = .convertToSnakeCase
                 request.httpBody = try encoder.encode(createRequest)
 
-                let (data, response) = try await urlSession.data(for: request)
+                let (data, response) = try await self.urlSession.data(for: request)
 
                 if let httpResponse = response as? HTTPURLResponse,
                    !(200...299).contains(httpResponse.statusCode) {
@@ -929,7 +929,7 @@ class OpenAIService: ObservableObject {
                 encoder.keyEncodingStrategy = .convertToSnakeCase
                 request.httpBody = try encoder.encode(body)
 
-                let (data, response) = try await urlSession.data(for: request)
+                let (data, response) = try await self.urlSession.data(for: request)
 
                 if let httpResponse = response as? HTTPURLResponse,
                    !(200...299).contains(httpResponse.statusCode) {
@@ -958,7 +958,7 @@ class OpenAIService: ObservableObject {
                 request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-                let (_, response) = try await urlSession.data(for: request)
+                let (_, response) = try await self.urlSession.data(for: request)
 
                 if let httpResponse = response as? HTTPURLResponse,
                    !(200...299).contains(httpResponse.statusCode) {

@@ -653,10 +653,21 @@ struct SettingsView: View {
             AboutSheetView()
         }
         .onChange(of: showActionsTab) { _, isEnabled in
-            if !isEnabled, notificationService.isNotificationEnabled {
-                notificationService.isNotificationEnabled = false
-            } else if isEnabled {
+            if !isEnabled {
+                // Disable notifications if actions are disabled
+                if notificationService.isNotificationEnabled {
+                    notificationService.isNotificationEnabled = false
+                }
+                // Clear badge when actions are disabled
+                Task {
+                    await NotificationService.shared.updateBadgeCount(with: actions, actionsEnabled: false)
+                }
+            } else {
+                // Update notifications and badge when actions are enabled
                 updateNotifications()
+                Task {
+                    await NotificationService.shared.updateBadgeCount(with: actions, actionsEnabled: true)
+                }
             }
         }
         .onAppear {

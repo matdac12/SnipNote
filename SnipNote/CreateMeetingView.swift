@@ -1811,9 +1811,11 @@ struct CreateMeetingView: View {
                 // Fetch all actions to update notifications
                 let descriptor = FetchDescriptor<Action>()
                 if let allActions = try? modelContext.fetch(descriptor) {
+                    // Check if actions tab is enabled
+                    let actionsEnabled = UserDefaults.standard.bool(forKey: "showActionsTab")
                     NotificationService.shared.scheduleNotification(with: allActions)
                     // Also update badge immediately
-                    await NotificationService.shared.updateBadgeCount(with: allActions)
+                    await NotificationService.shared.updateBadgeCount(with: allActions, actionsEnabled: actionsEnabled)
                 }
             }
         } catch {

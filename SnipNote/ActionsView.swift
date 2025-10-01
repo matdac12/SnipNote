@@ -277,8 +277,8 @@ struct ActionsView: View {
                 // Update notifications after action completion changes
                 Task { @MainActor in
                     NotificationService.shared.scheduleNotification(with: allActions)
-                    // Also update badge immediately
-                    await NotificationService.shared.updateBadgeCount(with: allActions)
+                    // Also update badge immediately (actions are always enabled in ActionsView)
+                    await NotificationService.shared.updateBadgeCount(with: allActions, actionsEnabled: true)
                 }
             } catch {
                 print("Error updating action: \(error)")
@@ -297,8 +297,8 @@ struct ActionsView: View {
                     // Need to fetch remaining actions after deletion
                     let remainingActions = allActions.filter { $0.id != action.id }
                     NotificationService.shared.scheduleNotification(with: remainingActions)
-                    // Update badge immediately based on remaining actions
-                    await NotificationService.shared.updateBadgeCount(with: remainingActions)
+                    // Update badge immediately based on remaining actions (actions are always enabled in ActionsView)
+                    await NotificationService.shared.updateBadgeCount(with: remainingActions, actionsEnabled: true)
                 }
             } catch {
                 print("Error deleting action: \(error)")

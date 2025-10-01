@@ -133,10 +133,13 @@ struct SnipNoteApp: App {
             let context = sharedModelContainer.mainContext
             let allActions = try context.fetch(descriptor)
 
+            // Check if actions tab is enabled
+            let actionsEnabled = UserDefaults.standard.bool(forKey: "showActionsTab")
+
             // Reschedule notifications based on current actions
             NotificationService.shared.scheduleNotification(with: allActions)
-            // Update badge immediately based on current actions
-            await NotificationService.shared.updateBadgeCount(with: allActions)
+            // Update badge immediately based on current actions and settings
+            await NotificationService.shared.updateBadgeCount(with: allActions, actionsEnabled: actionsEnabled)
         } catch {
             print("Error refreshing notifications: \(error)")
             // If there's an error, clear the badge to be safe

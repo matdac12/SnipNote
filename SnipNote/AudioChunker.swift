@@ -167,9 +167,12 @@ class AudioChunker {
         let estimatedChunks = Int(ceil(totalDuration / chunkDuration))
         
         while currentTime < totalDuration {
+            // Check for cancellation before creating each chunk
+            try Task.checkCancellation()
+
             let endTime = min(currentTime + chunkDuration, totalDuration)
             let actualChunkDuration = endTime - currentTime
-            
+
             progressCallback(AudioChunkerProgress(
                 currentChunk: chunkIndex + 1,
                 totalChunks: estimatedChunks,

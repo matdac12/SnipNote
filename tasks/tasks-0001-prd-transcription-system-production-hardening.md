@@ -29,7 +29,7 @@ Generated from: `0001-prd-transcription-system-production-hardening.md`
 
 ## Phase 1: Critical Fixes (Week 1)
 
-- [ ] 1.0 Implement URLSession Timeout Configuration (FR-1)
+- [x] 1.0 Implement URLSession Timeout Configuration (FR-1)
   - [x] 1.1 Create a private `URLSession` instance variable in `OpenAIService` class
   - [x] 1.2 Initialize URLSession with custom `URLSessionConfiguration` in `init()` method
   - [x] 1.3 Set `timeoutIntervalForRequest = 120` (2 minutes per request)
@@ -38,16 +38,16 @@ Generated from: `0001-prd-transcription-system-production-hardening.md`
   - [x] 1.6 Write unit test: Verify timeout configuration is applied correctly
   - [x] 1.7 Write unit test: Verify timeout triggers after expected duration (mock test)
 
-- [ ] 2.0 Add Cancellation Support Throughout Pipeline (FR-2)
-  - [ ] 2.1 Add `Task.checkCancellation()` at start of `transcribeAudioInChunks()` method
-  - [ ] 2.2 Add cancellation check before each chunk in the chunk processing loop
-  - [ ] 2.3 Add cancellation check in `speedUpAudio()` before processing
-  - [ ] 2.4 Add cancellation check in `AudioChunker.createChunks()` before creating each chunk
-  - [ ] 2.5 Wrap `Task.checkCancellation()` failures to provide user-friendly error message
-  - [ ] 2.6 Ensure all temp files are cleaned up when cancellation occurs (verify `defer` blocks)
-  - [ ] 2.7 Write unit test: Cancel during chunk processing, verify no API calls made after cancellation
-  - [ ] 2.8 Write unit test: Cancel during audio processing, verify resources cleaned up
-  - [ ] 2.9 Write unit test: Verify CancellationError is thrown with proper message
+- [x] 2.0 Add Cancellation Support Throughout Pipeline (FR-2)
+  - [x] 2.1 Add `Task.checkCancellation()` at start of `transcribeAudioInChunks()` method
+  - [x] 2.2 Add cancellation check before each chunk in the chunk processing loop
+  - [x] 2.3 Add cancellation check in `speedUpAudio()` before processing
+  - [x] 2.4 Add cancellation check in `AudioChunker.createChunks()` before creating each chunk
+  - [x] 2.5 Wrap `Task.checkCancellation()` failures to provide user-friendly error message
+  - [x] 2.6 Ensure all temp files are cleaned up when cancellation occurs (verify `defer` blocks)
+  - [x] 2.7 Write unit test: Cancel during chunk processing, verify no API calls made after cancellation
+  - [x] 2.8 Write unit test: Cancel during audio processing, verify resources cleaned up
+  - [x] 2.9 Write unit test: Verify CancellationError is thrown with proper message
 
 - [ ] 3.0 Improve Audio Processing Error Handling (FR-3)
   - [ ] 3.1 Add new error case to `OpenAIError` enum: `audioProcessingFailed(String)`

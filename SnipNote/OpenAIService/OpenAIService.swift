@@ -200,6 +200,9 @@ class OpenAIService: ObservableObject {
     /// Speed up audio to 1.5x to reduce transcription costs by 33%
     /// Uses smart detection to avoid unnecessary re-compression
     private func speedUpAudio(audioData: Data) async throws -> Data {
+        // Check for cancellation before processing
+        try Task.checkCancellation()
+
         // Create temporary input file
         let tempInputURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("input_\(UUID().uuidString).m4a")
@@ -337,6 +340,9 @@ class OpenAIService: ObservableObject {
         meetingId: UUID? = nil
     ) async throws -> String {
 
+        // Check for cancellation before starting
+        try Task.checkCancellation()
+
         // Create chunks
         let chunks = try await AudioChunker.createChunks(
             from: audioURL,
@@ -361,6 +367,9 @@ class OpenAIService: ObservableObject {
 
         // Process each chunk
         for (index, chunk) in chunks.enumerated() {
+            // Check for cancellation before processing each chunk
+            try Task.checkCancellation()
+
             let chunkNumber = index + 1
 
             progressCallback(AudioChunkerProgress(

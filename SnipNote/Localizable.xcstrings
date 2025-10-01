@@ -377,6 +377,15 @@
         }
       }
     },
+    "Continue transcribing '%@'?" : {
+
+    },
+    "Continue Transcription?" : {
+
+    },
+    "Continue your paused transcription?" : {
+
+    },
     "Copied!" : {
 
     },
@@ -821,6 +830,9 @@
           }
         }
       }
+    },
+    "No" : {
+
     },
     "No %@ actions" : {
 
@@ -2667,6 +2679,9 @@
           }
         }
       }
+    },
+    "Yes" : {
+
     },
     "You don't have enough minutes to start recording. Purchase minute packs to continue." : {
       "localizations" : {

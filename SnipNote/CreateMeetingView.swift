@@ -89,7 +89,10 @@ struct CreateMeetingView: View {
 
     // Background task tracking
     @State private var currentBackgroundTaskId: UIBackgroundTaskIdentifier = .invalid
-    
+
+    // Cancellation state
+    @State private var showingCancelConfirmation = false
+
     private enum FocusedField: Hashable {
         case name
         case location
@@ -1065,6 +1068,18 @@ struct CreateMeetingView: View {
         .foregroundColor(themeManager.currentTheme.accentColor)
         .navigationBarBackButtonHidden(false)
         .toolbar {
+            // Cancel button in navigation bar (only shown during processing)
+            if isProcessingAudio {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingCancelConfirmation = true
+                    } label: {
+                        Text("Cancel")
+                            .foregroundColor(themeManager.currentTheme.destructiveColor)
+                    }
+                }
+            }
+
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
 
@@ -1116,6 +1131,14 @@ struct CreateMeetingView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Please enter the name of the meeting")
+        }
+        .alert("Cancel Transcription?", isPresented: $showingCancelConfirmation) {
+            Button("Cancel Transcription", role: .destructive) {
+                cancelTranscription()
+            }
+            Button("Continue", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to cancel? All progress will be lost.")
         }
         .onAppear {
             print("🎵 CreateMeetingView appeared with importedAudioURL: \(importedAudioURL?.absoluteString ?? "nil")")
@@ -1240,7 +1263,12 @@ struct CreateMeetingView: View {
 
         // FIXED: Start background task AFTER meeting is created (so meetingId is available)
         if let meetingId = createdMeetingId {
-            currentBackgroundTaskId = backgroundTaskManager.startBackgroundTask(for: meetingId)
+            currentBackgroundTaskId = backgroundTaskManager.startBackgroundTask(
+                for: meetingId,
+                meetingName: meetingName,
+                currentChunk: currentChunk,
+                totalChunks: totalChunks
+            )
         }
 
         // Track meeting creation (without transcription yet)
@@ -1450,7 +1478,12 @@ struct CreateMeetingView: View {
 
         // Start background task for recorded audio transcription
         if let meetingId = createdMeetingId {
-            currentBackgroundTaskId = backgroundTaskManager.startBackgroundTask(for: meetingId)
+            currentBackgroundTaskId = backgroundTaskManager.startBackgroundTask(
+                for: meetingId,
+                meetingName: meetingName,
+                currentChunk: currentChunk,
+                totalChunks: totalChunks
+            )
         }
 
         // Track meeting creation (without transcription yet)
@@ -1573,6 +1606,44 @@ struct CreateMeetingView: View {
         }
     }
 
+    private func cancelTranscription() {
+        print("🚫 [CreateMeeting] User cancelled transcription")
+
+        // End background task if active
+        if currentBackgroundTaskId != .invalid {
+            backgroundTaskManager.endBackgroundTask(currentBackgroundTaskId)
+            currentBackgroundTaskId = .invalid
+            print("🚫 [CreateMeeting] Ended background task")
+        }
+
+        // Stop processing state
+        isProcessingAudio = false
+        currentProcessingPhase = .transcribing
+        transcriptionProgress = 0.0
+        currentChunk = 0
+        totalChunks = 0
+        processingStage = ""
+        partialTranscripts = []
+        liveOverview = ""
+        liveSummary = ""
+
+        // Update meeting status in database if it was created
+        if let meetingId = createdMeetingId {
+            Task {
+                let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
+                if let meeting = try? modelContext.fetch(descriptor).first {
+                    meeting.setProcessingError("Transcription cancelled by user")
+                    meeting.isProcessing = false
+                    try? modelContext.save()
+                    print("🚫 [CreateMeeting] Updated meeting status to cancelled")
+                }
+            }
+        }
+
+        // Dismiss the view
+        dismiss()
+        print("🚫 [CreateMeeting] Dismissed view")
+    }
 
     private func createProcessingMeeting() {
         let meeting = Meeting(

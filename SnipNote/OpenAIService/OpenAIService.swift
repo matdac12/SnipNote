@@ -361,12 +361,12 @@ class OpenAIService: ObservableObject {
         let chunks = try await AudioChunker.createChunks(
             from: audioURL,
             progressCallback: { chunkProgress in
-                // Update progress for chunking phase (0-30%)
+                // Update progress for chunking phase (0-10%)
                 let adjustedProgress = AudioChunkerProgress(
                     currentChunk: chunkProgress.currentChunk,
                     totalChunks: chunkProgress.totalChunks,
                     currentStage: chunkProgress.currentStage,
-                    percentComplete: chunkProgress.percentComplete * 0.3,
+                    percentComplete: chunkProgress.percentComplete * 0.1,
                     partialTranscript: chunkProgress.partialTranscript
                 )
                 progressCallback(adjustedProgress)
@@ -390,7 +390,7 @@ class OpenAIService: ObservableObject {
                 currentChunk: chunkNumber,
                 totalChunks: totalChunks,
                 currentStage: "Transcribing chunk \(chunkNumber) of \(totalChunks)",
-                percentComplete: 30.0 + (Double(index) / Double(totalChunks)) * 70.0,
+                percentComplete: 10.0 + (Double(index) / Double(totalChunks)) * 90.0,
                 partialTranscript: nil
             ))
 
@@ -402,7 +402,7 @@ class OpenAIService: ObservableObject {
                 transcripts.append(chunkTranscript)
 
                 // Calculate progress percentage
-                let progressPercent = 30.0 + (Double(chunkNumber) / Double(totalChunks)) * 70.0
+                let progressPercent = 10.0 + (Double(chunkNumber) / Double(totalChunks)) * 90.0
 
                 // Send 50% progress notification
                 if progressPercent >= 50.0 && !halfwayNotificationSent && !meetingName.isEmpty, let meetingId = meetingId {

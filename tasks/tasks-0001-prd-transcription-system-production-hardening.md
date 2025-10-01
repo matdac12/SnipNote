@@ -120,13 +120,13 @@ Generated from: `0001-prd-transcription-system-production-hardening.md`
   - [ ] 7.10 Write unit test: Verify progress updates correctly with streaming
   - [ ] 7.11 Write unit test: Verify all chunks are processed in correct order
 
-- [ ] 8.0 Adjust Progress Weighting (FR-8)
-  - [ ] 8.1 Update progress calculation in `transcribeAudioInChunks()` method
-  - [ ] 8.2 Change chunking phase progress: `chunkProgress.percentComplete * 0.1` (was 0.3)
-  - [ ] 8.3 Change transcription phase base: `10.0 + (progress) * 90.0` (was 30.0 + 70.0)
-  - [ ] 8.4 Update progress formula: `10.0 + (Double(chunkNumber) / Double(totalChunks)) * 90.0`
-  - [ ] 8.5 Verify progress reaches exactly 100% at completion
-  - [ ] 8.6 Test with small file (1 chunk) to ensure progress updates correctly
+- [x] 8.0 Adjust Progress Weighting (FR-8)
+  - [x] 8.1 Update progress calculation in `transcribeAudioInChunks()` method
+  - [x] 8.2 Change chunking phase progress: `chunkProgress.percentComplete * 0.1` (was 0.3)
+  - [x] 8.3 Change transcription phase base: `10.0 + (progress) * 90.0` (was 30.0 + 70.0)
+  - [x] 8.4 Update progress formula: `10.0 + (Double(chunkNumber) / Double(totalChunks)) * 90.0`
+  - [x] 8.5 Verify progress reaches exactly 100% at completion
+  - [x] 8.6 Test with small file (1 chunk) to ensure progress updates correctly
 
 - [ ] 9.0 Add API Cost Logging (FR-9)
   - [ ] 9.1 Add helper method `calculateTranscriptionCost(duration: TimeInterval) -> Double`

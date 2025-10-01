@@ -1078,10 +1078,50 @@ class OpenAIService: ObservableObject {
     }
 
     private func shouldRetry(error: Error) -> Bool {
-        if error is URLError { return true }
-        if case OpenAIError.apiError(let message) = error {
-            return message.contains("429") || message.contains("500") || message.contains("502") || message.contains("503") || message.contains("504")
+        // NEVER retry on cancellation
+        if error is CancellationError {
+            return false
         }
+
+        // Check for specific NSURLError cases that should retry
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .networkConnectionLost,      // -1005
+                 .notConnectedToInternet,     // -1009
+                 .timedOut,                   // -1001
+                 .cannotConnectToHost:        // -1004
+                return true
+            default:
+                return false
+            }
+        }
+
+        // Check for HTTP status codes in API errors
+        if case OpenAIError.apiError(let message) = error {
+            // Retry on temporary server errors
+            if message.contains("408") ||  // Request Timeout
+               message.contains("429") ||  // Too Many Requests
+               message.contains("500") ||  // Internal Server Error
+               message.contains("502") ||  // Bad Gateway
+               message.contains("503") ||  // Service Unavailable
+               message.contains("504") {   // Gateway Timeout
+                return true
+            }
+
+            // Do NOT retry on client errors (fail fast)
+            if message.contains("400") ||  // Bad Request
+               message.contains("401") ||  // Unauthorized
+               message.contains("403") ||  // Forbidden
+               message.contains("413") {   // Payload Too Large
+                return false
+            }
+        }
+
+        // Do NOT retry on audio processing failures (fail fast)
+        if case OpenAIError.audioProcessingFailed = error {
+            return false
+        }
+
         return false
     }
 

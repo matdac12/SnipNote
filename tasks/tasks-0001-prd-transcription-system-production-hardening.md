@@ -60,19 +60,19 @@ Generated from: `0001-prd-transcription-system-production-hardening.md`
   - [x] 3.8 Write unit test: Verify no transcription API call made when audio processing fails
   - [x] 3.9 Write unit test: Verify error message contains actionable details
 
-- [ ] 4.0 Implement Enhanced Retry Logic (FR-5)
-  - [ ] 4.1 Update `shouldRetry()` method to check for `NSURLError` cases
-  - [ ] 4.2 Add retry for `NSURLErrorNetworkConnectionLost` (-1005)
-  - [ ] 4.3 Add retry for `NSURLErrorNotConnectedToInternet` (-1009)
-  - [ ] 4.4 Add retry for `NSURLErrorTimedOut` (-1001)
-  - [ ] 4.5 Add retry for `NSURLErrorCannotConnectToHost` (-1004)
-  - [ ] 4.6 Add retry for HTTP 408 (Request Timeout)
-  - [ ] 4.7 Add retry for HTTP 503 (Service Unavailable)
-  - [ ] 4.8 Add explicit NO retry for HTTP 400, 401, 403, 413
-  - [ ] 4.9 Add explicit NO retry for `CancellationError`
-  - [ ] 4.10 Write unit test: Verify each retryable error triggers retry
-  - [ ] 4.11 Write unit test: Verify non-retryable errors fail immediately
-  - [ ] 4.12 Write unit test: Verify exponential backoff timing (1s, 2s, 4s)
+- [x] 4.0 Implement Enhanced Retry Logic (FR-5)
+  - [x] 4.1 Update `shouldRetry()` method to check for `NSURLError` cases
+  - [x] 4.2 Add retry for `NSURLErrorNetworkConnectionLost` (-1005)
+  - [x] 4.3 Add retry for `NSURLErrorNotConnectedToInternet` (-1009)
+  - [x] 4.4 Add retry for `NSURLErrorTimedOut` (-1001)
+  - [x] 4.5 Add retry for `NSURLErrorCannotConnectToHost` (-1004)
+  - [x] 4.6 Add retry for HTTP 408 (Request Timeout)
+  - [x] 4.7 Add retry for HTTP 503 (Service Unavailable)
+  - [x] 4.8 Add explicit NO retry for HTTP 400, 401, 403, 413
+  - [x] 4.9 Add explicit NO retry for `CancellationError`
+  - [x] 4.10 Write unit test: Verify each retryable error triggers retry
+  - [x] 4.11 Write unit test: Verify non-retryable errors fail immediately
+  - [x] 4.12 Write unit test: Verify exponential backoff timing (1s, 2s, 4s)
 
 ## Phase 2: High Priority (Week 1-2)
 

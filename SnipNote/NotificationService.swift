@@ -195,6 +195,47 @@ class NotificationService: ObservableObject {
         }
     }
 
+    /// Send notification when transcription is paused due to background task expiration
+    func sendTranscriptionPausedNotification(for meetingId: UUID, meetingName: String) async {
+        // Only send if we have permission
+        Task {
+            let status = await checkNotificationPermission()
+            guard status == .authorized else {
+                print("⚠️ [NotificationService] No permission to send pause notification")
+                return
+            }
+
+            let identifier = "meeting-paused-\(meetingId.uuidString)"
+
+            let content = UNMutableNotificationContent()
+            content.title = "Transcription Paused"
+            content.body = "Open SnipNote to continue transcribing '\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)'"
+            content.sound = .default
+            content.categoryIdentifier = "TRANSCRIPTION_PAUSED_NOTIFICATION"
+            content.userInfo = [
+                "meetingId": meetingId.uuidString,
+                "navigateTo": "meeting",
+                "action": "resume"
+            ]
+
+            // Send immediately
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+
+            let request = UNNotificationRequest(
+                identifier: identifier,
+                content: content,
+                trigger: trigger
+            )
+
+            do {
+                try await notificationCenter.add(request)
+                print("✅ [NotificationService] Pause notification sent for meeting: \(meetingName)")
+            } catch {
+                print("❌ [NotificationService] Error sending pause notification: \(error)")
+            }
+        }
+    }
+
     /// Send progress notification during transcription
     func sendProgressNotification(meetingId: UUID, meetingName: String, progress: Int) async {
         // Only send if we have permission

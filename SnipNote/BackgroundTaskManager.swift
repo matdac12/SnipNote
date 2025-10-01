@@ -32,11 +32,16 @@ class BackgroundTaskManager: ObservableObject {
         }
     }
 
-    func startBackgroundTask(for meetingId: UUID) -> UIBackgroundTaskIdentifier {
+    func startBackgroundTask(for meetingId: UUID, meetingName: String = "", currentChunk: Int = 0, totalChunks: Int = 0) -> UIBackgroundTaskIdentifier {
         let taskId = UIApplication.shared.beginBackgroundTask(withName: "Transcription-\(meetingId)") {
-            // Task expiration handler
-            print("🔄 Background task expired for meeting \(meetingId)")
-            self.handleTaskExpiration(meetingId: meetingId)
+            // Task expiration handler - iOS gives us 30 seconds warning
+            print("⏰ [BackgroundTask] Background task about to expire for meeting \(meetingId)")
+            self.handleTaskExpiration(
+                meetingId: meetingId,
+                meetingName: meetingName,
+                currentChunk: currentChunk,
+                totalChunks: totalChunks
+            )
         }
 
         if taskId != .invalid {
@@ -90,12 +95,49 @@ class BackgroundTaskManager: ObservableObject {
         }
     }
 
-    private func handleTaskExpiration(meetingId: UUID) {
-        // Save current progress to persist across app termination
-        saveTranscriptionProgress()
+    private func handleTaskExpiration(meetingId: UUID, meetingName: String, currentChunk: Int, totalChunks: Int) {
+        print("⏰ [BackgroundTask] Handling expiration - Meeting: \(meetingName), Chunk: \(currentChunk)/\(totalChunks)")
 
-        // Schedule a new background task to continue processing
-        scheduleBackgroundProcessing(for: meetingId)
+        // Save current chunk index to UserDefaults for resume
+        let pauseKey = "pausedTranscription_\(meetingId.uuidString)"
+        let pauseData: [String: Any] = [
+            "meetingId": meetingId.uuidString,
+            "meetingName": meetingName,
+            "currentChunk": currentChunk,
+            "totalChunks": totalChunks,
+            "pausedAt": Date().timeIntervalSince1970
+        ]
+        UserDefaults.standard.set(pauseData, forKey: pauseKey)
+        UserDefaults.standard.synchronize()
+        print("💾 [BackgroundTask] Saved pause state: chunk \(currentChunk)/\(totalChunks)")
+
+        // Update meeting status to "paused" in database
+        Task {
+            do {
+                let container = try makeModelContainer()
+                let context = ModelContext(container)
+                let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
+
+                if let meeting = try context.fetch(descriptor).first {
+                    meeting.setProcessingError("Transcription paused - Open SnipNote to continue")
+                    try context.save()
+                    print("📝 [BackgroundTask] Marked meeting as paused in database")
+                }
+            } catch {
+                print("❌ [BackgroundTask] Failed to update meeting status: \(error)")
+            }
+        }
+
+        // Send notification to user
+        Task {
+            await NotificationService.shared.sendTranscriptionPausedNotification(
+                for: meetingId,
+                meetingName: meetingName
+            )
+        }
+
+        // Save general progress
+        saveTranscriptionProgress()
 
         // End the current task
         endBackgroundTask(currentBackgroundTask)
@@ -345,5 +387,72 @@ class BackgroundTaskManager: ObservableObject {
 
     func isBackgroundTaskActive() -> Bool {
         return currentBackgroundTask != .invalid
+    }
+
+    // MARK: - Paused Transcription Management
+
+    /// Check for any paused transcriptions when app returns to foreground
+    /// Returns the paused transcription info if found
+    func checkForPausedTranscription() -> [String: Any]? {
+        // Check all possible paused transcription keys
+        let allKeys = UserDefaults.standard.dictionaryRepresentation().keys
+        let pausedKeys = allKeys.filter { $0.hasPrefix("pausedTranscription_") }
+
+        guard let firstKey = pausedKeys.first,
+              let pauseData = UserDefaults.standard.dictionary(forKey: firstKey) else {
+            return nil
+        }
+
+        print("🔍 [BackgroundTask] Found paused transcription: \(pauseData)")
+        return pauseData
+    }
+
+    /// Resume a paused transcription
+    /// Returns true if resume was initiated successfully
+    func resumePausedTranscription(meetingId: UUID) -> Bool {
+        let pauseKey = "pausedTranscription_\(meetingId.uuidString)"
+
+        guard let pauseData = UserDefaults.standard.dictionary(forKey: pauseKey) else {
+            print("⚠️ [BackgroundTask] No pause data found for meeting \(meetingId)")
+            return false
+        }
+
+        // Clear the pause state
+        UserDefaults.standard.removeObject(forKey: pauseKey)
+        UserDefaults.standard.synchronize()
+
+        print("✅ [BackgroundTask] Cleared pause state for meeting \(meetingId)")
+        print("💡 [BackgroundTask] Resume will be handled by CreateMeetingView")
+
+        return true
+    }
+
+    /// Cancel a paused transcription (user chose not to resume)
+    func cancelPausedTranscription(meetingId: UUID) {
+        let pauseKey = "pausedTranscription_\(meetingId.uuidString)"
+
+        // Clear the pause state
+        UserDefaults.standard.removeObject(forKey: pauseKey)
+        UserDefaults.standard.synchronize()
+
+        // Update meeting in database to mark as cancelled
+        Task {
+            do {
+                let container = try makeModelContainer()
+                let context = ModelContext(container)
+                let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
+
+                if let meeting = try context.fetch(descriptor).first {
+                    meeting.setProcessingError("Transcription cancelled by user")
+                    meeting.isProcessing = false
+                    try context.save()
+                    print("📝 [BackgroundTask] Marked meeting as cancelled")
+                }
+            } catch {
+                print("❌ [BackgroundTask] Failed to cancel meeting: \(error)")
+            }
+        }
+
+        print("🚫 [BackgroundTask] Cancelled paused transcription for meeting \(meetingId)")
     }
 }

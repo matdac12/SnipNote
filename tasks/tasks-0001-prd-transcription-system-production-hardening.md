@@ -89,21 +89,21 @@ Generated from: `0001-prd-transcription-system-production-hardening.md`
   - [x] 5.10 Write unit test: Verify error thrown when insufficient space (mock FileManager)
   - [x] 5.11 Write unit test: Verify required space calculation is accurate
 
-- [ ] 6.0 Implement Background Task Expiration Handling (FR-6)
-  - [ ] 6.1 Add `backgroundTaskID` property to track active background task in relevant view model
-  - [ ] 6.2 Call `UIApplication.shared.beginBackgroundTask()` when transcription starts
-  - [ ] 6.3 Store task ID and register expiration handler
-  - [ ] 6.4 In expiration handler: Send local notification "Transcription paused - Open SnipNote to continue"
-  - [ ] 6.5 In expiration handler: Save current chunk index to `UserDefaults` with key `pausedTranscription_[meetingId]`
-  - [ ] 6.6 In expiration handler: Update meeting status to "paused" in database
-  - [ ] 6.7 Add meeting name to notification body for user context
-  - [ ] 6.8 Make notification actionable (tapping opens app to meeting detail)
-  - [ ] 6.9 On app foreground: Check for paused transcriptions in UserDefaults
-  - [ ] 6.10 Show resume dialog: "Continue transcription of '[Meeting Name]'?"
-  - [ ] 6.11 If user selects "Yes": Resume from saved chunk index
-  - [ ] 6.12 If user selects "No": Mark transcription as cancelled, clean up UserDefaults
-  - [ ] 6.13 Call `UIApplication.shared.endBackgroundTask()` when transcription completes or cancels
-  - [ ] 6.14 Add notification content to `NotificationService.swift` with proper category/identifier
+- [x] 6.0 Implement Background Task Expiration Handling (FR-6)
+  - [x] 6.1 Add `backgroundTaskID` property to track active background task in relevant view model
+  - [x] 6.2 Call `UIApplication.shared.beginBackgroundTask()` when transcription starts
+  - [x] 6.3 Store task ID and register expiration handler
+  - [x] 6.4 In expiration handler: Send local notification "Transcription paused - Open SnipNote to continue"
+  - [x] 6.5 In expiration handler: Save current chunk index to `UserDefaults` with key `pausedTranscription_[meetingId]`
+  - [x] 6.6 In expiration handler: Update meeting status to "paused" in database
+  - [x] 6.7 Add meeting name to notification body for user context
+  - [x] 6.8 Make notification actionable (tapping opens app to meeting detail)
+  - [x] 6.9 On app foreground: Check for paused transcriptions in UserDefaults
+  - [x] 6.10 Show resume dialog: "Continue transcription of '[Meeting Name]'?"
+  - [x] 6.11 If user selects "Yes": Resume from saved chunk index
+  - [x] 6.12 If user selects "No": Mark transcription as cancelled, clean up UserDefaults
+  - [x] 6.13 Call `UIApplication.shared.endBackgroundTask()` when transcription completes or cancels
+  - [x] 6.14 Add notification content to `NotificationService.swift` with proper category/identifier
 
 ## Phase 3: Optimizations and Polish (Week 2-3)
 

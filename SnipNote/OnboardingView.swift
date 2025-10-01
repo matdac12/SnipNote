@@ -346,7 +346,7 @@ struct PermissionCard: View {
                     .font(.system(size: 24))
                     .foregroundColor(.green)
             } else {
-                Button("Allow") {
+                Button("Continue") {
                     action()
                 }
                 .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))

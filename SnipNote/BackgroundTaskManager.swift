@@ -412,7 +412,7 @@ class BackgroundTaskManager: ObservableObject {
     func resumePausedTranscription(meetingId: UUID) -> Bool {
         let pauseKey = "pausedTranscription_\(meetingId.uuidString)"
 
-        guard let pauseData = UserDefaults.standard.dictionary(forKey: pauseKey) else {
+        guard UserDefaults.standard.dictionary(forKey: pauseKey) != nil else {
             print("⚠️ [BackgroundTask] No pause data found for meeting \(meetingId)")
             return false
         }

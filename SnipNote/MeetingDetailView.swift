@@ -36,7 +36,10 @@ struct MeetingDetailView: View {
     @StateObject private var openAIService = OpenAIService.shared
     @StateObject private var backgroundTaskManager = BackgroundTaskManager.shared
     @StateObject private var minutesManager = MinutesManager.shared
-    
+
+    // Force refresh for processing updates
+    @State private var refreshTrigger = false
+
     private var relatedActions: [Action] {
         allActions.filter { $0.sourceNoteId == meeting.id }
     }
@@ -44,22 +47,27 @@ struct MeetingDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             meetingHeaderView
-            
+
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    if !meeting.meetingNotes.isEmpty {
-                        meetingNotesSection
-                    }
+                if meeting.isProcessing || isRetrying {
+                    processingStatusSection
+                        .padding()
+                } else {
+                    VStack(alignment: .leading, spacing: 24) {
+                        if !meeting.meetingNotes.isEmpty {
+                            meetingNotesSection
+                        }
 
-                    overviewSection
-                    summarySection
-                    transcriptSection
+                        overviewSection
+                        summarySection
+                        transcriptSection
 
-                    if showActionsTab {
-                        actionsSection
+                        if showActionsTab {
+                            actionsSection
+                        }
                     }
+                    .padding()
                 }
-                .padding()
             }
         }
         .themedBackground()
@@ -71,6 +79,78 @@ struct MeetingDetailView: View {
         .onAppear {
             tempName = meeting.name
             tempSummary = meeting.aiSummary
+        }
+        .task {
+            // Continuously refresh meeting data - start immediately to catch stale data
+            let meetingId = meeting.id
+
+            // Always fetch fresh data first, even if meeting.isProcessing is false
+            await MainActor.run {
+                let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate<Meeting> { $0.id == meetingId })
+                if let fetchedMeeting = try? modelContext.fetch(descriptor).first {
+                    let hasChanged =
+                        meeting.lastProcessedChunk != fetchedMeeting.lastProcessedChunk ||
+                        meeting.totalChunks != fetchedMeeting.totalChunks ||
+                        meeting.isProcessing != fetchedMeeting.isProcessing ||
+                        meeting.processingStateRaw != fetchedMeeting.processingStateRaw ||
+                        meeting.audioTranscript != fetchedMeeting.audioTranscript ||
+                        meeting.shortSummary != fetchedMeeting.shortSummary ||
+                        meeting.aiSummary != fetchedMeeting.aiSummary
+
+                    guard hasChanged else { return }
+
+                    meeting.lastProcessedChunk = fetchedMeeting.lastProcessedChunk
+                    meeting.totalChunks = fetchedMeeting.totalChunks
+                    meeting.isProcessing = fetchedMeeting.isProcessing
+                    meeting.processingStateRaw = fetchedMeeting.processingStateRaw
+                    meeting.audioTranscript = fetchedMeeting.audioTranscript
+                    meeting.shortSummary = fetchedMeeting.shortSummary
+                    meeting.aiSummary = fetchedMeeting.aiSummary
+                    refreshTrigger.toggle()
+
+#if DEBUG
+                    print("🔄 [MeetingDetail] Initial sync - chunks: \(fetchedMeeting.lastProcessedChunk)/\(fetchedMeeting.totalChunks), \(fetchedMeeting.progressPercentage)%")
+#endif
+                }
+            }
+
+            // Now continue polling if processing
+            while meeting.isProcessing {
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+
+                await MainActor.run {
+                    let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate<Meeting> { $0.id == meetingId })
+                    if let fetchedMeeting = try? modelContext.fetch(descriptor).first {
+                        let hasChanged =
+                            meeting.lastProcessedChunk != fetchedMeeting.lastProcessedChunk ||
+                            meeting.totalChunks != fetchedMeeting.totalChunks ||
+                            meeting.isProcessing != fetchedMeeting.isProcessing ||
+                            meeting.processingStateRaw != fetchedMeeting.processingStateRaw ||
+                            meeting.audioTranscript != fetchedMeeting.audioTranscript ||
+                            meeting.shortSummary != fetchedMeeting.shortSummary ||
+                            meeting.aiSummary != fetchedMeeting.aiSummary
+
+                        guard hasChanged else { return }
+
+                        meeting.lastProcessedChunk = fetchedMeeting.lastProcessedChunk
+                        meeting.totalChunks = fetchedMeeting.totalChunks
+                        meeting.isProcessing = fetchedMeeting.isProcessing
+                        meeting.processingStateRaw = fetchedMeeting.processingStateRaw
+                        meeting.audioTranscript = fetchedMeeting.audioTranscript
+                        meeting.shortSummary = fetchedMeeting.shortSummary
+                        meeting.aiSummary = fetchedMeeting.aiSummary
+                        refreshTrigger.toggle()
+
+#if DEBUG
+                        print("🔄 [MeetingDetail] Poll - chunks: \(fetchedMeeting.lastProcessedChunk)/\(fetchedMeeting.totalChunks), \(fetchedMeeting.progressPercentage)%")
+#endif
+                    }
+                }
+            }
+
+#if DEBUG
+            print("✅ [MeetingDetail] Processing complete, stopped polling")
+#endif
         }
         .sheet(isPresented: $showingFullScreenSummary) {
             fullScreenSummaryView
@@ -176,6 +256,19 @@ struct MeetingDetailView: View {
     
     // MARK: - Content Sections
     
+    private var processingStatusSection: some View {
+        VStack(spacing: 24) {
+            MeetingProcessingStatusView(
+                theme: themeManager.currentTheme,
+                isRetrying: isRetrying,
+                processingState: meeting.processingState,
+                progress: meeting.progressPercentage,
+                chunkIndex: meeting.lastProcessedChunk,
+                totalChunks: meeting.totalChunks
+            )
+        }
+    }
+
     private var meetingNotesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             sectionHeader(title: "MEETING NOTES:", alternateTitle: "Meeting Notes:")
@@ -193,23 +286,56 @@ struct MeetingDetailView: View {
             sectionHeader(title: "OVERVIEW:", alternateTitle: "Overview:")
 
             MeetingDetailCard {
-                HStack {
-                    Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : meeting.shortSummary)
-                        .themedBody()
-                        .opacity(meeting.isProcessing ? 0.6 : 1.0)
-                        .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                if meeting.isProcessing || isRetrying {
+                    // Show detailed chunk progress when processing
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text(meeting.processingState == .transcribing ? "Processing meeting..." : meeting.shortSummary)
+                                .themedBody()
+                                .opacity(0.6)
+                                .frame(maxWidth: .infinity, alignment: .leading)
 
-                    if meeting.isProcessing || isRetrying {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    } else if meeting.processingState == .failed && meeting.canRetry {
-                        Button("Retry") {
-                            retryTranscription()
+                            ProgressView()
+                                .scaleEffect(0.8)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(themeManager.currentTheme.accentColor)
-                        .disabled(isRetrying)
+
+                        // Show chunk progress if available
+                        if meeting.totalChunks > 0 {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("\(Int(meeting.progressPercentage))% Complete")
+                                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                                    .foregroundColor(themeManager.currentTheme.accentColor)
+
+                                ProgressView(value: meeting.progressPercentage, total: 100)
+                                    .progressViewStyle(LinearProgressViewStyle(tint: themeManager.currentTheme.accentColor))
+                                    .frame(height: 4)
+
+                                HStack(spacing: 4) {
+                                    Image(systemName: "waveform")
+                                        .font(.caption2)
+                                        .foregroundColor(themeManager.currentTheme.accentColor)
+                                    Text("Chunk \(meeting.lastProcessedChunk) of \(meeting.totalChunks)")
+                                        .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    HStack {
+                        Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : meeting.shortSummary)
+                            .themedBody()
+                            .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if meeting.processingState == .failed && meeting.canRetry {
+                            Button("Retry") {
+                                retryTranscription()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(themeManager.currentTheme.accentColor)
+                            .disabled(isRetrying)
+                        }
                     }
                 }
             }
@@ -243,26 +369,59 @@ struct MeetingDetailView: View {
                     summaryEditor
                         .transition(.move(edge: .top).combined(with: .opacity))
                 } else {
-                    MeetingDetailCard(action: {
+                    MeetingDetailCard(action: meeting.isProcessing || isRetrying ? nil : {
                         showingFullScreenSummary = true
                     }) {
-                        HStack {
-                            Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : formatMarkdownText(meeting.aiSummary))
-                                .themedBody()
-                                .opacity(meeting.isProcessing ? 0.6 : 1.0)
-                                .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                        if meeting.isProcessing || isRetrying {
+                            // Show detailed chunk progress when processing
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text(meeting.processingState == .transcribing ? "Generating meeting summary..." : formatMarkdownText(meeting.aiSummary))
+                                        .themedBody()
+                                        .opacity(0.6)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                            if meeting.isProcessing || isRetrying {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            } else if meeting.processingState == .failed && meeting.canRetry {
-                                Button("Retry") {
-                                    retryTranscription()
+                                    ProgressView()
+                                        .scaleEffect(0.8)
                                 }
-                                .buttonStyle(.borderedProminent)
-                                .tint(themeManager.currentTheme.accentColor)
-                                .disabled(isRetrying)
+
+                                // Show chunk progress if available
+                                if meeting.totalChunks > 0 {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("\(Int(meeting.progressPercentage))% Complete")
+                                            .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                                            .foregroundColor(themeManager.currentTheme.accentColor)
+
+                                        ProgressView(value: meeting.progressPercentage, total: 100)
+                                            .progressViewStyle(LinearProgressViewStyle(tint: themeManager.currentTheme.accentColor))
+                                            .frame(height: 4)
+
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "waveform")
+                                                .font(.caption2)
+                                                .foregroundColor(themeManager.currentTheme.accentColor)
+                                            Text("Chunk \(meeting.lastProcessedChunk) of \(meeting.totalChunks)")
+                                                .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            HStack {
+                                Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : formatMarkdownText(meeting.aiSummary))
+                                    .themedBody()
+                                    .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                if meeting.processingState == .failed && meeting.canRetry {
+                                    Button("Retry") {
+                                        retryTranscription()
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .tint(themeManager.currentTheme.accentColor)
+                                    .disabled(isRetrying)
+                                }
                             }
                         }
                     }
@@ -271,23 +430,56 @@ struct MeetingDetailView: View {
             } else if meeting.isProcessing || isRetrying || meeting.processingState == .failed {
                 // Show processing or error state even when collapsed
                 MeetingDetailCard {
-                    HStack {
-                        Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : "Processing meeting summary...")
-                            .themedBody()
-                            .opacity(meeting.isProcessing || isRetrying ? 0.6 : 1.0)
-                            .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    if meeting.isProcessing || isRetrying {
+                        // Show detailed chunk progress when processing
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Text(meeting.processingState == .transcribing ? "Processing meeting summary..." : "Processing meeting summary...")
+                                    .themedBody()
+                                    .opacity(0.6)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                        if meeting.isProcessing || isRetrying {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else if meeting.processingState == .failed && meeting.canRetry {
-                            Button("Retry") {
-                                retryTranscription()
+                                ProgressView()
+                                    .scaleEffect(0.8)
                             }
-                            .buttonStyle(.borderedProminent)
-                            .tint(themeManager.currentTheme.accentColor)
-                            .disabled(isRetrying)
+
+                            // Show chunk progress if available
+                            if meeting.totalChunks > 0 {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("\(Int(meeting.progressPercentage))% Complete")
+                                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                                        .foregroundColor(themeManager.currentTheme.accentColor)
+
+                                    ProgressView(value: meeting.progressPercentage, total: 100)
+                                        .progressViewStyle(LinearProgressViewStyle(tint: themeManager.currentTheme.accentColor))
+                                        .frame(height: 4)
+
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "waveform")
+                                            .font(.caption2)
+                                            .foregroundColor(themeManager.currentTheme.accentColor)
+                                        Text("Chunk \(meeting.lastProcessedChunk) of \(meeting.totalChunks)")
+                                            .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        HStack {
+                            Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : "Processing meeting summary...")
+                                .themedBody()
+                                .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if meeting.processingState == .failed && meeting.canRetry {
+                                Button("Retry") {
+                                    retryTranscription()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(themeManager.currentTheme.accentColor)
+                                .disabled(isRetrying)
+                            }
                         }
                     }
                 }
@@ -717,7 +909,7 @@ struct MeetingDetailView: View {
     private func shareAudio() {
         isDownloadingAudio = true
         downloadProgress = 0
-        
+
         // Show alert for downloads that might take time
         if meeting.duration > 60 { // Show alert for recordings longer than 1 minute
             showDownloadAlert = true
@@ -949,6 +1141,108 @@ struct MeetingDetailView: View {
         } catch {
             print("Error during retry: \(error)")
             meeting.setProcessingError("Transcription failed again. Please try later.")
+        }
+    }
+}
+
+private struct MeetingProcessingStatusView: View {
+    let theme: AppTheme
+    let isRetrying: Bool
+    let processingState: ProcessingState
+    let progress: Double
+    let chunkIndex: Int
+    let totalChunks: Int
+
+    private var normalizedProgress: Double {
+        min(max(progress, 0), 100)
+    }
+
+    private var percentageText: String {
+        "\(Int(normalizedProgress))% Complete"
+    }
+
+    private var titleText: String {
+        let base: String
+        switch processingState {
+        case .transcribing:
+            base = isRetrying ? "Retrying transcription..." : "Processing meeting..."
+        case .generatingSummary:
+            base = "Generating meeting insights..."
+        default:
+            base = "Processing..."
+        }
+
+        return theme.headerStyle == .brackets ? base.uppercased() : base
+    }
+
+    private var stageDescription: String {
+        switch processingState {
+        case .transcribing:
+            return isRetrying ? "Retrying transcription..." : "Transcribing meeting audio..."
+        case .generatingSummary:
+            return "Creating meeting summary and action items..."
+        default:
+            return ""
+        }
+    }
+
+    private var shouldShowChunkInfo: Bool {
+        processingState == .transcribing && totalChunks > 1
+    }
+
+    private var shouldShowSpinner: Bool {
+        totalChunks == 0 && normalizedProgress == 0
+    }
+
+    var body: some View {
+        MeetingDetailCard {
+            VStack(spacing: 20) {
+                Text(titleText)
+                    .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(theme.warningColor)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                VStack(spacing: 10) {
+                    Text(percentageText)
+                        .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                        .foregroundColor(theme.accentColor)
+
+                    ProgressView(value: normalizedProgress, total: 100)
+                        .progressViewStyle(LinearProgressViewStyle(tint: theme.accentColor))
+                        .frame(height: 8)
+                        .scaleEffect(x: 1, y: 1.4, anchor: .center)
+
+                    if !stageDescription.isEmpty {
+                        Text(stageDescription)
+                            .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                            .foregroundColor(theme.secondaryTextColor)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 2)
+                    }
+
+                    if shouldShowChunkInfo {
+                        HStack(spacing: 4) {
+                            Image(systemName: "waveform")
+                                .font(.caption2)
+                                .foregroundColor(theme.accentColor)
+                            Text("Chunk \(max(chunkIndex, 1)) of \(totalChunks)")
+                                .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                                .foregroundColor(theme.secondaryTextColor)
+                        }
+                        .padding(.top, 4)
+                    }
+                }
+
+                if shouldShowSpinner {
+                    ProgressView()
+                        .scaleEffect(1.4)
+                        .padding(.top, 8)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
+            .padding(.horizontal, 16)
         }
     }
 }

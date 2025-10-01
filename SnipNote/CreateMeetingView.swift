@@ -1296,6 +1296,25 @@ struct CreateMeetingView: View {
                             if let chunkTranscript = progress.partialTranscript {
                                 partialTranscripts.append(chunkTranscript)
                             }
+
+                            if let meeting = createdMeeting {
+                                let hasProgressChanged =
+                                    meeting.lastProcessedChunk != progress.currentChunk ||
+                                    meeting.totalChunks != progress.totalChunks
+
+                                if hasProgressChanged {
+                                    meeting.updateChunkProgress(
+                                        completed: progress.currentChunk,
+                                        total: progress.totalChunks
+                                    )
+
+                                    do {
+                                        try modelContext.save()
+                                    } catch {
+                                        print("Error saving chunk progress: \(error)")
+                                    }
+                                }
+                            }
                         }
                     },
                     meetingName: meetingNameTrimmed.isEmpty ? "Untitled Meeting" : meetingNameTrimmed,
@@ -1503,11 +1522,23 @@ struct CreateMeetingView: View {
                     audioURL: recordingURL,
                     progressCallback: { progress in
                         Task { @MainActor in
-                            if let meeting = createdMeeting {
-                                meeting.updateChunkProgress(
-                                    completed: progress.currentChunk,
-                                    total: progress.totalChunks
-                                )
+                            guard let meeting = createdMeeting else { return }
+
+                            let hasProgressChanged =
+                                meeting.lastProcessedChunk != progress.currentChunk ||
+                                meeting.totalChunks != progress.totalChunks
+
+                            guard hasProgressChanged else { return }
+
+                            meeting.updateChunkProgress(
+                                completed: progress.currentChunk,
+                                total: progress.totalChunks
+                            )
+
+                            do {
+                                try modelContext.save()
+                            } catch {
+                                print("Error saving chunk progress: \(error)")
                             }
                         }
                     },

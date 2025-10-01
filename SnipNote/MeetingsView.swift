@@ -300,13 +300,13 @@ struct MeetingsView: View {
 
         Task { @MainActor in
             for meeting in meetingsToDelete {
+                // Delete Supabase audio first, then SwiftData
                 if meeting.hasRecording {
-                    Task {
-                        do {
-                            try await SupabaseManager.shared.deleteAudioRecording(meetingId: meeting.id)
-                        } catch {
-                            print("⚠️ Failed to delete Supabase recording for meeting \(meeting.id): \(error)")
-                        }
+                    do {
+                        try await SupabaseManager.shared.deleteAudioRecording(meetingId: meeting.id)
+                    } catch {
+                        print("⚠️ Failed to delete Supabase recording for meeting \(meeting.id): \(error)")
+                        // Continue with deletion anyway - user intent is to delete
                     }
                 }
 

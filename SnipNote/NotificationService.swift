@@ -84,9 +84,9 @@ class NotificationService: ObservableObject {
     
     private func createNotificationBody(for actions: [Action]) -> String {
         let count = actions.count
-        
+
         if count == 1 {
-            return "You have 1 high priority action: \(actions.first!.title)"
+            return "You have 1 high priority action: \(actions.first?.title ?? "Untitled")"
         } else if count <= 3 {
             let titles = actions.prefix(2).map { $0.title }.joined(separator: ", ")
             return count == 2 ? "You have 2 high priority actions: \(titles)" : "You have \(count) high priority actions: \(titles) and \(count - 2) more"

@@ -11,12 +11,19 @@ import AVFoundation
 
 class OpenAIService: ObservableObject {
     static let shared = OpenAIService()
-    
+
     private let baseURL = "https://api.openai.com/v1"
     private let keychainService = "com.mattia.snipnote.apikey"
     private let keychainAccount = "openai_api_key"
-    
-    private init() {}
+    private let urlSession: URLSession
+
+    private init() {
+        // Configure URLSession with custom timeout values
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 120  // 2 minutes per request
+        configuration.timeoutIntervalForResource = 600 // 10 minutes total
+        self.urlSession = URLSession(configuration: configuration)
+    }
     
     var apiKey: String? {
         get {
@@ -255,8 +262,8 @@ class OpenAIService: ObservableObject {
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         
         request.httpBody = body
-        
-        let (data, urlResponse) = try await URLSession.shared.data(for: request)
+
+        let (data, urlResponse) = try await urlSession.data(for: request)
 
         if let httpResponse = urlResponse as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
@@ -462,8 +469,8 @@ class OpenAIService: ObservableObject {
         
         let jsonData = try JSONEncoder().encode(requestBody)
         request.httpBody = jsonData
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let (data, _) = try await urlSession.data(for: request)
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
         
         return response.choices.first?.message.content ?? "No summary generated"
@@ -504,10 +511,10 @@ class OpenAIService: ObservableObject {
         
         let jsonData = try JSONEncoder().encode(requestBody)
         request.httpBody = jsonData
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let (data, _) = try await urlSession.data(for: request)
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
-        
+
         return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Untitled Note"
     }
     
@@ -546,10 +553,10 @@ class OpenAIService: ObservableObject {
         
         let jsonData = try JSONEncoder().encode(requestBody)
         request.httpBody = jsonData
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let (data, _) = try await urlSession.data(for: request)
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
-        
+
         return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Meeting discussion on various topics."
     }
     
@@ -598,10 +605,10 @@ class OpenAIService: ObservableObject {
         
         let jsonData = try JSONEncoder().encode(requestBody)
         request.httpBody = jsonData
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let (data, _) = try await urlSession.data(for: request)
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
-        
+
         return response.choices.first?.message.content ?? "No meeting summary generated"
     }
     
@@ -641,8 +648,8 @@ class OpenAIService: ObservableObject {
         
         let jsonData = try JSONEncoder().encode(requestBody)
         request.httpBody = jsonData
-        
-        let (data, _) = try await URLSession.shared.data(for: request)
+
+        let (data, _) = try await urlSession.data(for: request)
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
         
         guard let content = response.choices.first?.message.content else {
@@ -717,7 +724,7 @@ class OpenAIService: ObservableObject {
         encoder.keyEncodingStrategy = .convertToSnakeCase
         request.httpBody = try encoder.encode(requestBody)
 
-        let (data, urlResponse) = try await URLSession.shared.data(for: request)
+        let (data, urlResponse) = try await urlSession.data(for: request)
 
         if let httpResponse = urlResponse as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
@@ -762,7 +769,7 @@ class OpenAIService: ObservableObject {
         let payload = ConversationCreateRequest(metadata: ["source": "SnipNote"])
         request.httpBody = try JSONEncoder().encode(payload)
 
-        let (data, urlResponse) = try await URLSession.shared.data(for: request)
+        let (data, urlResponse) = try await urlSession.data(for: request)
 
         if let httpResponse = urlResponse as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
@@ -813,7 +820,7 @@ class OpenAIService: ObservableObject {
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         request.httpBody = body
 
-        let (responseData, urlResponse) = try await URLSession.shared.data(for: request)
+        let (responseData, urlResponse) = try await urlSession.data(for: request)
 
         if let httpResponse = urlResponse as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
@@ -861,7 +868,7 @@ class OpenAIService: ObservableObject {
                 encoder.keyEncodingStrategy = .convertToSnakeCase
                 request.httpBody = try encoder.encode(createRequest)
 
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await urlSession.data(for: request)
 
                 if let httpResponse = response as? HTTPURLResponse,
                    !(200...299).contains(httpResponse.statusCode) {
@@ -899,7 +906,7 @@ class OpenAIService: ObservableObject {
                 encoder.keyEncodingStrategy = .convertToSnakeCase
                 request.httpBody = try encoder.encode(body)
 
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await urlSession.data(for: request)
 
                 if let httpResponse = response as? HTTPURLResponse,
                    !(200...299).contains(httpResponse.statusCode) {
@@ -928,7 +935,7 @@ class OpenAIService: ObservableObject {
                 request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-                let (_, response) = try await URLSession.shared.data(for: request)
+                let (_, response) = try await urlSession.data(for: request)
 
                 if let httpResponse = response as? HTTPURLResponse,
                    !(200...299).contains(httpResponse.statusCode) {

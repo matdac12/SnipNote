@@ -5,6 +5,7 @@
 //  Created for Transcription System Production Hardening
 //
 
+import Foundation
 import Testing
 @testable import SnipNote
 

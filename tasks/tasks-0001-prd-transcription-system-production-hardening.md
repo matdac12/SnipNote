@@ -138,14 +138,14 @@ Generated from: `0001-prd-transcription-system-production-hardening.md`
   - [ ] 9.7 Log model used (gpt-4o-transcribe)
   - [ ] 9.8 Add cost logging to chunk transcription as well (per-chunk breakdown)
 
-- [ ] 10.0 Fix Transcript Merge Edge Cases (FR-10)
-  - [ ] 10.1 Locate `mergeChunkTranscripts()` method in `OpenAIService.swift`
-  - [ ] 10.2 Replace `transcripts.first?.trimmingCharacters()` with `transcripts.first(where: { !$0.trimmingCharacters().isEmpty })`
-  - [ ] 10.3 Add logging when skipping empty chunks: `⚠️ Chunk [N] returned empty transcript, skipping`
-  - [ ] 10.4 Ensure guard statement only returns empty if ALL chunks are empty
-  - [ ] 10.5 Write unit test: Verify merge succeeds when first chunk is empty but others have content
-  - [ ] 10.6 Write unit test: Verify merge returns empty only when all chunks are empty
-  - [ ] 10.7 Write unit test: Verify warning logged for empty chunks
+- [x] 10.0 Fix Transcript Merge Edge Cases (FR-10)
+  - [x] 10.1 Locate `mergeChunkTranscripts()` method in `OpenAIService.swift`
+  - [x] 10.2 Replace `transcripts.first?.trimmingCharacters()` with `transcripts.first(where: { !$0.trimmingCharacters().isEmpty })`
+  - [x] 10.3 Add logging when skipping empty chunks: `⚠️ Chunk [N] returned empty transcript, skipping`
+  - [x] 10.4 Ensure guard statement only returns empty if ALL chunks are empty
+  - [x] 10.5 Write unit test: Verify merge succeeds when first chunk is empty but others have content
+  - [x] 10.6 Write unit test: Verify merge returns empty only when all chunks are empty
+  - [x] 10.7 Write unit test: Verify warning logged for empty chunks
 
 - [ ] 11.0 Implement Chunk Size Validation (FR-11)
   - [ ] 11.1 Add size validation in `AudioChunker.createAudioChunks()` after extracting segment

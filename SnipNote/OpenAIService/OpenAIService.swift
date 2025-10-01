@@ -1284,11 +1284,28 @@ class OpenAIService: ObservableObject {
 
 extension OpenAIService {
     private func mergeChunkTranscripts(_ transcripts: [String]) -> String {
-        guard var merged = transcripts.first?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+        // Find first non-empty chunk to start with
+        guard let firstNonEmptyIndex = transcripts.firstIndex(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
             return ""
         }
 
-        for transcript in transcripts.dropFirst() {
+        var merged = transcripts[firstNonEmptyIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Log if we skipped any empty chunks
+        if firstNonEmptyIndex > 0 {
+            for i in 0..<firstNonEmptyIndex {
+                print("⚠️ Chunk \(i + 1) returned empty transcript, skipping")
+            }
+        }
+
+        // Process all remaining chunks (including those before firstNonEmptyIndex if any were skipped)
+        for (index, transcript) in transcripts.enumerated() where index > firstNonEmptyIndex {
+            let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                print("⚠️ Chunk \(index + 1) returned empty transcript, skipping")
+                continue
+            }
+
             let trimmedNext = trimOverlapBetween(merged, next: transcript)
             guard !trimmedNext.isEmpty else { continue }
 
@@ -1301,6 +1318,13 @@ extension OpenAIService {
 
         return merged
     }
+
+    // MARK: - Test Helper
+    #if DEBUG
+    internal func testMergeChunkTranscripts(_ transcripts: [String]) -> String {
+        return mergeChunkTranscripts(transcripts)
+    }
+    #endif
 
     private func trimOverlapBetween(_ previous: String, next: String) -> String {
         let maxOverlapCharacters = 200

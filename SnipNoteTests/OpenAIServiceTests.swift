@@ -368,6 +368,76 @@ struct OpenAIServiceTests {
         #expect(expectedMB == 280.0, "Required space should be 280MB")
         print("✅ Disk space calculation formula verified: \(String(format: "%.0f", expectedMB))MB")
     }
+
+    // MARK: - Task 10.5: Transcript Merge Edge Case Tests
+
+    @Test("Merge should succeed when first chunk is empty but others have content")
+    @MainActor
+    func testMergeTranscriptsWithEmptyFirstChunk() async throws {
+        // Given: OpenAIService instance
+        let service = OpenAIService.shared
+
+        // When: Merging transcripts where first chunk is empty/whitespace
+        let transcripts = [
+            "",  // Empty first chunk
+            "This is the second chunk.",
+            "This is the third chunk."
+        ]
+
+        // Then: Call test helper to verify merge behavior
+        let result = service.testMergeChunkTranscripts(transcripts)
+
+        // Expected: Should return merged content from non-empty chunks
+        #expect(!result.isEmpty, "Result should not be empty when later chunks have content")
+        #expect(result.contains("second chunk"), "Result should contain content from second chunk")
+        #expect(result.contains("third chunk"), "Result should contain content from third chunk")
+
+        print("✅ Merge succeeded with empty first chunk - result: \(result)")
+    }
+
+    @Test("Merge should return empty only when all chunks are empty")
+    @MainActor
+    func testMergeTranscriptsAllEmpty() async throws {
+        // Given: OpenAIService instance
+        let service = OpenAIService.shared
+
+        // When: All transcripts are empty or whitespace
+        let allEmptyTranscripts = ["", "   ", "\n\n", "\t"]
+
+        // Then: Call test helper
+        let result = service.testMergeChunkTranscripts(allEmptyTranscripts)
+
+        // Expected: Should return empty string
+        #expect(result.isEmpty, "Result should be empty when all chunks are empty")
+
+        print("✅ Merge correctly returned empty for all-empty chunks")
+    }
+
+    @Test("Merge should log warnings for empty chunks")
+    @MainActor
+    func testMergeTranscriptsLogsWarnings() async throws {
+        // Given: OpenAIService instance
+        let service = OpenAIService.shared
+
+        // When: Mixed empty and non-empty chunks
+        let mixedTranscripts = [
+            "",  // Empty - should log warning
+            "Content chunk 1",
+            "   ",  // Whitespace only - should log warning
+            "Content chunk 2"
+        ]
+
+        // Then: Call test helper (will log warnings to console)
+        let result = service.testMergeChunkTranscripts(mixedTranscripts)
+
+        // Expected: Should return merged non-empty content
+        #expect(!result.isEmpty, "Result should not be empty")
+        #expect(result.contains("Content chunk 1"), "Result should contain first content chunk")
+        #expect(result.contains("Content chunk 2"), "Result should contain second content chunk")
+
+        print("✅ Merge succeeded with empty chunks - warnings should be logged above")
+        print("   Result: \(result)")
+    }
 }
 
 // MARK: - Test Errors

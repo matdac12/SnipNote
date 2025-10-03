@@ -3,7 +3,9 @@
 - `supabase/migrations/20251003_create_transcription_jobs.sql` - ✅ Migration to create transcription_jobs table with status tracking, RLS policies, and indexes (completed)
 - `snipnote-transcription-service/main.py` - ✅ FastAPI endpoints for job creation (`POST /jobs`), status checks (`GET /jobs/{id}`), basic auth, and health check (completed)
 - `snipnote-transcription-service/transcribe.py` - OpenAI Whisper transcription logic (refactored to work with job processing).
-- `snipnote-transcription-service/jobs.py` (new) - Job queue management and async processing logic using Render Background Worker pattern.
+- `snipnote-transcription-service/jobs.py` - ✅ Job processing module with download_audio(), process_job(), and error handling (completed)
+- `snipnote-transcription-service/worker.py` - ✅ Background worker entry point for cron job or continuous mode (completed)
+- `snipnote-transcription-service/render.yaml` - ✅ Render Blueprint configuration for web service + cron job (completed)
 - `snipnote-transcription-service/supabase_client.py` - ✅ Supabase Python client with helper functions: create_job(), get_job(), update_job_status() (completed)
 - `SnipNote/RenderTranscriptionService.swift` - Extended API client to support async job creation and status polling.
 - `SnipNote/TranscriptionJobModels.swift` (new) - Swift models for job status, job response, and transcription result.
@@ -36,14 +38,14 @@
   - [x] 2.6 Update `requirements.txt` with `supabase-py` dependency
   - [x] 2.7 Test endpoints locally using curl/Postman with test job creation and status retrieval
 
-- [ ] 3.0 Implement Render Background Worker for job processing
-  - [ ] 3.1 Create `jobs.py` module with `process_pending_jobs()` function that queries Supabase for jobs with status='pending'
-  - [ ] 3.2 Implement job processing loop: for each pending job, update status to 'processing', download audio from audio_url, call transcribe_audio(), save transcript to job record
-  - [ ] 3.3 Add error handling: wrap transcription in try/except, update job status to 'failed' with error_message if exception occurs
-  - [ ] 3.4 Add job completion logic: update status to 'completed', set transcript and duration, set completed_at timestamp
-  - [ ] 3.5 Create `worker.py` entry point that calls `process_pending_jobs()` and can be run as cron job or continuous loop
-  - [ ] 3.6 Add Render cron job configuration (render.yaml or dashboard) to run worker.py every 1-2 minutes
-  - [ ] 3.7 Test worker locally by creating test job in Supabase and running worker.py to verify it processes the job
+- [x] 3.0 Implement Render Background Worker for job processing
+  - [x] 3.1 Create `jobs.py` module with `process_pending_jobs()` function that queries Supabase for jobs with status='pending'
+  - [x] 3.2 Implement job processing loop: for each pending job, update status to 'processing', download audio from audio_url, call transcribe_audio(), save transcript to job record
+  - [x] 3.3 Add error handling: wrap transcription in try/except, update job status to 'failed' with error_message if exception occurs
+  - [x] 3.4 Add job completion logic: update status to 'completed', set transcript and duration, set completed_at timestamp
+  - [x] 3.5 Create `worker.py` entry point that calls `process_pending_jobs()` and can be run as cron job or continuous loop
+  - [x] 3.6 Add Render cron job configuration (render.yaml or dashboard) to run worker.py every 1-2 minutes
+  - [x] 3.7 Test worker locally by creating test job in Supabase and running worker.py to verify it processes the job
 
 - [ ] 4.0 Extend iOS API client for async job handling
   - [ ] 4.1 Create `TranscriptionJobModels.swift` with enums and structs: JobStatus enum (pending, processing, completed, failed), CreateJobRequest, CreateJobResponse, JobStatusResponse

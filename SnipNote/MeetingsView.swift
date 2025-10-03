@@ -71,6 +71,17 @@ struct MeetingsView: View {
                          .background(themeManager.currentTheme.accentColor.opacity(0.12))
                          .clipShape(Circle())
 
+                         // TEMPORARY: Server transcription test button
+                         NavigationLink(value: "ServerTest") {
+                             Image(systemName: "flask.fill")
+                                 .font(.system(size: 16, weight: .semibold))
+                                 .foregroundColor(.orange)
+                                 .padding(8)
+                                 .background(Color.orange.opacity(0.12))
+                                 .clipShape(Circle())
+                         }
+                         .buttonStyle(.plain)
+
                          if !meetings.isEmpty {
                              EditButton()
                                  .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
@@ -221,6 +232,12 @@ struct MeetingsView: View {
             .themedBackground()
             .navigationDestination(for: Meeting.self) { meeting in
                 MeetingDetailView(meeting: meeting)
+            }
+            // TEMPORARY: Navigation for server transcription test
+            .navigationDestination(for: String.self) { value in
+                if value == "ServerTest" {
+                    ServerTranscriptionTestView()
+                }
             }
             .navigationDestination(isPresented: $navigateToCreate) {
                 CreateMeetingView(

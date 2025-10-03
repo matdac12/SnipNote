@@ -109,6 +109,9 @@
     "📍 %@" : {
 
     },
+    "🧪 Server Test" : {
+
+    },
     "0.5×" : {
 
     },
@@ -457,6 +460,9 @@
     "Duration: %@" : {
 
     },
+    "Duration: %@s" : {
+
+    },
     "Edit" : {
       "localizations" : {
         "it" : {
@@ -466,6 +472,9 @@
           }
         }
       }
+    },
+    "Elapsed: %llds" : {
+
     },
     "Email" : {
       "localizations" : {
@@ -494,6 +503,9 @@
 
     },
     "Enter your OpenAI API key to enable transcription and summarization." : {
+
+    },
+    "Error" : {
 
     },
     "Eve" : {
@@ -612,6 +624,9 @@
 
     },
     "IMPORTED AUDIO READY" : {
+
+    },
+    "Instructions:" : {
 
     },
     "Insufficient Minutes" : {
@@ -1183,6 +1198,9 @@
           }
         }
       }
+    },
+    "Server Transcription Test" : {
+
     },
     "settings.about.developer.description" : {
       "extractionState" : "manual",
@@ -2584,6 +2602,9 @@
     "Terms of Use (EULA)" : {
 
     },
+    "Testing Render + OpenAI Whisper" : {
+
+    },
     "This audio requires %lld minutes. You have %lld minutes remaining." : {
       "localizations" : {
         "en" : {
@@ -2637,6 +2658,12 @@
     "Top up your transcription minutes instantly" : {
 
     },
+    "Transcribe Server-Side" : {
+
+    },
+    "Transcribing..." : {
+
+    },
     "Transcript" : {
       "localizations" : {
         "it" : {
@@ -2663,6 +2690,9 @@
 
     },
     "Upgrade Now" : {
+
+    },
+    "Uploading audio to Render server..." : {
 
     },
     "VERSION" : {

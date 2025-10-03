@@ -1,10 +1,10 @@
 ## Relevant Files
 
-- `supabase/migrations/[timestamp]_create_transcription_jobs.sql` - Migration to create transcription_jobs table with status tracking, RLS policies, and indexes.
-- `snipnote-transcription-service/main.py` - FastAPI endpoints for job creation (`POST /jobs`), status checks (`GET /jobs/{id}`), and health check.
+- `supabase/migrations/20251003_create_transcription_jobs.sql` - ✅ Migration to create transcription_jobs table with status tracking, RLS policies, and indexes (completed)
+- `snipnote-transcription-service/main.py` - ✅ FastAPI endpoints for job creation (`POST /jobs`), status checks (`GET /jobs/{id}`), basic auth, and health check (completed)
 - `snipnote-transcription-service/transcribe.py` - OpenAI Whisper transcription logic (refactored to work with job processing).
 - `snipnote-transcription-service/jobs.py` (new) - Job queue management and async processing logic using Render Background Worker pattern.
-- `snipnote-transcription-service/supabase_client.py` (new) - Supabase Python client for job CRUD operations and status updates.
+- `snipnote-transcription-service/supabase_client.py` - ✅ Supabase Python client with helper functions: create_job(), get_job(), update_job_status() (completed)
 - `SnipNote/RenderTranscriptionService.swift` - Extended API client to support async job creation and status polling.
 - `SnipNote/TranscriptionJobModels.swift` (new) - Swift models for job status, job response, and transcription result.
 - `SnipNote/CreateMeetingView.swift` - Add server transcription toggle and async job handling flow.
@@ -27,14 +27,14 @@
   - [x] 1.4 Add indexes on user_id, status, and created_at for efficient querying
   - [x] 1.5 Test migration locally using `supabase db push` and verify table structure
 
-- [ ] 2.0 Build Python async job creation and status endpoints
-  - [ ] 2.1 Create `supabase_client.py` module with Supabase Python client initialization using environment variables (SUPABASE_URL, SUPABASE_SERVICE_KEY)
-  - [ ] 2.2 Add helper functions in `supabase_client.py`: create_job(user_id, meeting_id, audio_url), get_job(job_id), update_job_status(job_id, status, transcript=None, error=None)
-  - [ ] 2.3 Add `POST /jobs` endpoint in `main.py` that accepts {user_id, meeting_id, audio_url}, creates job record with status='pending', returns job_id
-  - [ ] 2.4 Add `GET /jobs/{job_id}` endpoint that queries Supabase and returns job status, transcript (if completed), and timestamps
-  - [ ] 2.5 Add basic authentication middleware (validate API key or JWT - can be simple for MVP, full auth in Phase 4)
-  - [ ] 2.6 Update `requirements.txt` with `supabase-py` dependency
-  - [ ] 2.7 Test endpoints locally using curl/Postman with test job creation and status retrieval
+- [x] 2.0 Build Python async job creation and status endpoints
+  - [x] 2.1 Create `supabase_client.py` module with Supabase Python client initialization using environment variables (SUPABASE_URL, SUPABASE_SERVICE_KEY)
+  - [x] 2.2 Add helper functions in `supabase_client.py`: create_job(user_id, meeting_id, audio_url), get_job(job_id), update_job_status(job_id, status, transcript=None, error=None)
+  - [x] 2.3 Add `POST /jobs` endpoint in `main.py` that accepts {user_id, meeting_id, audio_url}, creates job record with status='pending', returns job_id
+  - [x] 2.4 Add `GET /jobs/{job_id}` endpoint that queries Supabase and returns job status, transcript (if completed), and timestamps
+  - [x] 2.5 Add basic authentication middleware (validate API key or JWT - can be simple for MVP, full auth in Phase 4)
+  - [x] 2.6 Update `requirements.txt` with `supabase-py` dependency
+  - [x] 2.7 Test endpoints locally using curl/Postman with test job creation and status retrieval
 
 - [ ] 3.0 Implement Render Background Worker for job processing
   - [ ] 3.1 Create `jobs.py` module with `process_pending_jobs()` function that queries Supabase for jobs with status='pending'

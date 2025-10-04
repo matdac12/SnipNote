@@ -7,11 +7,13 @@ final class SmartTranscriptionTests: XCTestCase {
 
     var transcriptionService: RenderTranscriptionService!
 
+    @MainActor
     override func setUpWithError() throws {
         try super.setUpWithError()
         transcriptionService = RenderTranscriptionService()
     }
 
+    @MainActor
     override func tearDownWithError() throws {
         transcriptionService = nil
         try super.tearDownWithError()
@@ -342,11 +344,13 @@ final class SmartTranscriptionTests: XCTestCase {
     // MARK: - Integration Tests
 
     /// Test that RenderTranscriptionService can be instantiated
+    @MainActor
     func testRenderTranscriptionServiceInstantiation() {
         XCTAssertNotNil(transcriptionService, "Service should instantiate")
     }
 
     /// Test service base URL configuration
+    @MainActor
     func testServiceBaseURLConfiguration() {
         // The service should have a valid base URL
         // We can't access private properties, but we can verify the service exists

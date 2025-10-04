@@ -79,6 +79,10 @@ struct CreateMeetingView: View {
     @State private var showingMinutesPaywall = false
     @State private var estimatedMinutesNeeded = 0
 
+    // File size error
+    @State private var showingFileTooLargeAlert = false
+    @State private var fileTooLargeMessage = ""
+
     // Countdown state
     @State private var showingCountdown = false
     @State private var countdownValue = 3
@@ -1143,6 +1147,11 @@ struct CreateMeetingView: View {
         } message: {
             Text("Are you sure you want to cancel? All progress will be lost.")
         }
+        .alert("File Too Large", isPresented: $showingFileTooLargeAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(fileTooLargeMessage)
+        }
         .onAppear {
             print("🎵 CreateMeetingView appeared with importedAudioURL: \(importedAudioURL?.absoluteString ?? "nil")")
             print("🎵 hasImportedAudio: \(hasImportedAudio)")
@@ -1370,6 +1379,15 @@ struct CreateMeetingView: View {
                         }
                     } catch {
                         print("Error uploading imported audio to Supabase: \(error)")
+
+                        // Check if error is file too large
+                        await MainActor.run {
+                            if let supabaseError = error as? SupabaseError,
+                               case .fileTooLarge = supabaseError {
+                                fileTooLargeMessage = supabaseError.localizedDescription
+                                showingFileTooLargeAlert = true
+                            }
+                        }
                     }
                 }
                 
@@ -1582,6 +1600,14 @@ struct CreateMeetingView: View {
             } catch {
                 await MainActor.run {
                     print("❌ Error in server-side transcription: \(error)")
+
+                    // Check if error is file too large
+                    if let supabaseError = error as? SupabaseError,
+                       case .fileTooLarge = supabaseError {
+                        fileTooLargeMessage = supabaseError.localizedDescription
+                        showingFileTooLargeAlert = true
+                    }
+
                     meeting.setProcessingError("Failed to upload audio or create transcription job: \(error.localizedDescription)")
                     meeting.isProcessing = false
 
@@ -1708,6 +1734,15 @@ struct CreateMeetingView: View {
                         }
                     } catch {
                         print("Error uploading audio to Supabase: \(error)")
+
+                        // Check if error is file too large
+                        await MainActor.run {
+                            if let supabaseError = error as? SupabaseError,
+                               case .fileTooLarge = supabaseError {
+                                fileTooLargeMessage = supabaseError.localizedDescription
+                                showingFileTooLargeAlert = true
+                            }
+                        }
                     }
                 }
 

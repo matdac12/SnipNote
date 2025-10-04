@@ -36,6 +36,12 @@ class SupabaseManager {
         let fileAttributes = try FileManager.default.attributesOfItem(atPath: audioURL.path)
         let fileSize = fileAttributes[.size] as? Int ?? 0
 
+        // Check 50MB file size limit
+        let maxFileSize = 50 * 1024 * 1024 // 50MB
+        if fileSize > maxFileSize {
+            throw SupabaseError.fileTooLarge(size: fileSize, limit: maxFileSize)
+        }
+
         // Create file path: userId/meetingId.m4a
         let userIdString = userId.uuidString.lowercased()
         let fileName = "\(meetingId.uuidString.lowercased()).m4a"
@@ -318,6 +324,8 @@ class SupabaseManager {
                 return false // Don't retry auth errors
             case .transactionValidationFailed:
                 return false // Don't retry validation errors
+            case .fileTooLarge:
+                return false // Don't retry file size errors
             }
         }
 
@@ -389,6 +397,7 @@ enum SupabaseError: LocalizedError {
     case authRequired
     case transactionValidationFailed(String)
     case networkTimeout
+    case fileTooLarge(size: Int, limit: Int)
 
     var errorDescription: String? {
         switch self {
@@ -398,6 +407,10 @@ enum SupabaseError: LocalizedError {
             return "Transaction validation failed: \(message)"
         case .networkTimeout:
             return "Network request timed out"
+        case .fileTooLarge(let size, let limit):
+            let sizeMB = Double(size) / (1024 * 1024)
+            let limitMB = Double(limit) / (1024 * 1024)
+            return "Audio file too large (\(String(format: "%.1f", sizeMB)) MB). Please reduce the audio length or split it into multiple parts. Maximum file size: \(Int(limitMB)) MB."
         }
     }
 }

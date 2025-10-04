@@ -288,6 +288,16 @@ class BackgroundTaskManager: ObservableObject {
                 }
             } catch {
                 print("🔄 Error uploading audio during resume: \(error)")
+
+                // Check if error is file too large and save to meeting
+                if let supabaseError = error as? SupabaseError,
+                   case .fileTooLarge = supabaseError {
+                    print("🔄 File too large error during background upload: \(supabaseError.localizedDescription)")
+                    if let meetingToUpdate = try? context.fetch(descriptor).first {
+                        meetingToUpdate.setProcessingError(supabaseError.localizedDescription)
+                        try? context.save()
+                    }
+                }
             }
 
             let overview = try await OpenAIService.shared.generateMeetingOverview(transcript)

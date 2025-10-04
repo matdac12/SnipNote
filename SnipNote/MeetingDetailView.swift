@@ -31,6 +31,10 @@ struct MeetingDetailView: View {
     @State private var showDownloadAlert = false
     @StateObject private var audioPlayer = AudioPlayerManager()
 
+    // File size error
+    @State private var showingFileTooLargeAlert = false
+    @State private var fileTooLargeMessage = ""
+
     // Retry functionality
     @State private var isRetrying = false
     @StateObject private var openAIService = OpenAIService.shared
@@ -208,8 +212,13 @@ struct MeetingDetailView: View {
                 }
             }
         }
+        .alert("File Too Large", isPresented: $showingFileTooLargeAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(fileTooLargeMessage)
+        }
     }
-    
+
     // MARK: - Header View
     
     private var meetingHeaderView: some View {
@@ -1375,6 +1384,13 @@ struct MeetingDetailView: View {
                     meeting.hasRecording = true
                 } catch {
                     print("Error uploading audio during retry: \(error)")
+
+                    // Check if error is file too large
+                    if let supabaseError = error as? SupabaseError,
+                       case .fileTooLarge = supabaseError {
+                        fileTooLargeMessage = supabaseError.localizedDescription
+                        showingFileTooLargeAlert = true
+                    }
                 }
             }
 

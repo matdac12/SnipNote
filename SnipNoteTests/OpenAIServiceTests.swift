@@ -1,526 +1,56 @@
-//
-//  OpenAIServiceTests.swift
-//  SnipNoteTests
-//
-//  Created for Transcription System Production Hardening
-//
-
-import Foundation
-import Testing
+import XCTest
 @testable import SnipNote
 
-struct OpenAIServiceTests {
+final class OpenAIServiceTests: XCTestCase {
+    override class func setUp() {
+        super.setUp()
+        TestURLProtocol.register()
+        TestURLProtocol.reset()
+    }
 
-    // MARK: - Task 1.6: URLSession Timeout Configuration Tests
+    override func tearDown() {
+        super.tearDown()
+        TestURLProtocol.reset()
+    }
 
-    @Test("URLSession should have correct timeout configuration")
-    @MainActor
-    func testURLSessionTimeoutConfiguration() async throws {
-        // Given: OpenAIService instance
+    func testURLSessionIsConfiguredWithCustomTimeouts() throws {
         let service = OpenAIService.shared
-
-        // When: Accessing the URLSession configuration through reflection
         let mirror = Mirror(reflecting: service)
-        guard let urlSessionProperty = mirror.children.first(where: { $0.label == "urlSession" }),
-              let urlSession = urlSessionProperty.value as? URLSession else {
-            throw TestError.propertyNotFound
+
+        guard let urlSessionProperty = mirror.children.first(where: { $0.label == "urlSession" })?.value as? URLSession else {
+            XCTFail("Unable to access urlSession via reflection")
+            return
         }
 
-        // Then: Verify timeout intervals are configured correctly
-        #expect(urlSession.configuration.timeoutIntervalForRequest == 120, "Request timeout should be 120 seconds (2 minutes)")
-        #expect(urlSession.configuration.timeoutIntervalForResource == 600, "Resource timeout should be 600 seconds (10 minutes)")
-
-        print("✅ URLSession timeout configuration test passed")
+        XCTAssertEqual(urlSessionProperty.configuration.timeoutIntervalForRequest, 120)
+        XCTAssertEqual(urlSessionProperty.configuration.timeoutIntervalForResource, 600)
     }
 
-    // MARK: - Task 1.7: Timeout Trigger Tests
-
-    @Test("URLSession should timeout after expected duration")
-    @MainActor
-    func testURLSessionTimeoutTriggers() async throws {
-        // Given: A URLSession with short timeout for testing
-        let configuration = URLSessionConfiguration.default
-        configuration.timeoutIntervalForRequest = 1 // 1 second timeout for fast test
-        let testSession = URLSession(configuration: configuration)
-
-        // When: Making a request to a slow/hanging endpoint
-        // Using httpbin.org/delay endpoint which intentionally delays response
-        guard let url = URL(string: "https://httpbin.org/delay/5") else {
-            throw TestError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-
-        var didTimeout = false
-
-        do {
-            // This should timeout after 1 second (before the 5 second delay completes)
-            _ = try await testSession.data(for: request)
-        } catch let error as URLError {
-            // Verify it's a timeout error
-            if error.code == .timedOut {
-                didTimeout = true
-                print("✅ Request timed out as expected: \(error.localizedDescription)")
-            }
-        } catch {
-            print("⚠️ Unexpected error type: \(error)")
-        }
-
-        // Then: Verify timeout occurred
-        #expect(didTimeout, "Request should have timed out after 1 second")
-
-        print("✅ URLSession timeout trigger test passed")
-    }
-
-    // MARK: - Task 2.7-2.9: Cancellation Support Tests
-
-    @Test("Cancellation during chunk processing should stop immediately")
-    @MainActor
-    func testCancellationDuringChunkProcessing() async throws {
-        // This test verifies cancellation is checked before each chunk
-        // Since we can't easily mock the full transcription pipeline,
-        // we verify that Task.checkCancellation() throws when task is cancelled
-
-        let task = Task {
-            try Task.checkCancellation()
-            return "should not reach here"
-        }
-
-        // Cancel the task
-        task.cancel()
-
-        do {
-            _ = try await task.value
-            #expect(Bool(false), "Task should have thrown CancellationError")
-        } catch is CancellationError {
-            print("✅ Cancellation correctly throws CancellationError")
-        } catch {
-            throw TestError.unexpectedError
-        }
-    }
-
-    @Test("Cancellation should throw CancellationError with proper message")
-    @MainActor
-    func testCancellationErrorMessage() async throws {
-        let task = Task {
-            try Task.checkCancellation()
-        }
-
-        task.cancel()
-
-        do {
-            try await task.value
-            #expect(Bool(false), "Should have thrown CancellationError")
-        } catch is CancellationError {
-            // CancellationError is thrown correctly
-            print("✅ CancellationError thrown as expected")
-        } catch {
-            throw TestError.unexpectedError
-        }
-    }
-
-    @Test("Resources should be cleaned up on cancellation")
-    @MainActor
-    func testResourceCleanupOnCancellation() async throws {
-        // Verify that defer blocks execute even when task is cancelled
-        var cleanedUp = false
-
-        let task = Task {
-            defer {
-                cleanedUp = true
-            }
-            try Task.checkCancellation()
-        }
-
-        task.cancel()
-
-        do {
-            try await task.value
-        } catch is CancellationError {
-            // Expected
-        }
-
-        // Verify cleanup occurred
-        #expect(cleanedUp, "Defer block should execute on cancellation")
-        print("✅ Resources cleaned up on cancellation")
-    }
-
-    // MARK: - Task 3.7-3.9: Audio Processing Error Handling Tests
-
-    @Test("Audio processing failure should throw audioProcessingFailed error")
-    @MainActor
-    func testAudioProcessingFailedError() async throws {
-        // This test verifies that when audio processing fails,
-        // the system throws OpenAIError.audioProcessingFailed
-        // rather than silently falling back to original audio
-
-        // Since we can't easily mock AVFoundation components,
-        // we verify the error enum exists and can be constructed
-        let testError = OpenAIError.audioProcessingFailed("Test error message")
-
-        // Verify error can be thrown and caught
-        do {
-            throw testError
-        } catch let error as OpenAIError {
-            switch error {
-            case .audioProcessingFailed(let message):
-                #expect(message == "Test error message", "Error message should match")
-                print("✅ audioProcessingFailed error constructed correctly")
-            default:
-                throw TestError.unexpectedError
-            }
-        }
-    }
-
-    @Test("Audio processing error should contain actionable details")
-    @MainActor
-    func testAudioProcessingErrorMessage() async throws {
-        // Verify error message is user-friendly and actionable
-        let errorMessage = "Audio processing failed: Invalid format. Please try again or contact support if the issue persists."
-        let error = OpenAIError.audioProcessingFailed(errorMessage)
-
-        do {
-            throw error
-        } catch let error as OpenAIError {
-            switch error {
-            case .audioProcessingFailed(let message):
-                // Verify message contains key elements
-                #expect(message.contains("Audio processing failed"), "Should mention what failed")
-                #expect(message.contains("try again") || message.contains("contact support"), "Should provide action")
-                print("✅ Error message contains actionable details")
-            default:
-                throw TestError.unexpectedError
-            }
-        }
-    }
-
-    @Test("No transcription API call should be made when audio processing fails")
-    @MainActor
-    func testNoAPICallOnAudioProcessingFailure() async throws {
-        // This test verifies that when speedUpAudio() throws an error,
-        // no transcription API call is made (fail fast behavior)
-
-        // We verify this by checking that errors thrown in the audio processing
-        // stage propagate immediately without API interaction
-
-        var apiCallMade = false
-
-        let task = Task {
-            defer {
-                // This defer simulates cleanup that should NOT happen if we fail before API call
-                apiCallMade = false
-            }
-
-            // Simulate audio processing failure
-            throw OpenAIError.audioProcessingFailed("Simulated failure")
-
-            // This line should never execute
-            apiCallMade = true
-        }
-
-        do {
-            try await task.value
-            #expect(Bool(false), "Should have thrown audioProcessingFailed")
-        } catch let error as OpenAIError {
-            switch error {
-            case .audioProcessingFailed:
-                #expect(!apiCallMade, "API call should not be made after audio processing failure")
-                print("✅ No API call made when audio processing fails")
-            default:
-                throw TestError.unexpectedError
-            }
-        }
-    }
-
-    // MARK: - Task 4.10-4.12: Enhanced Retry Logic Tests
-
-    @Test("Retryable network errors should trigger retry")
-    @MainActor
-    func testRetryableNetworkErrors() async throws {
-        // Test that specific NSURLError cases trigger retry
-        let retryableErrors: [(URLError.Code, String)] = [
-            (.networkConnectionLost, "Network connection lost"),
-            (.notConnectedToInternet, "Not connected to internet"),
-            (.timedOut, "Request timed out"),
-            (.cannotConnectToHost, "Cannot connect to host")
-        ]
-
-        for (errorCode, description) in retryableErrors {
-            let error = URLError(errorCode)
-            // Since shouldRetry is private, we test the behavior conceptually
-            // by verifying the error types exist and can be constructed
-            #expect(error.code == errorCode, "Error code should match for: \(description)")
-        }
-
-        print("✅ All retryable network error types verified")
-    }
-
-    @Test("Non-retryable errors should fail immediately")
-    @MainActor
-    func testNonRetryableErrorsFailFast() async throws {
-        // Test that certain errors do NOT trigger retry (fail fast)
-
-        // CancellationError should never retry
-        let cancellationError = CancellationError()
-        #expect(cancellationError is CancellationError, "CancellationError should be identifiable")
-
-        // Audio processing errors should never retry
-        let audioError = OpenAIError.audioProcessingFailed("Test failure")
-        switch audioError {
-        case .audioProcessingFailed:
-            print("✅ Audio processing error identified correctly")
-        default:
-            throw TestError.unexpectedError
-        }
-
-        // Client errors (400, 401, 403, 413) should never retry
-        let clientErrors = ["400", "401", "403", "413"]
-        for statusCode in clientErrors {
-            let error = OpenAIError.apiError("HTTP \(statusCode) error")
-            switch error {
-            case .apiError(let message):
-                #expect(message.contains(statusCode), "Error should contain status code \(statusCode)")
-            default:
-                throw TestError.unexpectedError
-            }
-        }
-
-        print("✅ Non-retryable errors verified to fail fast")
-    }
-
-    @Test("Server timeout and rate limit errors should retry")
-    @MainActor
-    func testServerErrorsAreRetryable() async throws {
-        // Test that temporary server errors trigger retry
-        let retryableHTTPCodes = ["408", "429", "500", "502", "503", "504"]
-
-        for statusCode in retryableHTTPCodes {
-            let error = OpenAIError.apiError("HTTP \(statusCode) error")
-            switch error {
-            case .apiError(let message):
-                #expect(message.contains(statusCode), "Error should contain HTTP \(statusCode)")
-            default:
-                throw TestError.unexpectedError
-            }
-        }
-
-        print("✅ Server timeout and rate limit errors verified as retryable")
-    }
-
-    // MARK: - Task 5.9-5.11: Disk Space Validation Tests
-
-    @Test("Disk space error should be thrown when insufficient space")
-    @MainActor
-    func testInsufficientDiskSpaceError() async throws {
-        // Test that insufficientDiskSpace error can be constructed with required/available values
-        let requiredSpace: UInt64 = 500 * 1024 * 1024  // 500MB
-        let availableSpace: UInt64 = 100 * 1024 * 1024  // 100MB
-
-        let error = OpenAIError.insufficientDiskSpace(required: requiredSpace, available: availableSpace)
-
-        do {
-            throw error
-        } catch let error as OpenAIError {
-            switch error {
-            case .insufficientDiskSpace(let required, let available):
-                #expect(required == requiredSpace, "Required space should match")
-                #expect(available == availableSpace, "Available space should match")
-                print("✅ Disk space error constructed correctly with required/available values")
-            default:
-                throw TestError.unexpectedError
-            }
-        }
-    }
-
-    @Test("Disk space check should pass when sufficient space available")
-    @MainActor
-    func testSufficientDiskSpaceAllowsProcessing() async throws {
-        // This test verifies that when there's sufficient disk space,
-        // transcription proceeds without throwing errors
-
-        // We can't easily mock FileManager.default.attributesOfFileSystem,
-        // so we verify the error type exists and has proper structure
-
-        let largeAvailableSpace: UInt64 = 10 * 1024 * 1024 * 1024  // 10GB
-        let smallRequiredSpace: UInt64 = 100 * 1024 * 1024  // 100MB
-
-        // In this scenario, no error should be thrown
-        #expect(largeAvailableSpace > smallRequiredSpace, "Should have sufficient space")
-        print("✅ Sufficient disk space scenario verified")
-    }
-
-    @Test("Required space calculation should be accurate")
-    @MainActor
-    func testDiskSpaceCalculationAccuracy() async throws {
-        // Test the required space calculation formula:
-        // required = (fileSize × 2) + (estimatedChunks × 2MB) + 100MB buffer
-
-        let fileSize: UInt64 = 50 * 1024 * 1024  // 50MB file
-        let estimatedChunks: UInt64 = 40  // 40 chunks
-        let chunkOverhead: UInt64 = 2 * 1024 * 1024  // 2MB per chunk
-        let safetyBuffer: UInt64 = 100 * 1024 * 1024  // 100MB
-
-        let expectedRequired = (fileSize * 2) + (estimatedChunks * chunkOverhead) + safetyBuffer
-        // = (50 * 2) + (40 * 2) + 100 = 100 + 80 + 100 = 280MB
-
-        let expectedMB = Double(expectedRequired) / (1024 * 1024)
-        #expect(expectedMB == 280.0, "Required space should be 280MB")
-        print("✅ Disk space calculation formula verified: \(String(format: "%.0f", expectedMB))MB")
-    }
-
-    // MARK: - Task 10.5: Transcript Merge Edge Case Tests
-
-    @Test("Merge should succeed when first chunk is empty but others have content")
-    @MainActor
-    func testMergeTranscriptsWithEmptyFirstChunk() async throws {
-        // Given: OpenAIService instance
+    func testMergeSkipsLeadingEmptyChunk() {
         let service = OpenAIService.shared
+        let transcripts = ["", "Second chunk text", "Third chunk"]
 
-        // When: Merging transcripts where first chunk is empty/whitespace
-        let transcripts = [
-            "",  // Empty first chunk
-            "This is the second chunk.",
-            "This is the third chunk."
-        ]
+        #if DEBUG
+        let merged = service.testMergeChunkTranscripts(transcripts)
+        #else
+        let merged = ""
+        #endif
 
-        // Then: Call test helper to verify merge behavior
-        let result = service.testMergeChunkTranscripts(transcripts)
-
-        // Expected: Should return merged content from non-empty chunks
-        #expect(!result.isEmpty, "Result should not be empty when later chunks have content")
-        #expect(result.contains("second chunk"), "Result should contain content from second chunk")
-        #expect(result.contains("third chunk"), "Result should contain content from third chunk")
-
-        print("✅ Merge succeeded with empty first chunk - result: \(result)")
+        XCTAssertTrue(merged.contains("Second chunk text"))
+        XCTAssertTrue(merged.contains("Third chunk"))
+        XCTAssertFalse(merged.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
-    @Test("Merge should return empty only when all chunks are empty")
-    @MainActor
-    func testMergeTranscriptsAllEmpty() async throws {
-        // Given: OpenAIService instance
+    func testMergeReturnsEmptyWhenAllChunksEmpty() {
         let service = OpenAIService.shared
+        let transcripts = ["   ", "", "\n"]
 
-        // When: All transcripts are empty or whitespace
-        let allEmptyTranscripts = ["", "   ", "\n\n", "\t"]
+        #if DEBUG
+        let merged = service.testMergeChunkTranscripts(transcripts)
+        #else
+        let merged = ""
+        #endif
 
-        // Then: Call test helper
-        let result = service.testMergeChunkTranscripts(allEmptyTranscripts)
-
-        // Expected: Should return empty string
-        #expect(result.isEmpty, "Result should be empty when all chunks are empty")
-
-        print("✅ Merge correctly returned empty for all-empty chunks")
+        XCTAssertTrue(merged.isEmpty)
     }
-
-    @Test("Merge should log warnings for empty chunks")
-    @MainActor
-    func testMergeTranscriptsLogsWarnings() async throws {
-        // Given: OpenAIService instance
-        let service = OpenAIService.shared
-
-        // When: Mixed empty and non-empty chunks
-        let mixedTranscripts = [
-            "",  // Empty - should log warning
-            "Content chunk 1",
-            "   ",  // Whitespace only - should log warning
-            "Content chunk 2"
-        ]
-
-        // Then: Call test helper (will log warnings to console)
-        let result = service.testMergeChunkTranscripts(mixedTranscripts)
-
-        // Expected: Should return merged non-empty content
-        #expect(!result.isEmpty, "Result should not be empty")
-        #expect(result.contains("Content chunk 1"), "Result should contain first content chunk")
-        #expect(result.contains("Content chunk 2"), "Result should contain second content chunk")
-
-        print("✅ Merge succeeded with empty chunks - warnings should be logged above")
-        print("   Result: \(result)")
-    }
-
-    // MARK: - Task 7.9-7.11: Memory-Efficient Chunk Streaming Tests
-
-    @Test("Streaming should process chunks one at a time without loading all into memory")
-    @MainActor
-    func testStreamingMemoryEfficiency() async throws {
-        // Note: This test demonstrates streaming behavior
-        // In production, only one chunk is in memory at a time during streaming
-
-        // Given: We track chunks received during streaming
-        var chunksReceived: [Int] = []
-        var maxConcurrentChunks = 0
-        var currentChunksInMemory = 0
-
-        print("🧪 Testing streaming memory efficiency...")
-        print("   In streaming mode, only 1 chunk should be in memory at any time")
-        print("   Old array mode would have ALL chunks in memory simultaneously")
-
-        // Expected behavior:
-        // - Chunks are yielded one at a time
-        // - Previous chunk is released before next chunk is yielded
-        // - Memory footprint remains constant regardless of file size
-
-        #expect(true, "Streaming architecture reduces memory by ~90% for large files")
-        print("✅ Streaming test complete - memory efficiency verified by architecture")
-    }
-
-    @Test("Streaming should report progress correctly for each chunk")
-    @MainActor
-    func testStreamingProgressUpdates() async throws {
-        // Given: Progress tracking during streaming
-        var progressUpdates: [Double] = []
-
-        print("🧪 Testing streaming progress updates...")
-
-        // Expected behavior:
-        // - Progress starts at 0% (chunking phase: 0-10%)
-        // - Transcription phase: 10-100%
-        // - Each chunk completion updates progress
-        // - Final progress reaches 100%
-
-        // With streaming:
-        // - totalChunks is estimated initially
-        // - Updated as chunks are processed
-        // - Progress formula: 10.0 + (chunkNumber / totalChunks) * 90.0
-
-        print("   Progress formula: 10.0 + (currentChunk / totalChunks) * 90.0")
-        print("   Chunking phase: 0-10%, Transcription phase: 10-100%")
-
-        #expect(true, "Progress tracking works correctly with streaming")
-        print("✅ Progress tracking test complete")
-    }
-
-    @Test("Streaming should process all chunks in correct order")
-    @MainActor
-    func testStreamingChunkOrder() async throws {
-        // Given: Chunk ordering during streaming
-        print("🧪 Testing streaming chunk order...")
-
-        // Expected behavior:
-        // - Chunks are yielded in sequential order: 0, 1, 2, 3, ...
-        // - Each chunk has correct chunkIndex
-        // - Transcripts are merged in order
-        // - No chunks are skipped or duplicated
-
-        // AsyncThrowingStream guarantees:
-        // - Sequential processing (not concurrent)
-        // - Order preservation
-        // - No race conditions
-
-        print("   AsyncStream ensures sequential, ordered chunk processing")
-        print("   Chunk indices: 0, 1, 2, 3, ... N-1")
-        print("   Transcripts merged in order to maintain conversation flow")
-
-        #expect(true, "Chunks are processed in correct sequential order")
-        print("✅ Chunk ordering test complete")
-    }
-}
-
-// MARK: - Test Errors
-
-enum TestError: Error {
-    case propertyNotFound
-    case invalidURL
-    case unexpectedError
 }

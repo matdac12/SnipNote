@@ -907,12 +907,6 @@
         }
       }
     },
-    "On-Device Transcription" : {
-
-    },
-    "ON-DEVICE TRANSCRIPTION" : {
-
-    },
     "OpenAI API Key" : {
 
     },
@@ -2694,12 +2688,6 @@
           }
         }
       }
-    },
-    "Transcription processed on server (recommended for long meetings)" : {
-
-    },
-    "Transcription processed on this device (faster for short meetings)" : {
-
     },
     "Troubleshooting:" : {
 

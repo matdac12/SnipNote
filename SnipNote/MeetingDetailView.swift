@@ -1452,7 +1452,6 @@ struct MeetingDetailView: View {
             return
         }
 
-        let audioURL = URL(fileURLWithPath: localPath)
         guard FileManager.default.fileExists(atPath: localPath) else {
             print("❌ [MeetingDetail] Local audio file no longer exists - cannot fallback")
             meeting.setProcessingError("Server processing failed and local audio file was deleted")

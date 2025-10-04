@@ -93,8 +93,7 @@ struct CreateMeetingView: View {
     // Cancellation state
     @State private var showingCancelConfirmation = false
 
-    // Server transcription toggle
-    @State private var useServerTranscription = true
+    // Server transcription service
     @StateObject private var transcriptionService = RenderTranscriptionService()
 
     private enum FocusedField: Hashable {
@@ -675,7 +674,8 @@ struct CreateMeetingView: View {
                 .foregroundColor(theme.accentColor)
 
             let requiredMinutes = max(1, Int(ceil(cachedAudioDuration / 60.0)))
-            if minutesManager.currentBalance < requiredMinutes && !useServerTranscription {
+            // Only show minutes warning for short audio (≤5min) that will use on-device processing
+            if cachedAudioDuration <= 300 && minutesManager.currentBalance < requiredMinutes {
                 Text("This audio requires \(requiredMinutes) minutes. You have \(minutesManager.currentBalance) minutes remaining.")
                     .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(theme.warningColor)
@@ -686,8 +686,6 @@ struct CreateMeetingView: View {
                 .fill(theme.accentColor)
                 .frame(width: 200, height: 4)
                 .opacity(0.7)
-
-            transcriptionModeToggle(theme: theme)
 
             Button(theme.headerStyle == .brackets ? "ANALYZE MEETING" : "Analyze Meeting") {
                 analyzeImportedAudio()
@@ -1028,8 +1026,6 @@ struct CreateMeetingView: View {
     @ViewBuilder
     private func idleRecordingCard(theme: AppTheme) -> some View {
         VStack(spacing: 16) {
-            transcriptionModeToggle(theme: theme)
-
             Button(theme.headerStyle == .brackets ? "START MEETING RECORDING" : "Start Meeting Recording") {
                 startCountdown()
             }
@@ -1042,46 +1038,6 @@ struct CreateMeetingView: View {
             .opacity(meetingNameTrimmed.isEmpty ? 0.7 : 1.0)
         }
     }
-
-    @ViewBuilder
-    private func transcriptionModeToggle(theme: AppTheme) -> some View {
-        VStack(spacing: 12) {
-            HStack {
-                Image(systemName: useServerTranscription ? "cloud.fill" : "iphone")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(theme.accentColor)
-
-                Text(useServerTranscription ?
-                     (theme.headerStyle == .brackets ? "SERVER TRANSCRIPTION" : "Server Transcription") :
-                     (theme.headerStyle == .brackets ? "ON-DEVICE TRANSCRIPTION" : "On-Device Transcription"))
-                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                    .foregroundColor(theme.accentColor)
-
-                Spacer()
-
-                Toggle("", isOn: $useServerTranscription)
-                    .labelsHidden()
-                    .tint(theme.accentColor)
-            }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: theme.cornerRadius)
-                    .fill(theme.secondaryBackgroundColor.opacity(0.3))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: theme.cornerRadius)
-                    .stroke(theme.accentColor.opacity(0.3), lineWidth: 1)
-            )
-
-            Text(useServerTranscription ?
-                 "Transcription processed on server (recommended for long meetings)" :
-                 "Transcription processed on this device (faster for short meetings)")
-                .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default))
-                .foregroundColor(theme.secondaryTextColor)
-                .multilineTextAlignment(.center)
-        }
-    }
-
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1282,10 +1238,18 @@ struct CreateMeetingView: View {
             return
         }
 
-        if useServerTranscription {
-            processServerSide(audioURL: audioURL)
-        } else {
+        // Auto-select transcription method based on audio duration
+        let durationMinutes = Int(cachedAudioDuration / 60)
+        let durationSeconds = Int(cachedAudioDuration)
+
+        if cachedAudioDuration <= 300 {
+            // 5 minutes or less: use on-device for speed
+            print("📱 Auto-selected on-device transcription (duration: \(durationMinutes)m \(durationSeconds % 60)s)")
             processOnDevice(audioURL: audioURL)
+        } else {
+            // More than 5 minutes: use server-side for reliability
+            print("☁️ Auto-selected server-side transcription (duration: \(durationMinutes)m \(durationSeconds % 60)s)")
+            processServerSide(audioURL: audioURL)
         }
     }
 

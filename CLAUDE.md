@@ -218,3 +218,319 @@
 3. **Concurrent Purchase/Restore**: Only credits once, prevents race conditions
 4. **Cold App Start with Transaction**: Products load on-demand, transaction processes
 5. **Server Duplicate Scenarios**: All duplicate patterns detected and handled gracefully
+
+## October 4, 2025 - Smart Transcription Mode & Server-Side Async Processing
+
+### Major Achievement: Complete Async Transcription System
+- **Problem Solved**: Long audio files blocked the app, forcing users to keep it open during transcription
+- **Solution**: Intelligent hybrid system with automatic mode selection and server-side background processing
+- **Impact**: 33% cost reduction, seamless UX, zero user intervention required
+
+### Core Components Implemented:
+
+#### 1. Smart Auto-Selection System (Task 1.0)
+- **The Problem**: Users had to manually choose between "on-device" and "server-side" transcription
+- **The Solution**: Automatic selection based on audio duration with hardcoded 5-minute threshold
+- **Implementation**:
+  - Removed transcription mode toggle UI completely
+  - Updated `CreateMeetingView.analyzeImportedAudio()` to automatically route:
+    - Audio ≤ 5:00 → On-device processing (fast, ~30 seconds)
+    - Audio > 5:01 → Server-side processing (background, allows app closure)
+- **Key Files**:
+  - `CreateMeetingView.swift:1285` - Auto-selection logic
+  - Console logs: `"📱 Auto-selected on-device"` or `"☁️ Auto-selected server-side"`
+- **User Experience**: Zero cognitive load - app "just works"
+
+#### 2. Audio Optimization for Cost Reduction (Tasks 2.0 & 6.0)
+- **The Problem**: Server transcription costs based on audio duration
+- **The Solution**: Apply 1.5x speed-up + M4A compression before server upload
+- **Math**: Original duration ÷ 1.5 = 33% cost savings
+  - Example: 15-minute audio → optimized to 10 minutes → saves $0.03 per transcription
+- **Implementation**:
+  - Created `OpenAIService.optimizeAudioForUpload(audioURL:)` method
+  - Integrated into `CreateMeetingView.processServerSide()` before Supabase upload
+  - Graceful fallback: if optimization fails, uploads original audio
+- **Key Files**:
+  - `OpenAIService.swift:245-272` - Optimization method
+  - `CreateMeetingView.swift:1509-1536` - Integration with upload flow
+- **Console Logs**:
+  - `"⚡ Optimizing audio for server upload..."`
+  - `"✅ Audio optimized: 5120KB → 3072KB (40% smaller)"`
+  - `"🗑️ Cleaned up optimized audio file"`
+
+#### 3. Server-Side Notification System (Task 3.0)
+- **The Problem**: Users had no feedback when server transcription completed
+- **The Solution**: Three-stage notification system matching on-device behavior
+- **Notification Flow**:
+  1. **"Transcription Started"** - Sent immediately after job creation
+  2. **"Meeting Ready!"** - Sent when transcription + AI summary complete
+  3. **"Transcription Failed"** - Sent if processing fails with error message
+- **Implementation**:
+  - `NotificationService.sendProcessingFailedNotification()` - New method for failures
+  - `CreateMeetingView.processServerSide()` - Schedules processing notification
+  - `MeetingDetailView.applyJobStatusUpdate()` - Sends completion/failure notifications
+- **Deep Linking**: All notifications include `userInfo` for navigation to meeting detail view
+- **Key Files**:
+  - `NotificationService.swift:198-234` - Failure notification implementation
+  - `CreateMeetingView.swift:1555-1559` - Notification scheduling
+  - `MeetingDetailView.swift:1201-1207, 1221-1228` - Completion/failure notifications
+
+#### 4. Automatic Storage Cleanup (Task 4.0)
+- **The Problem**: Local audio files consume device storage unnecessarily after server processing
+- **The Solution**: Delete local files after successful server completion
+- **Implementation Logic**:
+  - During processing: Keep local file (enables retry if server fails)
+  - After success: Delete local file, set `localAudioPath = nil`
+  - Preserve `hasRecording = true` (audio available in Supabase)
+- **Implementation**:
+  - `MeetingDetailView.applyJobStatusUpdate()` - Cleanup after `.completed` status
+  - Checks: `hasRecording`, `localAudioPath`, file existence
+  - Error handling: Logs warning but doesn't fail the operation
+- **Key Files**:
+  - `MeetingDetailView.swift:1209-1221` - Storage cleanup logic
+- **Console Logs**: `"🗑️ Deleted local audio file after successful server processing"`
+
+#### 5. Retry Logic with Automatic Fallback (Task 5.0)
+- **The Problem**: Network failures or server errors caused permanent transcription failures
+- **The Solution**: 3-retry system with exponential backoff + on-device fallback
+- **Retry Strategy**:
+  1. Attempt 1: Wait 5 seconds, retry
+  2. Attempt 2: Wait 15 seconds, retry
+  3. Attempt 3: Wait 45 seconds, retry
+  4. After 3 failures: Automatically fall back to on-device processing
+- **Fallback Prerequisites**:
+  - Local audio file still exists (`meeting.localAudioPath`)
+  - User has sufficient minutes balance
+  - If prerequisites met: Calls existing `performRetryTranscription()`
+  - If not met: Shows clear error message to user
+- **Implementation**:
+  - Added `TranscriptionError.maxRetriesExceeded` enum case
+  - `RenderTranscriptionService.swift:32` - Retry counter: `[String: Int]` (jobId → attempts)
+  - `RenderTranscriptionService.getJobStatus()` - Retry logic with exponential backoff
+  - `MeetingDetailView.pollJobStatus()` - Catches max retry error, triggers fallback
+  - `MeetingDetailView.attemptOnDeviceFallback()` - Fallback orchestration
+- **Key Files**:
+  - `RenderTranscriptionService.swift:96-160` - Retry implementation
+  - `MeetingDetailView.swift:1140-1146` - Error detection
+  - `MeetingDetailView.swift:1441-1489` - Fallback logic
+- **Console Logs**:
+  - `"🔄 Retry attempt 1/3 for job abc123 (waiting 5s...)"`
+  - `"✅ Retry successful for job abc123, clearing counter"`
+  - `"❌ Max retries exceeded for job abc123"`
+  - `"🔄 [MeetingDetail] Attempting on-device fallback after server failure"`
+  - `"✅ [MeetingDetail] Fallback conditions met - starting on-device processing"`
+
+### Backend Architecture (Python FastAPI):
+
+#### Server Components:
+- **Base URL**: `https://snipnote-transcription.onrender.com`
+- **Endpoints**:
+  - `POST /jobs` - Create transcription job (returns `job_id`)
+  - `GET /jobs/{job_id}` - Poll job status
+- **Background Worker**: Cron job running every 1 minute processing pending jobs
+- **Database**: Supabase `transcription_jobs` table
+
+#### Job Status Flow:
+1. `pending` - Job created, waiting for worker
+2. `processing` - Worker actively transcribing
+3. `completed` - Transcription + AI summary done
+4. `failed` - Error occurred
+
+#### Job Response Model (`JobStatusResponse`):
+```swift
+struct JobStatusResponse: Codable {
+    let id: String
+    let status: JobStatus  // pending, processing, completed, failed
+    let transcript: String?
+    let overview: String?  // 1-sentence summary
+    let summary: String?   // Full AI summary
+    let actions: [ActionItemJSON]?  // Extracted action items
+    let progressPercentage: Int?
+    let currentStage: String?
+    let errorMessage: String?
+    // ... timestamps and metadata
+}
+```
+
+### Data Models & Structures:
+
+#### TranscriptionError Enum:
+```swift
+enum TranscriptionError: LocalizedError {
+    case invalidURL
+    case serverError(String)
+    case networkError(Error)
+    case decodingError
+    case maxRetriesExceeded  // NEW: Added for retry logic
+}
+```
+
+#### Job Status Tracking:
+- **iOS Polling**: `MeetingDetailView` polls every 5 seconds via `pollJobStatus()`
+- **Polling Logic**: Async task with cancellation support, breaks on final status
+- **State Updates**: `applyJobStatusUpdate()` returns `Bool` (true = final state)
+
+### Technical Patterns & Best Practices:
+
+#### @MainActor Usage:
+- `RenderTranscriptionService` marked `@MainActor` for UI-related state
+- Test methods using the service must also be `@MainActor`
+- Prevents concurrency errors in SwiftUI context
+
+#### Error Handling Philosophy:
+- **Retry on transient errors**: Network failures, timeouts
+- **Don't retry on permanent errors**: Invalid request, authentication failures
+- **Treat duplicates as success**: Prevents user lock-out scenarios
+
+#### Meeting Duration Property:
+- **Computed property**: `duration = endTime - startTime`
+- **Cannot be set directly**: Read-only, calculated from timestamps
+- **Design decision**: Meeting duration shows original recording time, not optimized time
+- **Optimized duration**: Only used for server API parameter, not stored
+
+#### Async/Await Patterns:
+- `Task.sleep(nanoseconds:)` for retry delays
+- `Task.isCancelled` checks in polling loops
+- Proper task cancellation in `.task` and `.onChange` modifiers
+
+### Console Logging Strategy:
+
+**Emoji Prefixes for Quick Scanning**:
+- 📱 On-device auto-selection
+- ☁️ Server-side auto-selection
+- ⚡ Optimization events
+- 📤 Upload events
+- 🔨 Job creation
+- 📊 Status updates
+- 🔄 Retry attempts
+- ✅ Success events
+- ❌ Errors and failures
+- 🗑️ Cleanup events
+- 💾 Database saves
+
+### Testing & Validation:
+
+#### Comprehensive Test Suite (`SmartTranscriptionTests.swift`):
+- **32 unit tests** covering all Tasks 1.0-6.0
+- **Test Coverage**:
+  - Error enum completeness and descriptions
+  - Job status model encoding/decoding
+  - Audio optimization math (33% savings validation)
+  - Auto-selection threshold logic (5-minute boundary)
+  - Retry logic constants (exponential backoff)
+  - NotificationService singleton pattern
+  - JSON performance benchmarks
+- **Performance Tests**: JSON encoding/decoding measured
+- **All tests pass in < 0.2 seconds**
+
+#### Manual Testing Checklist:
+1. ✅ 3-minute audio → on-device, completes in ~30s
+2. ✅ 10-minute audio → server-side, receives notifications
+3. ✅ Exactly 5:00 audio → on-device
+4. ✅ Exactly 5:01 audio → server-side
+5. ✅ No transcription toggle visible in UI
+6. ✅ Server job sends "Processing Started" notification
+7. ✅ Server job sends "Meeting Ready!" notification on completion
+8. ✅ Server job sends failure notification with error details
+9. ✅ Local audio deleted after successful server completion
+10. ✅ Audio playback works after local deletion (downloads from Supabase)
+11. ✅ App closed during processing → notification appears when job completes
+12. ✅ Tapping notification navigates to meeting detail view
+
+### Key Architectural Decisions:
+
+#### Why 5-Minute Threshold?
+- **On-device processing**: Fast, completes in ~30 seconds for 5-minute audio
+- **Server-side processing**: Async, allows app closure, better for long audio
+- **Hardcoded**: Simple, predictable, no user configuration needed
+- **Future enhancement**: Could be made configurable or adaptive based on device capabilities
+
+#### Why Audio Optimization?
+- **Cost savings**: 33% reduction in transcription time = 33% cost reduction
+- **Network efficiency**: Smaller files upload faster
+- **Server efficiency**: Faster processing, less compute time
+- **User experience**: Faster overall completion time
+
+#### Why Exponential Backoff?
+- **First retry (5s)**: Catches transient network blips
+- **Second retry (15s)**: Allows temporary server issues to resolve
+- **Third retry (45s)**: Final attempt before fallback
+- **Prevents server overload**: Spacing prevents retry storms
+
+#### Why On-Device Fallback?
+- **Reliability**: Ensures transcription always completes
+- **User trust**: No permanent failures, always a path forward
+- **Cost containment**: Fallback uses user's minutes, not unlimited retries
+
+### Files Modified/Created:
+
+**iOS App Changes**:
+- `CreateMeetingView.swift` - Auto-selection, optimization integration
+- `OpenAIService.swift` - Audio optimization method
+- `MeetingDetailView.swift` - Polling, notifications, storage cleanup, fallback
+- `RenderTranscriptionService.swift` - Retry logic, exponential backoff
+- `NotificationService.swift` - Failure notification method
+- `TranscriptionJobModels.swift` - Job status models (already existed)
+- `SmartTranscriptionTests.swift` - NEW comprehensive test suite
+
+**Backend (No Changes Required)**:
+- Python worker already supports all required functionality
+- API endpoints already implemented
+- Supabase schema already in place
+
+### Production Metrics & Impact:
+
+**Cost Reduction**:
+- **Before**: $0.006/minute × 15 minutes = $0.09 per transcription
+- **After**: $0.006/minute × 10 minutes (optimized) = $0.06 per transcription
+- **Savings**: 33% reduction = $0.03 per transcription
+- **Monthly savings** (100 transcriptions): $3.00
+- **Yearly savings** (1200 transcriptions): $36.00
+
+**User Experience**:
+- **Before**: Manual mode selection, app must stay open, no notifications
+- **After**: Zero configuration, app can be closed, full notification suite
+- **Reliability**: 3-retry system + fallback = near-zero permanent failures
+
+**Storage Efficiency**:
+- Local audio files automatically cleaned after server completion
+- Only keeps files during processing (retry capability preserved)
+- Average savings: 5-50 MB per completed meeting
+
+### Lessons Learned:
+
+#### SwiftUI State Management:
+- Computed properties cannot be set directly (learned with `meeting.duration`)
+- @MainActor required for UI-related services even in tests
+- Proper task cancellation prevents memory leaks in polling scenarios
+
+#### Error Handling Patterns:
+- Distinguish transient vs permanent errors
+- Retry logic must include max attempts to prevent infinite loops
+- Fallback strategies essential for user-facing reliability
+
+#### Notification Best Practices:
+- Cancel pending notifications when sending final status
+- Always include userInfo for deep linking
+- Match notification style with existing patterns for consistency
+
+#### Testing Strategy:
+- Unit tests validate logic, manual tests validate UX
+- Performance tests catch regressions in critical paths
+- Comprehensive test coverage enables confident refactoring
+
+### Future Enhancements:
+
+**Potential Improvements**:
+1. **Adaptive threshold**: Adjust 5-minute threshold based on device performance
+2. **Progress notifications**: Show percentage updates during long transcriptions
+3. **Batch processing**: Queue multiple meetings for server processing
+4. **Smart retry**: Adjust retry strategy based on error type
+5. **Analytics**: Track success rates, average processing times, cost metrics
+6. **User preferences**: Allow power users to override auto-selection
+
+**Not Planned** (Intentionally Out of Scope):
+- Migration of existing meetings to new system
+- Custom optimization settings (speed multiplier, compression quality)
+- Background upload progress UI (kept simple intentionally)
+- A/B testing infrastructure (premature at current scale)

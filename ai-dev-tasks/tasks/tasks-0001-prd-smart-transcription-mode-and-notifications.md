@@ -83,33 +83,33 @@ Based on PRD: `0001-prd-smart-transcription-mode-and-notifications.md`
   - [x] 4.3 Verify that `meeting.hasRecording` remains true (audio still accessible via Supabase)
   - [x] 4.4 Add error handling for file deletion failures (log but don't fail the entire operation)
 
-- [ ] 5.0 Add retry logic with fallback to on-device processing
-  - [ ] 5.1 In `RenderTranscriptionService.swift`, add retry counter state:
+- [x] 5.0 Add retry logic with fallback to on-device processing
+  - [x] 5.1 In `RenderTranscriptionService.swift`, add retry counter state:
     ```swift
     private var retryAttempts: [String: Int] = [:] // jobId -> attempt count
     ```
-  - [ ] 5.2 Update `getJobStatus()` to track failures and implement exponential backoff:
+  - [x] 5.2 Update `getJobStatus()` to track failures and implement exponential backoff:
     - If error occurs, increment retry counter for that jobId
     - If retryAttempts < 3, wait with backoff: 5s, 15s, 45s (use `try await Task.sleep()`)
     - If retryAttempts >= 3, throw a specific error indicating max retries exceeded
-  - [ ] 5.3 In `MeetingDetailView.pollJobStatus()`, catch max retry errors and trigger fallback:
+  - [x] 5.3 In `MeetingDetailView.pollJobStatus()`, catch max retry errors and trigger fallback:
     ```swift
     catch let error as TranscriptionError where error == .maxRetriesExceeded {
         // Attempt fallback to on-device
         await attemptOnDeviceFallback()
     }
     ```
-  - [ ] 5.4 Implement `attemptOnDeviceFallback()` method in `MeetingDetailView`:
+  - [x] 5.4 Implement `attemptOnDeviceFallback()` method in `MeetingDetailView`:
     - Check if `meeting.localAudioPath` exists
     - Check if `minutesManager.currentBalance` is sufficient
     - If both true, call existing retry logic (`retryTranscription()`)
     - If not possible, set error state and notify user
-  - [ ] 5.5 Add new error case to `TranscriptionError` enum:
+  - [x] 5.5 Add new error case to `TranscriptionError` enum:
     ```swift
     case maxRetriesExceeded
     ```
-  - [ ] 5.6 Update console logs to show retry attempts: "🔄 Retry attempt 1/3 for job \(jobId) (waiting 5s...)"
-  - [ ] 5.7 Clear retry counter when job succeeds or is manually retried
+  - [x] 5.6 Update console logs to show retry attempts: "🔄 Retry attempt 1/3 for job \(jobId) (waiting 5s...)"
+  - [x] 5.7 Clear retry counter when job succeeds or is manually retried
 
 - [ ] 6.0 Integrate audio optimization into server upload flow
   - [ ] 6.1 In `CreateMeetingView.processServerSide()`, before uploading to Supabase (around line 1546), add:

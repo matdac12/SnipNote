@@ -1137,6 +1137,14 @@ struct MeetingDetailView: View {
             } catch {
                 if Task.isCancelled { break }
 
+                // Check if max retries exceeded - trigger fallback
+                if let transcriptionError = error as? TranscriptionError,
+                   case .maxRetriesExceeded = transcriptionError {
+                    print("❌ [MeetingDetail] Max retries exceeded - attempting on-device fallback")
+                    await attemptOnDeviceFallback()
+                    break pollingLoop
+                }
+
                 print("⚠️ [MeetingDetail] Error polling job status: \(error)")
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
             }
@@ -1528,6 +1536,66 @@ private struct MeetingProcessingStatusView: View {
             .padding(.vertical, 28)
             .padding(.horizontal, 16)
         }
+    }
+
+    // MARK: - Fallback Logic
+
+    @MainActor
+    private func attemptOnDeviceFallback() async {
+        print("🔄 [MeetingDetail] Attempting on-device fallback after server failure")
+
+        // Check if local audio file exists
+        guard let localPath = meeting.localAudioPath else {
+            print("❌ [MeetingDetail] No local audio path - cannot fallback to on-device")
+            await MainActor.run {
+                meeting.setProcessingError("Server processing failed and no local audio available for retry")
+                meeting.transcriptionJobId = nil
+                jobId = nil
+                try? modelContext.save()
+            }
+            return
+        }
+
+        let audioURL = URL(fileURLWithPath: localPath)
+        guard FileManager.default.fileExists(atPath: localPath) else {
+            print("❌ [MeetingDetail] Local audio file no longer exists - cannot fallback")
+            await MainActor.run {
+                meeting.setProcessingError("Server processing failed and local audio file was deleted")
+                meeting.localAudioPath = nil
+                meeting.transcriptionJobId = nil
+                jobId = nil
+                try? modelContext.save()
+            }
+            return
+        }
+
+        // Check if user has sufficient minutes
+        await minutesManager.refreshBalance()
+        let requiredMinutes = max(1, Int(ceil(meeting.duration / 60.0)))
+
+        if minutesManager.currentBalance < requiredMinutes {
+            print("❌ [MeetingDetail] Insufficient minutes for on-device fallback. Required: \(requiredMinutes), Available: \(minutesManager.currentBalance)")
+            await MainActor.run {
+                meeting.setProcessingError("Server processing failed. Retry requires \(requiredMinutes) minutes but only \(minutesManager.currentBalance) available.")
+                meeting.transcriptionJobId = nil
+                jobId = nil
+                try? modelContext.save()
+            }
+            return
+        }
+
+        print("✅ [MeetingDetail] Fallback conditions met - starting on-device processing")
+
+        // Clear server job ID since we're falling back
+        await MainActor.run {
+            meeting.transcriptionJobId = nil
+            jobId = nil
+            meeting.clearProcessingError()
+            meeting.updateProcessingState(.transcribing)
+        }
+
+        // Reuse existing retry logic which handles on-device processing
+        await performRetryTranscription()
     }
 }
 

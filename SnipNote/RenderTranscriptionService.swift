@@ -10,6 +10,7 @@ enum TranscriptionError: LocalizedError {
     case serverError(String)
     case networkError(Error)
     case decodingError
+    case maxRetriesExceeded
 
     var errorDescription: String? {
         switch self {
@@ -21,6 +22,8 @@ enum TranscriptionError: LocalizedError {
             return "Network error: \(error.localizedDescription)"
         case .decodingError:
             return "Failed to decode server response"
+        case .maxRetriesExceeded:
+            return "Maximum retry attempts exceeded"
         }
     }
 }
@@ -29,6 +32,7 @@ enum TranscriptionError: LocalizedError {
 class RenderTranscriptionService: ObservableObject {
     private let baseURL = "https://snipnote-transcription.onrender.com"
     private var pollingTimer: Timer?
+    private var retryAttempts: [String: Int] = [:] // jobId -> attempt count
 
     // MARK: - Async Job Methods
 
@@ -104,6 +108,26 @@ class RenderTranscriptionService: ObservableObject {
         do {
             (data, response) = try await URLSession.shared.data(for: request)
         } catch {
+            // Track retry attempts on network errors
+            let currentAttempts = retryAttempts[jobId, default: 0]
+
+            if currentAttempts >= 3 {
+                print("❌ Max retries exceeded for job \(jobId)")
+                retryAttempts.removeValue(forKey: jobId)
+                throw TranscriptionError.maxRetriesExceeded
+            }
+
+            // Increment retry counter
+            retryAttempts[jobId] = currentAttempts + 1
+
+            // Exponential backoff: 5s, 15s, 45s
+            let delays: [UInt64] = [5_000_000_000, 15_000_000_000, 45_000_000_000]
+            let delayNanoseconds = delays[currentAttempts]
+            let delaySeconds = Int(delayNanoseconds / 1_000_000_000)
+
+            print("🔄 Retry attempt \(currentAttempts + 1)/3 for job \(jobId) (waiting \(delaySeconds)s...)")
+
+            try await Task.sleep(nanoseconds: delayNanoseconds)
             throw TranscriptionError.networkError(error)
         }
 
@@ -120,6 +144,13 @@ class RenderTranscriptionService: ObservableObject {
         // Decode response
         do {
             let result = try JSONDecoder().decode(JobStatusResponse.self, from: data)
+
+            // Clear retry counter on successful response
+            if retryAttempts[jobId] != nil {
+                print("✅ Retry successful for job \(jobId), clearing counter")
+                retryAttempts.removeValue(forKey: jobId)
+            }
+
             print("📊 Job status: \(result.status.displayText)")
             return result
         } catch {

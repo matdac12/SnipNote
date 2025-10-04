@@ -225,20 +225,17 @@ class OpenAIService: ObservableObject {
 
             // Choose processing path based on sample rate
             if sampleRate <= 16000 {
-                // Path A: Already optimized (in-app recordings)
-                return try await simpleSpeedUp(audioData: audioData, inputURL: tempInputURL, outputURL: tempOutputURL)
+                // Low sample rate audio - skip processing
+                print("📱 [OpenAI] Low sample rate audio (\(Int(sampleRate))Hz) - using original audio")
+                return audioData
             } else {
-                // Path B: High quality (external voice memos)
+                // High quality audio - apply speed-up and compression
                 return try await speedUpAndCompress(audioData: audioData, inputURL: tempInputURL, outputURL: tempOutputURL)
             }
         } catch {
-            // Log detailed error context for debugging
-            print("❌ [OpenAI] Audio processing failed with error: \(error)")
-            print("❌ [OpenAI] Error type: \(type(of: error))")
-            print("❌ [OpenAI] Error description: \(error.localizedDescription)")
-
-            // Throw user-friendly error instead of using fallback
-            throw OpenAIError.audioProcessingFailed("Audio processing failed: \(error.localizedDescription). Please try again or contact support if the issue persists.")
+            // Fallback to original audio if speed-up fails
+            print("⚠️ [OpenAI] Audio speed-up failed, using original: \(error.localizedDescription)")
+            return audioData
         }
     }
 

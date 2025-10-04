@@ -49,10 +49,9 @@ class AudioRecorder: NSObject, ObservableObject {
         
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-            AVSampleRateKey: 16000, // Optimized for speech recognition (OpenAI standard)
+            AVSampleRateKey: 44100,
             AVNumberOfChannelsKey: 1,
-            AVEncoderAudioQualityKey: AVAudioQuality.medium.rawValue,
-            AVEncoderBitRateKey: 64000 // 64kbps - sufficient for clear speech transcription
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
         ]
         
         do {

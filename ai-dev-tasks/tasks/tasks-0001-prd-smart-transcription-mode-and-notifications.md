@@ -36,22 +36,22 @@ Based on PRD: `0001-prd-smart-transcription-mode-and-notifications.md`
   - [x] 2.4 Ensure the method preserves the original file and creates a new optimized file in the temp directory
   - [x] 2.5 Add console logs: "⚡ Optimizing audio for server upload (1.5x speed-up + compression)..."
 
-- [ ] 3.0 Add server-side notification support
-  - [ ] 3.1 In `CreateMeetingView.processServerSide()`, after job creation (around line 1576), add:
+- [x] 3.0 Add server-side notification support
+  - [x] 3.1 In `CreateMeetingView.processServerSide()`, after job creation (around line 1576), add:
     ```swift
     await NotificationService.shared.scheduleProcessingNotification(
         for: meetingId,
         meetingName: meeting.name
     )
     ```
-  - [ ] 3.2 In `MeetingDetailView.applyJobStatusUpdate()`, when `status == .completed` (around line 1274), add:
+  - [x] 3.2 In `MeetingDetailView.applyJobStatusUpdate()`, when `status == .completed` (around line 1274), add:
     ```swift
     await NotificationService.shared.sendProcessingCompleteNotification(
         for: meeting.id,
         meetingName: meeting.name
     )
     ```
-  - [ ] 3.3 In `MeetingDetailView.applyJobStatusUpdate()`, when `status == .failed` (around line 1285), add:
+  - [x] 3.3 In `MeetingDetailView.applyJobStatusUpdate()`, when `status == .failed` (around line 1285), add:
     ```swift
     // Send failure notification with error message
     await NotificationService.shared.sendProcessingFailedNotification(
@@ -60,12 +60,12 @@ Based on PRD: `0001-prd-smart-transcription-mode-and-notifications.md`
         errorMessage: jobErrorMessage ?? "Unknown error"
     )
     ```
-  - [ ] 3.4 Add the new `sendProcessingFailedNotification()` method to `NotificationService.swift`:
+  - [x] 3.4 Add the new `sendProcessingFailedNotification()` method to `NotificationService.swift`:
     - Copy pattern from `sendProcessingCompleteNotification()`
     - Title: "Transcription Failed"
     - Body: "'\(meetingName)' failed to process: \(errorMessage)"
     - Category: "MEETING_FAILED_NOTIFICATION"
-  - [ ] 3.5 Test notification deep-linking: ensure tapping notification navigates to the meeting detail view
+  - [x] 3.5 Test notification deep-linking: ensure tapping notification navigates to the meeting detail view
 
 - [ ] 4.0 Implement automatic storage cleanup after successful processing
   - [ ] 4.1 In `MeetingDetailView.applyJobStatusUpdate()`, after successful completion (around line 1273), add local file cleanup:

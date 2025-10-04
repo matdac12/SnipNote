@@ -1197,6 +1197,15 @@ struct MeetingDetailView: View {
 
             refreshTrigger.toggle()
             print("✅ [MeetingDetail] Async job completed with full AI processing")
+
+            // Send completion notification
+            Task {
+                await NotificationService.shared.sendProcessingCompleteNotification(
+                    for: meeting.id,
+                    meetingName: meeting.name
+                )
+            }
+
             return true
         case .failed:
             jobErrorMessage = status.errorMessage ?? "Transcription failed"
@@ -1208,6 +1217,16 @@ struct MeetingDetailView: View {
             refreshTrigger.toggle()
 
             print("❌ [MeetingDetail] Async job failed: \(jobErrorMessage ?? "unknown")")
+
+            // Send failure notification with error message
+            Task {
+                await NotificationService.shared.sendProcessingFailedNotification(
+                    for: meeting.id,
+                    meetingName: meeting.name,
+                    errorMessage: jobErrorMessage ?? "Unknown error"
+                )
+            }
+
             return true
         default:
             jobErrorMessage = nil

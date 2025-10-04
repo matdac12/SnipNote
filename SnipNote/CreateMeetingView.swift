@@ -1552,6 +1552,12 @@ struct CreateMeetingView: View {
 
                 print("✅ Server transcription job initiated - polling will happen in MeetingDetailView")
 
+                // Schedule processing notification
+                await NotificationService.shared.scheduleProcessingNotification(
+                    for: meetingId,
+                    meetingName: meeting.name
+                )
+
             } catch {
                 await MainActor.run {
                     print("❌ Error in server-side transcription: \(error)")

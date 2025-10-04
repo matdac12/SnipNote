@@ -195,6 +195,44 @@ class NotificationService: ObservableObject {
         }
     }
 
+    /// Send notification when processing fails
+    func sendProcessingFailedNotification(for meetingId: UUID, meetingName: String, errorMessage: String) async {
+        // Only send if we have permission
+        Task {
+            let status = await checkNotificationPermission()
+            guard status == .authorized else { return }
+
+            // Cancel the original processing notification
+            let processingIdentifier = "\(processingNotificationIdentifierPrefix)\(meetingId.uuidString)"
+            notificationCenter.removePendingNotificationRequests(withIdentifiers: [processingIdentifier])
+
+            let identifier = "meeting-failed-\(meetingId.uuidString)"
+
+            let content = UNMutableNotificationContent()
+            content.title = "Transcription Failed"
+            content.body = "'\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)' failed to process: \(errorMessage)"
+            content.sound = .default
+            content.categoryIdentifier = "MEETING_FAILED_NOTIFICATION"
+            content.userInfo = ["meetingId": meetingId.uuidString, "navigateTo": "meeting"]
+
+            // Send immediately
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+
+            let request = UNNotificationRequest(
+                identifier: identifier,
+                content: content,
+                trigger: trigger
+            )
+
+            do {
+                try await notificationCenter.add(request)
+                print("✅ Processing failed notification sent for meeting: \(meetingName)")
+            } catch {
+                print("Error sending processing failed notification: \(error)")
+            }
+        }
+    }
+
     /// Send notification when transcription is paused due to background task expiration
     func sendTranscriptionPausedNotification(for meetingId: UUID, meetingName: String) async {
         // Only send if we have permission

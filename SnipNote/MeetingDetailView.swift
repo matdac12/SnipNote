@@ -46,6 +46,7 @@ struct MeetingDetailView: View {
     @State private var jobErrorMessage: String?
     @State private var jobProgress: Int = 0
     @State private var jobStage: String = ""
+    @State private var jobPollingTask: Task<Void, Never>?
     @StateObject private var transcriptionService = RenderTranscriptionService()
 
     private var relatedActions: [Action] {
@@ -165,92 +166,16 @@ struct MeetingDetailView: View {
 #endif
         }
         .task {
-            // Poll async transcription job status if available
-            guard let jobId = meeting.transcriptionJobId else { return }
-
-            self.jobId = jobId
-            print("🔄 [MeetingDetail] Starting async job polling for: \(jobId)")
-
-            pollingLoop: while true {
-                do {
-                    let status = try await transcriptionService.getJobStatus(jobId: jobId)
-
-                    jobStatus = status.status
-                    jobProgress = status.progressPercentage ?? 0
-                    jobStage = status.currentStage ?? "Processing..."
-
-                    // Update UI based on status
-                    if status.status == .completed, let transcript = status.transcript {
-                        // Update meeting with all AI-generated content
-                        meeting.audioTranscript = transcript
-
-                        if let overview = status.overview {
-                            meeting.shortSummary = overview
-                            print("✅ [MeetingDetail] Overview: \(overview.prefix(80))...")
-                        }
-
-                        if let summary = status.summary {
-                            meeting.aiSummary = summary
-                            print("✅ [MeetingDetail] Summary: \(summary.count) chars")
-                        }
-
-                        // Convert backend action items to iOS Action objects
-                        if let backendActions = status.actions, !backendActions.isEmpty {
-                            for backendAction in backendActions {
-                                let priority = ActionPriority(rawValue: backendAction.priority) ?? .medium
-                                let action = Action(
-                                    title: backendAction.action,
-                                    priority: priority,
-                                    sourceNoteId: meeting.id
-                                )
-                                modelContext.insert(action)
-                            }
-                            print("✅ [MeetingDetail] Created \(backendActions.count) action items")
-                        }
-
-                        meeting.isProcessing = false
-                        meeting.markCompleted()
-                        meeting.transcriptionJobId = nil // Clear job ID
-
-                        if let duration = status.duration {
-                            print("✅ [MeetingDetail] Job completed - duration: \(duration)s")
-                        }
-
-                        // Save all changes to database
-                        do {
-                            try modelContext.save()
-                            print("💾 [MeetingDetail] Successfully saved completed job to database")
-                        } catch {
-                            print("❌ [MeetingDetail] Failed to save: \(error)")
-                        }
-
-                        // Trigger view refresh (forces rebuild via .id() modifier)
-                        refreshTrigger.toggle()
-                        print("✅ [MeetingDetail] Async job completed with full AI processing, stopping polling")
-                        break pollingLoop
-                    } else if status.status == .failed {
-                        // Handle failure
-                        jobErrorMessage = status.errorMessage ?? "Transcription failed"
-                        meeting.setProcessingError(jobErrorMessage ?? "Server transcription failed")
-                        meeting.isProcessing = false
-                        meeting.transcriptionJobId = nil // Clear job ID
-
-                        // Save failure state and trigger view refresh
-                        try? modelContext.save()
-                        refreshTrigger.toggle()
-
-                        print("❌ [MeetingDetail] Async job failed: \(jobErrorMessage ?? "unknown")")
-                        break pollingLoop
-                    }
-
-                    // Poll every 5 seconds for responsive updates
-                    try? await Task.sleep(nanoseconds: 5_000_000_000)
-                } catch {
-                    print("⚠️ [MeetingDetail] Error polling job status: \(error)")
-                    // Continue polling on error - could be temporary network issue
-                    try? await Task.sleep(nanoseconds: 5_000_000_000)
-                }
+            await updatePollingTask(for: meeting.transcriptionJobId)
+        }
+        .onChange(of: meeting.transcriptionJobId) { _, newValue in
+            Task {
+                await updatePollingTask(for: newValue)
             }
+        }
+        .onDisappear {
+            jobPollingTask?.cancel()
+            jobPollingTask = nil
         }
         .sheet(isPresented: $showingFullScreenSummary) {
             fullScreenSummaryView
@@ -1169,7 +1094,127 @@ struct MeetingDetailView: View {
 
     // MARK: - Refresh Functionality
 
+    private func updatePollingTask(for jobId: String?) async {
+        await MainActor.run {
+            jobPollingTask?.cancel()
+            jobPollingTask = nil
+        }
+
+        guard let jobId else {
+            await MainActor.run {
+                self.jobId = nil
+                self.jobStatus = nil
+                self.jobStage = ""
+                self.jobProgress = 0
+            }
+            return
+        }
+
+        await MainActor.run {
+            self.jobId = jobId
+            print("🔄 [MeetingDetail] Starting async job polling for: \(jobId)")
+        }
+
+        let task = Task { await pollJobStatus(jobId: jobId) }
+
+        await MainActor.run {
+            jobPollingTask = task
+        }
+    }
+
+    private func pollJobStatus(jobId: String) async {
+        pollingLoop: while !Task.isCancelled {
+            do {
+                let status = try await transcriptionService.getJobStatus(jobId: jobId)
+
+                let isFinal = await MainActor.run { applyJobStatusUpdate(status: status) }
+
+                if isFinal {
+                    break pollingLoop
+                }
+
+                try await Task.sleep(nanoseconds: 5_000_000_000)
+            } catch {
+                if Task.isCancelled { break }
+
+                print("⚠️ [MeetingDetail] Error polling job status: \(error)")
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+            }
+        }
+    }
+
     @MainActor
+    private func applyJobStatusUpdate(status: JobStatusResponse) -> Bool {
+        jobStatus = status.status
+        jobProgress = status.progressPercentage ?? 0
+        jobStage = status.currentStage ?? "Processing..."
+
+        switch status.status {
+        case .completed:
+            jobErrorMessage = nil
+
+            if let transcript = status.transcript {
+                meeting.audioTranscript = transcript
+            }
+
+            if let overview = status.overview {
+                meeting.shortSummary = overview
+                print("✅ [MeetingDetail] Overview: \(overview.prefix(80))...")
+            }
+
+            if let summary = status.summary {
+                meeting.aiSummary = summary
+                print("✅ [MeetingDetail] Summary: \(summary.count) chars")
+            }
+
+            if let backendActions = status.actions, !backendActions.isEmpty {
+                for backendAction in backendActions {
+                    let priority = ActionPriority(rawValue: backendAction.priority) ?? .medium
+                    let action = Action(
+                        title: backendAction.action,
+                        priority: priority,
+                        sourceNoteId: meeting.id
+                    )
+                    modelContext.insert(action)
+                }
+                print("✅ [MeetingDetail] Created \(backendActions.count) action items")
+            }
+
+            meeting.markCompleted()
+            meeting.transcriptionJobId = nil
+            jobId = nil
+
+            if let duration = status.duration {
+                print("✅ [MeetingDetail] Job completed - duration: \(duration)s")
+            }
+
+            do {
+                try modelContext.save()
+                print("💾 [MeetingDetail] Successfully saved completed job to database")
+            } catch {
+                print("❌ [MeetingDetail] Failed to save: \(error)")
+            }
+
+            refreshTrigger.toggle()
+            print("✅ [MeetingDetail] Async job completed with full AI processing")
+            return true
+        case .failed:
+            jobErrorMessage = status.errorMessage ?? "Transcription failed"
+            meeting.setProcessingError(jobErrorMessage ?? "Server transcription failed")
+            meeting.transcriptionJobId = nil
+            jobId = nil
+
+            try? modelContext.save()
+            refreshTrigger.toggle()
+
+            print("❌ [MeetingDetail] Async job failed: \(jobErrorMessage ?? "unknown")")
+            return true
+        default:
+            jobErrorMessage = nil
+            return false
+        }
+    }
+
     private func refreshJobStatus() async {
         guard let jobId = meeting.transcriptionJobId else {
             print("ℹ️ [MeetingDetail] No job ID to refresh")
@@ -1181,58 +1226,11 @@ struct MeetingDetailView: View {
         do {
             let status = try await transcriptionService.getJobStatus(jobId: jobId)
 
-            jobStatus = status.status
-            jobProgress = status.progressPercentage ?? 0
-            jobStage = status.currentStage ?? "Processing..."
+            let isFinal = await MainActor.run { applyJobStatusUpdate(status: status) }
 
-            // Update meeting based on status
-            if status.status == .completed, let transcript = status.transcript {
-                meeting.audioTranscript = transcript
-
-                if let overview = status.overview {
-                    meeting.shortSummary = overview
-                }
-
-                if let summary = status.summary {
-                    meeting.aiSummary = summary
-                }
-
-                // Convert backend action items to iOS Action objects
-                if let backendActions = status.actions, !backendActions.isEmpty {
-                    for backendAction in backendActions {
-                        let priority = ActionPriority(rawValue: backendAction.priority) ?? .medium
-                        let action = Action(
-                            title: backendAction.action,
-                            priority: priority,
-                            sourceNoteId: meeting.id
-                        )
-                        modelContext.insert(action)
-                    }
-                    print("✅ [MeetingDetail] Manual refresh - Created \(backendActions.count) action items")
-                }
-
-                meeting.isProcessing = false
-                meeting.markCompleted()
-                meeting.transcriptionJobId = nil
-
-                if let duration = status.duration {
-                    print("✅ [MeetingDetail] Manual refresh - job completed, duration: \(duration)s")
-                }
-
-                try? modelContext.save()
-            } else if status.status == .failed {
-                jobErrorMessage = status.errorMessage ?? "Transcription failed"
-                meeting.setProcessingError(jobErrorMessage ?? "Server transcription failed")
-                meeting.isProcessing = false
-                meeting.transcriptionJobId = nil
-
-                try? modelContext.save()
-                print("❌ [MeetingDetail] Manual refresh - job failed: \(jobErrorMessage ?? "unknown")")
-            } else {
+            if !isFinal {
                 print("📊 [MeetingDetail] Manual refresh - job status: \(status.status.displayText)")
             }
-
-            refreshTrigger.toggle()
         } catch {
             print("⚠️ [MeetingDetail] Error refreshing job status: \(error)")
         }

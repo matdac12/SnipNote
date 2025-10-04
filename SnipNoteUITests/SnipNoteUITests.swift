@@ -34,8 +34,19 @@ final class SnipNoteUITests: XCTestCase {
     @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
+        let app = XCUIApplication()
+
         measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
+            app.launch()
+
+            // Wait a moment to ensure app is stable
+            _ = app.wait(for: .runningForeground, timeout: 5)
+
+            // Properly terminate the app
+            app.terminate()
+
+            // Wait for termination to complete
+            _ = app.wait(for: .notRunning, timeout: 5)
         }
     }
 }

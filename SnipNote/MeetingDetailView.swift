@@ -216,9 +216,7 @@ struct MeetingDetailView: View {
                             print("✅ [MeetingDetail] Job completed - duration: \(duration)s")
                         }
 
-                        // Force SwiftUI to detect changes and save
-                        meeting.objectWillChange.send()
-
+                        // Save all changes to database
                         do {
                             try modelContext.save()
                             print("💾 [MeetingDetail] Successfully saved completed job to database")
@@ -226,6 +224,7 @@ struct MeetingDetailView: View {
                             print("❌ [MeetingDetail] Failed to save: \(error)")
                         }
 
+                        // Trigger view refresh (forces rebuild via .id() modifier)
                         refreshTrigger.toggle()
                         print("✅ [MeetingDetail] Async job completed with full AI processing, stopping polling")
                         break pollingLoop
@@ -236,11 +235,10 @@ struct MeetingDetailView: View {
                         meeting.isProcessing = false
                         meeting.transcriptionJobId = nil // Clear job ID
 
-                        // Force SwiftUI to detect changes
-                        meeting.objectWillChange.send()
+                        // Save failure state and trigger view refresh
                         try? modelContext.save()
-
                         refreshTrigger.toggle()
+
                         print("❌ [MeetingDetail] Async job failed: \(jobErrorMessage ?? "unknown")")
                         break pollingLoop
                     }

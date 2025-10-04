@@ -1206,6 +1206,20 @@ struct MeetingDetailView: View {
                 )
             }
 
+            // Clean up local audio file after successful server processing
+            if meeting.hasRecording,
+               let localPath = meeting.localAudioPath,
+               FileManager.default.fileExists(atPath: localPath) {
+                do {
+                    try FileManager.default.removeItem(atPath: localPath)
+                    meeting.localAudioPath = nil
+                    try? modelContext.save()
+                    print("🗑️ Deleted local audio file after successful server processing")
+                } catch {
+                    print("⚠️ Failed to delete local audio file: \(error.localizedDescription)")
+                }
+            }
+
             return true
         case .failed:
             jobErrorMessage = status.errorMessage ?? "Transcription failed"

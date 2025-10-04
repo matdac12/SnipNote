@@ -67,8 +67,8 @@ Based on PRD: `0001-prd-smart-transcription-mode-and-notifications.md`
     - Category: "MEETING_FAILED_NOTIFICATION"
   - [x] 3.5 Test notification deep-linking: ensure tapping notification navigates to the meeting detail view
 
-- [ ] 4.0 Implement automatic storage cleanup after successful processing
-  - [ ] 4.1 In `MeetingDetailView.applyJobStatusUpdate()`, after successful completion (around line 1273), add local file cleanup:
+- [x] 4.0 Implement automatic storage cleanup after successful processing
+  - [x] 4.1 In `MeetingDetailView.applyJobStatusUpdate()`, after successful completion (around line 1273), add local file cleanup:
     ```swift
     // Clean up local audio file after successful server processing
     if meeting.hasRecording,
@@ -79,9 +79,9 @@ Based on PRD: `0001-prd-smart-transcription-mode-and-notifications.md`
         print("🗑️ Deleted local audio file after successful server processing")
     }
     ```
-  - [ ] 4.2 Ensure this cleanup only happens for server-side jobs (check `meeting.transcriptionJobId` was not nil)
-  - [ ] 4.3 Verify that `meeting.hasRecording` remains true (audio still accessible via Supabase)
-  - [ ] 4.4 Add error handling for file deletion failures (log but don't fail the entire operation)
+  - [x] 4.2 Ensure this cleanup only happens for server-side jobs (check `meeting.transcriptionJobId` was not nil)
+  - [x] 4.3 Verify that `meeting.hasRecording` remains true (audio still accessible via Supabase)
+  - [x] 4.4 Add error handling for file deletion failures (log but don't fail the entire operation)
 
 - [ ] 5.0 Add retry logic with fallback to on-device processing
   - [ ] 5.1 In `RenderTranscriptionService.swift`, add retry counter state:

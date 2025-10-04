@@ -25,16 +25,16 @@ Based on PRD: `0001-prd-smart-transcription-mode-and-notifications.md`
   - [x] 1.5 Remove the `if useServerTranscription` check on line 1285 (always use auto-selection logic)
   - [x] 1.6 Update any console logs to indicate auto-selected mode (e.g., "📱 Auto-selected on-device (duration: X)" or "☁️ Auto-selected server-side (duration: X)")
 
-- [ ] 2.0 Extract and expose audio optimization methods
-  - [ ] 2.1 In `OpenAIService.swift`, change `private func speedUpAudio()` to `public func speedUpAudio()` (line 202)
-  - [ ] 2.2 Add a new public method `func optimizeAudioForUpload(audioURL: URL) async throws -> URL` that:
+- [x] 2.0 Extract and expose audio optimization methods
+  - [x] 2.1 In `OpenAIService.swift`, change `private func speedUpAudio()` to `public func speedUpAudio()` (line 202)
+  - [x] 2.2 Add a new public method `func optimizeAudioForUpload(audioURL: URL) async throws -> URL` that:
     - Takes the audio file URL as input
     - Calls the existing `speedUpAudio()` logic
     - Returns a URL to the optimized audio file
     - Handles cleanup of temporary files
-  - [ ] 2.3 Update the method to accept a URL parameter instead of Data for easier file handling
-  - [ ] 2.4 Ensure the method preserves the original file and creates a new optimized file in the temp directory
-  - [ ] 2.5 Add console logs: "⚡ Optimizing audio for server upload (1.5x speed-up + compression)..."
+  - [x] 2.3 Update the method to accept a URL parameter instead of Data for easier file handling
+  - [x] 2.4 Ensure the method preserves the original file and creates a new optimized file in the temp directory
+  - [x] 2.5 Add console logs: "⚡ Optimizing audio for server upload (1.5x speed-up + compression)..."
 
 - [ ] 3.0 Add server-side notification support
   - [ ] 3.1 In `CreateMeetingView.processServerSide()`, after job creation (around line 1576), add:

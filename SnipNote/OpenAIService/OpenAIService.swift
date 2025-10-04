@@ -199,7 +199,7 @@ class OpenAIService: ObservableObject {
 
     /// Speed up audio to 1.5x to reduce transcription costs by 33%
     /// Uses smart detection to avoid unnecessary re-compression
-    private func speedUpAudio(audioData: Data) async throws -> Data {
+    public func speedUpAudio(audioData: Data) async throws -> Data {
         // Check for cancellation before processing
         try Task.checkCancellation()
 
@@ -240,6 +240,35 @@ class OpenAIService: ObservableObject {
             // Throw user-friendly error instead of using fallback
             throw OpenAIError.audioProcessingFailed("Audio processing failed: \(error.localizedDescription). Please try again or contact support if the issue persists.")
         }
+    }
+
+    /// Optimize audio file for server upload by applying 1.5x speed-up and compression
+    /// Returns a URL to the optimized audio file in the temp directory
+    /// The caller is responsible for cleaning up the returned temp file after upload
+    public func optimizeAudioForUpload(audioURL: URL) async throws -> URL {
+        print("⚡ Optimizing audio for server upload (1.5x speed-up + compression)...")
+
+        // Read the audio file
+        let audioData = try Data(contentsOf: audioURL)
+        let originalSize = audioData.count
+
+        // Apply speed-up and compression
+        let optimizedData = try await speedUpAudio(audioData: audioData)
+        let optimizedSize = optimizedData.count
+
+        // Create optimized file in temp directory
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let optimizedFileName = "optimized_\(UUID().uuidString).m4a"
+        let optimizedURL = tempDirectory.appendingPathComponent(optimizedFileName)
+
+        // Write optimized audio to temp file
+        try optimizedData.write(to: optimizedURL)
+
+        let sizeSavings = ((1.0 - Double(optimizedSize) / Double(originalSize)) * 100)
+        print("✅ Audio optimized: \(originalSize / 1024)KB → \(optimizedSize / 1024)KB (\(Int(sizeSavings))% smaller)")
+        print("📁 Optimized file: \(optimizedURL.lastPathComponent)")
+
+        return optimizedURL
     }
 
     func transcribeAudio(audioData: Data) async throws -> String {

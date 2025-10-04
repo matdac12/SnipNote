@@ -1506,21 +1506,47 @@ struct CreateMeetingView: View {
 
         Task {
             do {
-                // 1. Upload audio to Supabase Storage
+                // 1. Optimize audio before upload (1.5x speed-up + compression)
+                var uploadURL = audioURL
+                var uploadDuration = cachedAudioDuration
+
+                do {
+                    print("⚡ Optimizing audio for server upload...")
+                    let optimizedURL = try await openAIService.optimizeAudioForUpload(audioURL: audioURL)
+                    uploadURL = optimizedURL
+                    uploadDuration = cachedAudioDuration / 1.5
+                    print("✅ Audio optimization complete - new duration: \(Int(uploadDuration))s")
+                } catch {
+                    print("⚠️ Audio optimization failed, uploading original audio: \(error.localizedDescription)")
+                    // Continue with original audio - uploadURL and uploadDuration already set
+                }
+
+                // 2. Upload audio to Supabase Storage
                 print("📤 Uploading audio to Supabase...")
                 let audioPath = try await SupabaseManager.shared.uploadAudioRecording(
-                    audioURL: audioURL,
+                    audioURL: uploadURL,
                     meetingId: meetingId,
-                    duration: cachedAudioDuration
+                    duration: uploadDuration
                 )
+
+                // Clean up optimized file after successful upload (if we created one)
+                if uploadURL != audioURL {
+                    try? FileManager.default.removeItem(at: uploadURL)
+                    print("🗑️ Cleaned up optimized audio file")
+                }
 
                 await MainActor.run {
                     meeting.hasRecording = true
+                    // Update meeting duration to reflect optimized audio
+                    if uploadDuration != cachedAudioDuration {
+                        meeting.duration = uploadDuration
+                        print("📝 Updated meeting duration to optimized value: \(Int(uploadDuration))s")
+                    }
                 }
 
                 print("✅ Audio uploaded: \(audioPath)")
 
-                // 2. Get public URL for the audio and user ID
+                // 3. Get public URL for the audio and user ID
                 guard let session = try? await SupabaseManager.shared.client.auth.session else {
                     throw NSError(domain: "CreateMeeting", code: -1, userInfo: [NSLocalizedDescriptionKey: "No auth session"])
                 }
@@ -1529,7 +1555,7 @@ struct CreateMeetingView: View {
                 let publicAudioURL = "https://bndbnqtvicvynzkyygte.supabase.co/storage/v1/object/public/recordings/\(audioPath)"
                 print("📍 Public audio URL: \(publicAudioURL)")
 
-                // 3. Create transcription job
+                // 4. Create transcription job
                 print("🔨 Creating transcription job...")
                 let jobResponse = try await transcriptionService.createJob(
                     userId: userId,
@@ -1539,7 +1565,7 @@ struct CreateMeetingView: View {
 
                 print("✅ Job created: \(jobResponse.jobId)")
 
-                // 4. Save job ID to meeting
+                // 5. Save job ID to meeting
                 await MainActor.run {
                     meeting.transcriptionJobId = jobResponse.jobId
                     do {

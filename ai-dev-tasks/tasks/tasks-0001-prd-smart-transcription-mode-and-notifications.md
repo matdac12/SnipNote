@@ -111,25 +111,25 @@ Based on PRD: `0001-prd-smart-transcription-mode-and-notifications.md`
   - [x] 5.6 Update console logs to show retry attempts: "🔄 Retry attempt 1/3 for job \(jobId) (waiting 5s...)"
   - [x] 5.7 Clear retry counter when job succeeds or is manually retried
 
-- [ ] 6.0 Integrate audio optimization into server upload flow
-  - [ ] 6.1 In `CreateMeetingView.processServerSide()`, before uploading to Supabase (around line 1546), add:
+- [x] 6.0 Integrate audio optimization into server upload flow
+  - [x] 6.1 In `CreateMeetingView.processServerSide()`, before uploading to Supabase (around line 1546), add:
     ```swift
     // Optimize audio before upload (1.5x speed-up + compression)
     print("⚡ Optimizing audio for server upload...")
     let optimizedURL = try await openAIService.optimizeAudioForUpload(audioURL: audioURL)
     let optimizedDuration = cachedAudioDuration / 1.5
     ```
-  - [ ] 6.2 Update the upload call to use `optimizedURL` instead of `audioURL`
-  - [ ] 6.3 Update the duration parameter to use `optimizedDuration` instead of `cachedAudioDuration`
-  - [ ] 6.4 Add cleanup for optimized file after successful upload:
+  - [x] 6.2 Update the upload call to use `optimizedURL` instead of `audioURL`
+  - [x] 6.3 Update the duration parameter to use `optimizedDuration` instead of `cachedAudioDuration`
+  - [x] 6.4 Add cleanup for optimized file after successful upload:
     ```swift
     try? FileManager.default.removeItem(at: optimizedURL)
     ```
-  - [ ] 6.5 Handle optimization failures gracefully:
+  - [x] 6.5 Handle optimization failures gracefully:
     - If optimization fails, log error and fall back to uploading original audio
     - Use try-catch around optimization call
     - Log: "⚠️ Audio optimization failed, uploading original audio"
-  - [ ] 6.6 Update `meeting.duration` if needed to reflect optimized duration (verify this doesn't break existing logic)
+  - [x] 6.6 Update `meeting.duration` if needed to reflect optimized duration (verify this doesn't break existing logic)
 
 ## Testing Checklist
 

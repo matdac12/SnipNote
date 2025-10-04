@@ -1537,11 +1537,6 @@ struct CreateMeetingView: View {
 
                 await MainActor.run {
                     meeting.hasRecording = true
-                    // Update meeting duration to reflect optimized audio
-                    if uploadDuration != cachedAudioDuration {
-                        meeting.duration = uploadDuration
-                        print("📝 Updated meeting duration to optimized value: \(Int(uploadDuration))s")
-                    }
                 }
 
                 print("✅ Audio uploaded: \(audioPath)")

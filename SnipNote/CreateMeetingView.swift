@@ -93,6 +93,10 @@ struct CreateMeetingView: View {
     // Cancellation state
     @State private var showingCancelConfirmation = false
 
+    // Server transcription toggle
+    @State private var useServerTranscription = true
+    @StateObject private var transcriptionService = RenderTranscriptionService()
+
     private enum FocusedField: Hashable {
         case name
         case location
@@ -671,7 +675,7 @@ struct CreateMeetingView: View {
                 .foregroundColor(theme.accentColor)
 
             let requiredMinutes = max(1, Int(ceil(cachedAudioDuration / 60.0)))
-            if minutesManager.currentBalance < requiredMinutes {
+            if minutesManager.currentBalance < requiredMinutes && !useServerTranscription {
                 Text("This audio requires \(requiredMinutes) minutes. You have \(minutesManager.currentBalance) minutes remaining.")
                     .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(theme.warningColor)
@@ -682,6 +686,8 @@ struct CreateMeetingView: View {
                 .fill(theme.accentColor)
                 .frame(width: 200, height: 4)
                 .opacity(0.7)
+
+            transcriptionModeToggle(theme: theme)
 
             Button(theme.headerStyle == .brackets ? "ANALYZE MEETING" : "Analyze Meeting") {
                 analyzeImportedAudio()
@@ -1022,6 +1028,8 @@ struct CreateMeetingView: View {
     @ViewBuilder
     private func idleRecordingCard(theme: AppTheme) -> some View {
         VStack(spacing: 16) {
+            transcriptionModeToggle(theme: theme)
+
             Button(theme.headerStyle == .brackets ? "START MEETING RECORDING" : "Start Meeting Recording") {
                 startCountdown()
             }
@@ -1032,6 +1040,45 @@ struct CreateMeetingView: View {
             .cornerRadius(theme.cornerRadius)
             .disabled(meetingNameTrimmed.isEmpty)
             .opacity(meetingNameTrimmed.isEmpty ? 0.7 : 1.0)
+        }
+    }
+
+    @ViewBuilder
+    private func transcriptionModeToggle(theme: AppTheme) -> some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: useServerTranscription ? "cloud.fill" : "iphone")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(theme.accentColor)
+
+                Text(useServerTranscription ?
+                     (theme.headerStyle == .brackets ? "SERVER TRANSCRIPTION" : "Server Transcription") :
+                     (theme.headerStyle == .brackets ? "ON-DEVICE TRANSCRIPTION" : "On-Device Transcription"))
+                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(theme.accentColor)
+
+                Spacer()
+
+                Toggle("", isOn: $useServerTranscription)
+                    .labelsHidden()
+                    .tint(theme.accentColor)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: theme.cornerRadius)
+                    .fill(theme.secondaryBackgroundColor.opacity(0.3))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: theme.cornerRadius)
+                    .stroke(theme.accentColor.opacity(0.3), lineWidth: 1)
+            )
+
+            Text(useServerTranscription ?
+                 "Transcription processed on server (recommended for long meetings)" :
+                 "Transcription processed on this device (faster for short meetings)")
+                .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default))
+                .foregroundColor(theme.secondaryTextColor)
+                .multilineTextAlignment(.center)
         }
     }
 
@@ -1235,6 +1282,16 @@ struct CreateMeetingView: View {
             return
         }
 
+        if useServerTranscription {
+            processServerSide(audioURL: audioURL)
+        } else {
+            processOnDevice(audioURL: audioURL)
+        }
+    }
+
+    // MARK: - On-Device Transcription
+
+    private func processOnDevice(audioURL: URL) {
         // Check if user has sufficient minutes for imported audio
         let requiredMinutes = max(1, Int(ceil(cachedAudioDuration / 60.0)))
         if minutesManager.currentBalance < requiredMinutes {
@@ -1243,7 +1300,7 @@ struct CreateMeetingView: View {
             return
         }
 
-        print("🎵 Starting analysis of imported audio: \(audioURL)")
+        print("🎵 Starting on-device analysis: \(audioURL)")
         isProcessingAudio = true
         currentProcessingPhase = .transcribing
 
@@ -1460,7 +1517,93 @@ struct CreateMeetingView: View {
             }
         }
     }
-    
+
+    // MARK: - Server-Side Transcription
+
+    private func processServerSide(audioURL: URL) {
+        print("☁️ Starting server-side transcription: \(audioURL)")
+
+        // Create meeting immediately
+        createProcessingMeeting()
+
+        guard let meeting = createdMeeting, let meetingId = createdMeetingId else {
+            print("❌ Failed to create meeting for server transcription")
+            return
+        }
+
+        // Track meeting creation (without transcription yet)
+        Task {
+            let duration = Int(cachedAudioDuration)
+            await UsageTracker.shared.trackMeetingCreated(transcribed: false, meetingSeconds: duration)
+        }
+
+        // Navigate to detail view immediately
+        onMeetingCreated?(meeting)
+
+        Task {
+            do {
+                // 1. Upload audio to Supabase Storage
+                print("📤 Uploading audio to Supabase...")
+                let audioPath = try await SupabaseManager.shared.uploadAudioRecording(
+                    audioURL: audioURL,
+                    meetingId: meetingId,
+                    duration: cachedAudioDuration
+                )
+
+                await MainActor.run {
+                    meeting.hasRecording = true
+                }
+
+                print("✅ Audio uploaded: \(audioPath)")
+
+                // 2. Get public URL for the audio and user ID
+                guard let session = try? await SupabaseManager.shared.client.auth.session else {
+                    throw NSError(domain: "CreateMeeting", code: -1, userInfo: [NSLocalizedDescriptionKey: "No auth session"])
+                }
+
+                let userId = session.user.id
+                let publicAudioURL = "https://bndbnqtvicvynzkyygte.supabase.co/storage/v1/object/public/recordings/\(audioPath)"
+                print("📍 Public audio URL: \(publicAudioURL)")
+
+                // 3. Create transcription job
+                print("🔨 Creating transcription job...")
+                let jobResponse = try await transcriptionService.createJob(
+                    userId: userId,
+                    meetingId: meetingId,
+                    audioURL: publicAudioURL
+                )
+
+                print("✅ Job created: \(jobResponse.jobId)")
+
+                // 4. Save job ID to meeting
+                await MainActor.run {
+                    meeting.transcriptionJobId = jobResponse.jobId
+                    do {
+                        try modelContext.save()
+                        print("💾 Saved job ID to meeting")
+                    } catch {
+                        print("❌ Error saving job ID: \(error)")
+                    }
+                }
+
+                print("✅ Server transcription job initiated - polling will happen in MeetingDetailView")
+
+            } catch {
+                await MainActor.run {
+                    print("❌ Error in server-side transcription: \(error)")
+                    meeting.setProcessingError("Failed to upload audio or create transcription job: \(error.localizedDescription)")
+                    meeting.isProcessing = false
+
+                    do {
+                        try modelContext.save()
+                    } catch {
+                        print("❌ Error saving meeting after failure: \(error)")
+                    }
+                }
+            }
+        }
+    }
+
     private func stopMeetingRecording() {
         guard let recordingURL = audioRecorder.stopRecording() else { return }
 

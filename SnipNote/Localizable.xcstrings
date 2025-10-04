@@ -60,6 +60,9 @@
     "%lld Minutes" : {
 
     },
+    "%lld%%" : {
+
+    },
     "%lld%% Complete" : {
 
     },
@@ -632,6 +635,12 @@
     "Insufficient Minutes" : {
 
     },
+    "Job ID:" : {
+
+    },
+    "JOB ID:" : {
+
+    },
     "Jot down talking points, decisions to make, or context for Eve." : {
 
     },
@@ -897,6 +906,12 @@
           }
         }
       }
+    },
+    "On-Device Transcription" : {
+
+    },
+    "ON-DEVICE TRANSCRIPTION" : {
+
     },
     "OpenAI API Key" : {
 
@@ -1198,6 +1213,12 @@
           }
         }
       }
+    },
+    "Server Transcription" : {
+
+    },
+    "SERVER TRANSCRIPTION" : {
+
     },
     "Server Transcription Test" : {
 
@@ -2674,6 +2695,12 @@
         }
       }
     },
+    "Transcription processed on server (recommended for long meetings)" : {
+
+    },
+    "Transcription processed on this device (faster for short meetings)" : {
+
+    },
     "Troubleshooting:" : {
 
     },
@@ -2751,6 +2778,9 @@
           }
         }
       }
+    },
+    "Your meeting is being transcribed on the server. This may take a few minutes." : {
+
     }
   },
   "version" : "1.1"

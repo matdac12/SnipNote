@@ -40,6 +40,14 @@ struct MeetingDetailView: View {
     // Force refresh for processing updates
     @State private var refreshTrigger = false
 
+    // Async job tracking
+    @State private var jobId: String?
+    @State private var jobStatus: JobStatus?
+    @State private var jobErrorMessage: String?
+    @State private var jobProgress: Int = 0
+    @State private var jobStage: String = ""
+    @StateObject private var transcriptionService = RenderTranscriptionService()
+
     private var relatedActions: [Action] {
         allActions.filter { $0.sourceNoteId == meeting.id }
     }
@@ -68,6 +76,10 @@ struct MeetingDetailView: View {
                     }
                     .padding()
                 }
+            }
+            .id(refreshTrigger)  // Force view rebuild when job completes
+            .refreshable {
+                await refreshJobStatus()
             }
         }
         .themedBackground()
@@ -151,6 +163,96 @@ struct MeetingDetailView: View {
 #if DEBUG
             print("✅ [MeetingDetail] Processing complete, stopped polling")
 #endif
+        }
+        .task {
+            // Poll async transcription job status if available
+            guard let jobId = meeting.transcriptionJobId else { return }
+
+            self.jobId = jobId
+            print("🔄 [MeetingDetail] Starting async job polling for: \(jobId)")
+
+            pollingLoop: while true {
+                do {
+                    let status = try await transcriptionService.getJobStatus(jobId: jobId)
+
+                    jobStatus = status.status
+                    jobProgress = status.progressPercentage ?? 0
+                    jobStage = status.currentStage ?? "Processing..."
+
+                    // Update UI based on status
+                    if status.status == .completed, let transcript = status.transcript {
+                        // Update meeting with all AI-generated content
+                        meeting.audioTranscript = transcript
+
+                        if let overview = status.overview {
+                            meeting.shortSummary = overview
+                            print("✅ [MeetingDetail] Overview: \(overview.prefix(80))...")
+                        }
+
+                        if let summary = status.summary {
+                            meeting.aiSummary = summary
+                            print("✅ [MeetingDetail] Summary: \(summary.count) chars")
+                        }
+
+                        // Convert backend action items to iOS Action objects
+                        if let backendActions = status.actions, !backendActions.isEmpty {
+                            for backendAction in backendActions {
+                                let priority = ActionPriority(rawValue: backendAction.priority) ?? .medium
+                                let action = Action(
+                                    title: backendAction.action,
+                                    priority: priority,
+                                    sourceNoteId: meeting.id
+                                )
+                                modelContext.insert(action)
+                            }
+                            print("✅ [MeetingDetail] Created \(backendActions.count) action items")
+                        }
+
+                        meeting.isProcessing = false
+                        meeting.markCompleted()
+                        meeting.transcriptionJobId = nil // Clear job ID
+
+                        if let duration = status.duration {
+                            print("✅ [MeetingDetail] Job completed - duration: \(duration)s")
+                        }
+
+                        // Force SwiftUI to detect changes and save
+                        meeting.objectWillChange.send()
+
+                        do {
+                            try modelContext.save()
+                            print("💾 [MeetingDetail] Successfully saved completed job to database")
+                        } catch {
+                            print("❌ [MeetingDetail] Failed to save: \(error)")
+                        }
+
+                        refreshTrigger.toggle()
+                        print("✅ [MeetingDetail] Async job completed with full AI processing, stopping polling")
+                        break pollingLoop
+                    } else if status.status == .failed {
+                        // Handle failure
+                        jobErrorMessage = status.errorMessage ?? "Transcription failed"
+                        meeting.setProcessingError(jobErrorMessage ?? "Server transcription failed")
+                        meeting.isProcessing = false
+                        meeting.transcriptionJobId = nil // Clear job ID
+
+                        // Force SwiftUI to detect changes
+                        meeting.objectWillChange.send()
+                        try? modelContext.save()
+
+                        refreshTrigger.toggle()
+                        print("❌ [MeetingDetail] Async job failed: \(jobErrorMessage ?? "unknown")")
+                        break pollingLoop
+                    }
+
+                    // Poll every 5 seconds for responsive updates
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                } catch {
+                    print("⚠️ [MeetingDetail] Error polling job status: \(error)")
+                    // Continue polling on error - could be temporary network issue
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                }
+            }
         }
         .sheet(isPresented: $showingFullScreenSummary) {
             fullScreenSummaryView
@@ -258,15 +360,97 @@ struct MeetingDetailView: View {
     
     private var processingStatusSection: some View {
         VStack(spacing: 24) {
-            MeetingProcessingStatusView(
-                theme: themeManager.currentTheme,
-                isRetrying: isRetrying,
-                processingState: meeting.processingState,
-                progress: meeting.progressPercentage,
-                chunkIndex: meeting.lastProcessedChunk,
-                totalChunks: meeting.totalChunks
-            )
+            // Show async job status if available
+            if let jobId = meeting.transcriptionJobId, let status = jobStatus {
+                asyncJobStatusCard(jobId: jobId, status: status)
+            } else {
+                MeetingProcessingStatusView(
+                    theme: themeManager.currentTheme,
+                    isRetrying: isRetrying,
+                    processingState: meeting.processingState,
+                    progress: meeting.progressPercentage,
+                    chunkIndex: meeting.lastProcessedChunk,
+                    totalChunks: meeting.totalChunks
+                )
+            }
         }
+    }
+
+    @ViewBuilder
+    private func asyncJobStatusCard(jobId: String, status: JobStatus) -> some View {
+        let theme = themeManager.currentTheme
+
+        VStack(spacing: 20) {
+            // Header
+            HStack {
+                Image(systemName: status.isInProgress ? "cloud.fill" : (status == .failed ? "xmark.circle.fill" : "checkmark.circle.fill"))
+                    .font(.title2)
+                    .foregroundColor(status.isInProgress ? theme.accentColor : (status == .failed ? theme.destructiveColor : .green))
+
+                Text(theme.headerStyle == .brackets ? "SERVER TRANSCRIPTION" : "Server Transcription")
+                    .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(theme.textColor)
+            }
+
+            // Status indicator
+            HStack(spacing: 12) {
+                if status.isInProgress {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                }
+
+                Text(status.displayText)
+                    .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                    .foregroundColor(status.isInProgress ? theme.warningColor : (status == .failed ? theme.destructiveColor : .green))
+            }
+
+            if status.isInProgress {
+                // Progress information
+                VStack(alignment: .leading, spacing: 12) {
+                    // Stage description
+                    Text(jobStage)
+                        .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default))
+                        .foregroundColor(theme.secondaryTextColor)
+
+                    // Progress bar
+                    VStack(alignment: .trailing, spacing: 4) {
+                        ProgressView(value: Double(jobProgress), total: 100)
+                            .progressViewStyle(.linear)
+                            .tint(theme.accentColor)
+
+                        Text("\(jobProgress)%")
+                            .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                            .foregroundColor(theme.secondaryTextColor)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text("Your meeting is being transcribed on the server. This may take a few minutes.")
+                    .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(theme.secondaryTextColor)
+                    .multilineTextAlignment(.center)
+            }
+
+            // Job ID for reference
+            VStack(spacing: 4) {
+                Text(theme.headerStyle == .brackets ? "JOB ID:" : "Job ID:")
+                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(theme.secondaryTextColor)
+
+                Text(jobId)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundColor(theme.secondaryTextColor.opacity(0.7))
+            }
+        }
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadius + 6)
+                .fill(theme.secondaryBackgroundColor.opacity(0.3))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.cornerRadius + 6)
+                .stroke(theme.accentColor.opacity(0.3), lineWidth: 1)
+        )
     }
 
     private var meetingNotesSection: some View {
@@ -982,6 +1166,77 @@ struct MeetingDetailView: View {
                     print("❌ Error details: \(error.localizedDescription)")
                 }
             }
+        }
+    }
+
+    // MARK: - Refresh Functionality
+
+    @MainActor
+    private func refreshJobStatus() async {
+        guard let jobId = meeting.transcriptionJobId else {
+            print("ℹ️ [MeetingDetail] No job ID to refresh")
+            return
+        }
+
+        print("🔄 [MeetingDetail] Manual refresh for job: \(jobId)")
+
+        do {
+            let status = try await transcriptionService.getJobStatus(jobId: jobId)
+
+            jobStatus = status.status
+            jobProgress = status.progressPercentage ?? 0
+            jobStage = status.currentStage ?? "Processing..."
+
+            // Update meeting based on status
+            if status.status == .completed, let transcript = status.transcript {
+                meeting.audioTranscript = transcript
+
+                if let overview = status.overview {
+                    meeting.shortSummary = overview
+                }
+
+                if let summary = status.summary {
+                    meeting.aiSummary = summary
+                }
+
+                // Convert backend action items to iOS Action objects
+                if let backendActions = status.actions, !backendActions.isEmpty {
+                    for backendAction in backendActions {
+                        let priority = ActionPriority(rawValue: backendAction.priority) ?? .medium
+                        let action = Action(
+                            title: backendAction.action,
+                            priority: priority,
+                            sourceNoteId: meeting.id
+                        )
+                        modelContext.insert(action)
+                    }
+                    print("✅ [MeetingDetail] Manual refresh - Created \(backendActions.count) action items")
+                }
+
+                meeting.isProcessing = false
+                meeting.markCompleted()
+                meeting.transcriptionJobId = nil
+
+                if let duration = status.duration {
+                    print("✅ [MeetingDetail] Manual refresh - job completed, duration: \(duration)s")
+                }
+
+                try? modelContext.save()
+            } else if status.status == .failed {
+                jobErrorMessage = status.errorMessage ?? "Transcription failed"
+                meeting.setProcessingError(jobErrorMessage ?? "Server transcription failed")
+                meeting.isProcessing = false
+                meeting.transcriptionJobId = nil
+
+                try? modelContext.save()
+                print("❌ [MeetingDetail] Manual refresh - job failed: \(jobErrorMessage ?? "unknown")")
+            } else {
+                print("📊 [MeetingDetail] Manual refresh - job status: \(status.status.displayText)")
+            }
+
+            refreshTrigger.toggle()
+        } catch {
+            print("⚠️ [MeetingDetail] Error refreshing job status: \(error)")
         }
     }
 

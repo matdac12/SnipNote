@@ -53,6 +53,7 @@ final class Meeting {
     var lastProcessedChunk: Int = 0
     var totalChunks: Int = 0
     var localAudioPath: String? // Path to local audio file for retry
+    var transcriptionJobId: String? // Async transcription job ID for server-side processing
 
     // Computed property for processing state
     var processingState: ProcessingState {
@@ -98,6 +99,7 @@ final class Meeting {
         self.lastProcessedChunk = 0
         self.totalChunks = 0
         self.localAudioPath = nil
+        self.transcriptionJobId = nil
     }
     
     func startRecording() {

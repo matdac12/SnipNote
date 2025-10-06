@@ -49,6 +49,11 @@ struct MeetingDetailView: View {
     @State private var jobPollingTask: Task<Void, Never>?
     @StateObject private var transcriptionService = RenderTranscriptionService()
 
+    // Animation state for server processing
+    @State private var pulseAnimation = false
+    @State private var shimmerAnimation = false
+    @State private var rotationAnimation = false
+
     private var relatedActions: [Action] {
         allActions.filter { $0.sourceNoteId == meeting.id }
     }
@@ -286,7 +291,14 @@ struct MeetingDetailView: View {
             // Show async job status if available
             if let jobId = meeting.transcriptionJobId, let status = jobStatus {
                 asyncJobStatusCard(jobId: jobId, status: status)
+            } else if meeting.transcriptionJobId != nil {
+                // Job ID exists but status not loaded yet - show upload state
+                uploadingCard()
+            } else if meeting.isProcessing {
+                // No job ID yet - we're in the upload phase
+                uploadingCard()
             } else {
+                // Fallback to old processing view (for on-device transcription)
                 MeetingProcessingStatusView(
                     theme: themeManager.currentTheme,
                     isRetrying: isRetrying,
@@ -300,80 +312,240 @@ struct MeetingDetailView: View {
     }
 
     @ViewBuilder
+    private func uploadingCard() -> some View {
+        let theme = themeManager.currentTheme
+
+        VStack(spacing: 24) {
+            // Animated header with rotating cloud icon
+            HStack(spacing: 12) {
+                Image(systemName: "cloud.fill")
+                    .font(.title2)
+                    .foregroundColor(theme.accentColor)
+                    .rotationEffect(.degrees(rotationAnimation ? 360 : 0))
+                    .animation(.linear(duration: 3).repeatForever(autoreverses: false), value: rotationAnimation)
+                    .onAppear { rotationAnimation = true }
+
+                Text(theme.headerStyle == .brackets ? "UPLOADING TO SERVER..." : "Uploading to server...")
+                    .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(theme.textColor)
+            }
+
+            VStack(spacing: 16) {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Preparing your meeting for transcription...")
+                        .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                        .foregroundColor(theme.accentColor.opacity(0.8))
+                }
+            }
+        }
+        .padding(24)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadius * 1.5)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            theme.backgroundColor,
+                            theme.accentColor.opacity(0.05)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.cornerRadius * 1.5)
+                .stroke(theme.accentColor.opacity(0.3), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
     private func asyncJobStatusCard(jobId: String, status: JobStatus) -> some View {
         let theme = themeManager.currentTheme
 
-        VStack(spacing: 20) {
-            // Header
-            HStack {
+        VStack(spacing: 24) {
+            // Animated header with rotating cloud icon
+            HStack(spacing: 12) {
                 Image(systemName: status.isInProgress ? "cloud.fill" : (status == .failed ? "xmark.circle.fill" : "checkmark.circle.fill"))
                     .font(.title2)
                     .foregroundColor(status.isInProgress ? theme.accentColor : (status == .failed ? theme.destructiveColor : .green))
+                    .rotationEffect(.degrees(status.isInProgress && rotationAnimation ? 360 : 0))
+                    .animation(status.isInProgress ? .linear(duration: 3).repeatForever(autoreverses: false) : .default, value: rotationAnimation)
+                    .onAppear {
+                        if status.isInProgress {
+                            rotationAnimation = true
+                        }
+                    }
 
                 Text(theme.headerStyle == .brackets ? "SERVER TRANSCRIPTION" : "Server Transcription")
                     .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                     .foregroundColor(theme.textColor)
             }
 
-            // Status indicator
-            HStack(spacing: 12) {
-                if status.isInProgress {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                }
-
-                Text(status.displayText)
-                    .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
-                    .foregroundColor(status.isInProgress ? theme.warningColor : (status == .failed ? theme.destructiveColor : .green))
-            }
-
             if status.isInProgress {
-                // Progress information
-                VStack(alignment: .leading, spacing: 12) {
-                    // Stage description
-                    Text(jobStage)
-                        .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default))
-                        .foregroundColor(theme.secondaryTextColor)
+                // Progress percentage with pulsing animation
+                VStack(spacing: 16) {
+                    // Show different message for initial upload vs processing
+                    if jobProgress == 0 && status == .pending {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text(theme.headerStyle == .brackets ? "UPLOADING TO SERVER..." : "Uploading to server...")
+                                .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                                .foregroundColor(theme.accentColor)
+                        }
+                    } else {
+                        Text("\(jobProgress)% Complete")
+                            .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                            .foregroundColor(theme.accentColor)
+                            .scaleEffect(pulseAnimation ? 1.05 : 1.0)
+                            .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: pulseAnimation)
+                            .onAppear { pulseAnimation = true }
+                    }
 
-                    // Progress bar
-                    VStack(alignment: .trailing, spacing: 4) {
-                        ProgressView(value: Double(jobProgress), total: 100)
-                            .progressViewStyle(.linear)
-                            .tint(theme.accentColor)
+                    // Encouraging message based on progress
+                    if jobProgress > 0 {
+                        Text(serverEncouragingMessage(progress: jobProgress))
+                            .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                            .foregroundColor(theme.accentColor.opacity(0.8))
+                            .transition(.opacity)
+                            .animation(.easeInOut, value: jobProgress)
+                    } else if status == .pending {
+                        Text("Preparing your meeting for transcription...")
+                            .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                            .foregroundColor(theme.accentColor.opacity(0.8))
+                    }
 
-                        Text("\(jobProgress)%")
-                            .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                    // Enhanced progress bar with shimmer (only show when progress > 0)
+                    if jobProgress > 0 {
+                        ZStack(alignment: .leading) {
+                            // Background track
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(theme.secondaryTextColor.opacity(0.2))
+                                .frame(height: 12)
+
+                            // Progress fill with gradient
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            theme.accentColor,
+                                            theme.accentColor.opacity(0.7),
+                                            theme.accentColor
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: CGFloat(jobProgress) / 100 * (UIScreen.main.bounds.width - 80), height: 12)
+                                .animation(.spring(response: 0.5, dampingFraction: 0.7), value: jobProgress)
+
+                            // Shimmer overlay
+                            if jobProgress > 0 && jobProgress < 100 {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.white.opacity(0),
+                                                Color.white.opacity(0.5),
+                                                Color.white.opacity(0)
+                                            ]),
+                                            startPoint: shimmerAnimation ? .leading : .trailing,
+                                            endPoint: shimmerAnimation ? .trailing : .leading
+                                        )
+                                    )
+                                    .frame(width: CGFloat(jobProgress) / 100 * (UIScreen.main.bounds.width - 80), height: 12)
+                                    .animation(.linear(duration: 1.5).repeatForever(autoreverses: false), value: shimmerAnimation)
+                                    .onAppear { shimmerAnimation = true }
+                            }
+                        }
+                        .frame(height: 12)
+                    }
+
+                    // Stage description with fade animation (only show when progress > 0)
+                    if jobProgress > 0 && !jobStage.isEmpty {
+                        Text(jobStage)
+                            .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
                             .foregroundColor(theme.secondaryTextColor)
+                            .multilineTextAlignment(.center)
+                            .transition(.opacity)
+                            .animation(.easeInOut, value: jobStage)
+                    }
+
+                    // Estimated time with clock icon (only show when processing)
+                    if jobProgress > 0 {
+                        HStack(spacing: 8) {
+                            Image(systemName: "clock.fill")
+                                .font(.caption2)
+                                .foregroundColor(theme.accentColor.opacity(0.7))
+                            Text(serverEstimatedMessage())
+                                .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                                .foregroundColor(theme.secondaryTextColor.opacity(0.8))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(theme.accentColor.opacity(0.1))
+                        )
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Text("Your meeting is being transcribed on the server. This may take a few minutes.")
-                    .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default))
-                    .foregroundColor(theme.secondaryTextColor)
-                    .multilineTextAlignment(.center)
-            }
-
-            // Job ID for reference
-            VStack(spacing: 4) {
-                Text(theme.headerStyle == .brackets ? "JOB ID:" : "Job ID:")
-                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                    .foregroundColor(theme.secondaryTextColor)
-
-                Text(jobId)
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundColor(theme.secondaryTextColor.opacity(0.7))
+            } else {
+                // Status indicator for completed/failed
+                HStack(spacing: 12) {
+                    Text(status.displayText)
+                        .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                        .foregroundColor(status == .failed ? theme.destructiveColor : .green)
+                }
             }
         }
         .padding(24)
         .background(
-            RoundedRectangle(cornerRadius: theme.cornerRadius + 6)
-                .fill(theme.secondaryBackgroundColor.opacity(0.3))
+            RoundedRectangle(cornerRadius: theme.cornerRadius * 1.5)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            theme.backgroundColor,
+                            theme.accentColor.opacity(0.05)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: theme.cornerRadius + 6)
+            RoundedRectangle(cornerRadius: theme.cornerRadius * 1.5)
                 .stroke(theme.accentColor.opacity(0.3), lineWidth: 1)
         )
+    }
+
+    // Server-specific encouraging messages
+    private func serverEncouragingMessage(progress: Int) -> String {
+        if progress < 25 {
+            return "Processing on our servers..."
+        } else if progress < 50 {
+            return "Making great progress!"
+        } else if progress < 75 {
+            return "More than halfway there!"
+        } else if progress < 95 {
+            return "Almost finished!"
+        } else {
+            return "Final touches..."
+        }
+    }
+
+    // Server-specific estimated completion message
+    private func serverEstimatedMessage() -> String {
+        // Based on server processing: ~8% of audio duration with 1.5x buffer
+        // This gets set by the notification system already
+        if jobProgress < 30 {
+            return "Should be ready soon - check back in a few minutes"
+        } else if jobProgress < 70 {
+            return "Progressing smoothly - almost there!"
+        } else {
+            return "Nearly complete - hang tight!"
+        }
     }
 
     private var meetingNotesSection: some View {
@@ -1112,6 +1284,10 @@ struct MeetingDetailView: View {
 
         await MainActor.run {
             self.jobId = jobId
+            // Set initial pending status immediately to show new UI without lag
+            self.jobStatus = .pending
+            self.jobStage = "Uploading to server..."
+            self.jobProgress = 0
             print("🔄 [MeetingDetail] Starting async job polling for: \(jobId)")
         }
 
@@ -1206,8 +1382,11 @@ struct MeetingDetailView: View {
             refreshTrigger.toggle()
             print("✅ [MeetingDetail] Async job completed with full AI processing")
 
-            // Send completion notification
+            // Send completion notification and cancel estimated notification
             Task {
+                // Cancel the estimated completion notification (actual completion happened)
+                NotificationService.shared.cancelEstimatedCompletionNotification(for: meeting.id)
+
                 await NotificationService.shared.sendProcessingCompleteNotification(
                     for: meeting.id,
                     meetingName: meeting.name
@@ -1240,8 +1419,11 @@ struct MeetingDetailView: View {
 
             print("❌ [MeetingDetail] Async job failed: \(jobErrorMessage ?? "unknown")")
 
-            // Send failure notification with error message
+            // Send failure notification with error message and cancel estimated notification
             Task {
+                // Cancel the estimated completion notification (job failed)
+                NotificationService.shared.cancelEstimatedCompletionNotification(for: meeting.id)
+
                 await NotificationService.shared.sendProcessingFailedNotification(
                     for: meeting.id,
                     meetingName: meeting.name,
@@ -1424,6 +1606,9 @@ struct MeetingDetailView: View {
             } catch {
                 print("Error saving retry results: \(error)")
             }
+
+            // Cancel estimated notification before sending completion (retry succeeded)
+            NotificationService.shared.cancelEstimatedCompletionNotification(for: meeting.id)
 
             await NotificationService.shared.sendProcessingCompleteNotification(
                 for: meeting.id,

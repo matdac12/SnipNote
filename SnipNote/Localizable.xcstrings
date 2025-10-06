@@ -60,9 +60,6 @@
     "%lld Minutes" : {
 
     },
-    "%lld%%" : {
-
-    },
     "%lld%% Complete" : {
 
     },
@@ -620,12 +617,6 @@
     "Insufficient Minutes" : {
 
     },
-    "Job ID:" : {
-
-    },
-    "JOB ID:" : {
-
-    },
     "Jot down talking points, decisions to make, or context for Eve." : {
 
     },
@@ -964,6 +955,9 @@
 
     },
     "Premium Features" : {
+
+    },
+    "Preparing your meeting for transcription..." : {
 
     },
     "Preview:" : {
@@ -2680,6 +2674,12 @@
     "Upgrade Now" : {
 
     },
+    "Uploading to server..." : {
+
+    },
+    "UPLOADING TO SERVER..." : {
+
+    },
     "VERSION" : {
 
     },
@@ -2736,9 +2736,6 @@
           }
         }
       }
-    },
-    "Your meeting is being transcribed on the server. This may take a few minutes." : {
-
     }
   },
   "version" : "1.1"

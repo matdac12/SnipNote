@@ -312,4 +312,65 @@ class NotificationService: ObservableObject {
         let identifier = "\(processingNotificationIdentifierPrefix)\(meetingId.uuidString)"
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
     }
+
+    /// Schedule a notification for estimated completion time based on audio duration
+    /// Formula: 2 min (worker startup) + audioDuration (minutes) × 0.08 × 1.5 (safety buffer)
+    /// Example: 2hr audio (120 min) → 2 min + (10 min base × 1.5) = 17 min notification
+    /// Example: 5min audio → 2 min + (0.4 min × 1.5) = 2.6 min notification
+    func scheduleEstimatedCompletionNotification(for meetingId: UUID, meetingName: String, audioDuration: TimeInterval) async {
+        // Only schedule if we have permission
+        Task {
+            let status = await checkNotificationPermission()
+            guard status == .authorized else { return }
+
+            // Calculate estimated processing time
+            let audioDurationMinutes = audioDuration / 60.0
+            let baseProcessingMinutes = audioDurationMinutes * 0.08  // Processing takes ~8% of audio duration
+            let safetyBuffer = 1.5  // Add 50% buffer for safety
+            let workerStartupMinutes = 2.0  // Python worker may take ~1 min to start, add buffer
+            let estimatedMinutes = workerStartupMinutes + (baseProcessingMinutes * safetyBuffer)
+
+            // Convert to seconds for notification trigger
+            let notificationDelay = estimatedMinutes * 60.0
+
+            print("⏱️ Scheduling estimated completion notification:")
+            print("   Audio duration: \(Int(audioDurationMinutes)) min")
+            print("   Base processing: \(Int(baseProcessingMinutes)) min")
+            print("   Worker startup: \(Int(workerStartupMinutes)) min")
+            print("   Total estimated: \(Int(estimatedMinutes)) min")
+            print("   Notification in: \(Int(notificationDelay)) seconds")
+
+            let identifier = "meeting-estimated-\(meetingId.uuidString)"
+
+            let content = UNMutableNotificationContent()
+            content.title = "Processing Update"
+            content.body = "Your transcript for '\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)' should be ready! Check back to see your results."
+            content.sound = .default
+            content.categoryIdentifier = "ESTIMATED_COMPLETE_NOTIFICATION"
+            content.userInfo = ["meetingId": meetingId.uuidString, "navigateTo": "meeting"]
+
+            // Schedule for estimated completion time
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: notificationDelay, repeats: false)
+
+            let request = UNNotificationRequest(
+                identifier: identifier,
+                content: content,
+                trigger: trigger
+            )
+
+            do {
+                try await notificationCenter.add(request)
+                print("✅ Estimated completion notification scheduled for \(Int(estimatedMinutes)) minutes")
+            } catch {
+                print("❌ Error scheduling estimated completion notification: \(error)")
+            }
+        }
+    }
+
+    /// Cancel estimated completion notification for a specific meeting
+    func cancelEstimatedCompletionNotification(for meetingId: UUID) {
+        let identifier = "meeting-estimated-\(meetingId.uuidString)"
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
+        print("🗑️ Cancelled estimated completion notification for meeting")
+    }
 }

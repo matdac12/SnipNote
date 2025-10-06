@@ -96,6 +96,11 @@ struct CreateMeetingView: View {
     // Server transcription service
     @StateObject private var transcriptionService = RenderTranscriptionService()
 
+    // Animation state
+    @State private var pulseAnimation = false
+    @State private var shimmerAnimation = false
+    @State private var rotationAnimation = false
+
     private enum FocusedField: Hashable {
         case name
         case location
@@ -789,49 +794,127 @@ struct CreateMeetingView: View {
     @ViewBuilder
     private func processingCard(theme: AppTheme) -> some View {
         VStack(spacing: 20) {
-            // Main title
-            Text(theme.headerStyle == .brackets ? "PROCESSING MEETING..." : "Processing meeting...")
-                .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                .foregroundColor(theme.warningColor)
+            // Animated title with rotating icon
+            HStack(spacing: 12) {
+                Image(systemName: "waveform.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(theme.accentColor)
+                    .rotationEffect(.degrees(rotationAnimation ? 360 : 0))
+                    .animation(.linear(duration: 2).repeatForever(autoreverses: false), value: rotationAnimation)
+                    .onAppear { rotationAnimation = true }
 
-            // Progress percentage and stage
-            VStack(spacing: 8) {
+                Text(theme.headerStyle == .brackets ? "PROCESSING MEETING..." : "Processing meeting...")
+                    .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(theme.warningColor)
+            }
+
+            // Progress percentage with pulsing animation
+            VStack(spacing: 12) {
                 Text("\(Int(transcriptionProgress))% Complete")
                     .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(theme.accentColor)
+                    .scaleEffect(pulseAnimation ? 1.05 : 1.0)
+                    .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: pulseAnimation)
+                    .onAppear { pulseAnimation = true }
 
-                // Progress bar
-                ProgressView(value: transcriptionProgress, total: 100)
-                    .progressViewStyle(LinearProgressViewStyle(tint: theme.accentColor))
-                    .frame(height: 8)
-                    .scaleEffect(x: 1, y: 1.5, anchor: .center)
+                // Encouraging message
+                if transcriptionProgress > 0 {
+                    Text(encouragingMessage())
+                        .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                        .foregroundColor(theme.accentColor.opacity(0.8))
+                        .transition(.opacity)
+                        .animation(.easeInOut, value: transcriptionProgress)
+                }
 
-                // Current stage description
+                // Enhanced progress bar with shimmer effect
+                ZStack(alignment: .leading) {
+                    // Background track
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(theme.secondaryTextColor.opacity(0.2))
+                        .frame(height: 12)
+
+                    // Progress fill with gradient
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    theme.accentColor,
+                                    theme.accentColor.opacity(0.7),
+                                    theme.accentColor
+                                ]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: CGFloat(transcriptionProgress / 100) * UIScreen.main.bounds.width * 0.85, height: 12)
+                        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: transcriptionProgress)
+
+                    // Shimmer overlay
+                    if transcriptionProgress > 0 && transcriptionProgress < 100 {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.white.opacity(0),
+                                        Color.white.opacity(0.5),
+                                        Color.white.opacity(0)
+                                    ]),
+                                    startPoint: shimmerAnimation ? .leading : .trailing,
+                                    endPoint: shimmerAnimation ? .trailing : .leading
+                                )
+                            )
+                            .frame(width: CGFloat(transcriptionProgress / 100) * UIScreen.main.bounds.width * 0.85, height: 12)
+                            .animation(.linear(duration: 1.5).repeatForever(autoreverses: false), value: shimmerAnimation)
+                            .onAppear { shimmerAnimation = true }
+                    }
+                }
+                .frame(height: 12)
+
+                // Estimated time remaining
+                if !estimatedTimeRemaining().isEmpty {
+                    Text(estimatedTimeRemaining())
+                        .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                        .foregroundColor(theme.secondaryTextColor.opacity(0.8))
+                        .transition(.opacity)
+                        .animation(.easeInOut, value: transcriptionProgress)
+                }
+
+                // Current stage description with fade animation
                 if !processingStage.isEmpty {
                     Text(processingStage)
                         .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
                         .foregroundColor(theme.secondaryTextColor)
                         .multilineTextAlignment(.center)
+                        .transition(.opacity)
+                        .animation(.easeInOut, value: processingStage)
                 }
 
-                // Chunk progress (only show if we have chunks)
+                // Chunk progress with animated waveform
                 if totalChunks > 1 {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 6) {
                         Image(systemName: "waveform")
                             .font(.caption2)
                             .foregroundColor(theme.accentColor)
+                            .scaleEffect(pulseAnimation ? 1.1 : 0.9)
+
                         Text("Chunk \(currentChunk) of \(totalChunks)")
                             .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
                             .foregroundColor(theme.secondaryTextColor)
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(theme.accentColor.opacity(0.15))
+                    )
                 }
             }
 
-            // Live transcript preview (show last few chunks)
+            // Live transcript preview with animated appearance
             if !partialTranscripts.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Image(systemName: "text.bubble")
+                        Image(systemName: "text.bubble.fill")
                             .font(.caption)
                             .foregroundColor(theme.accentColor)
                         Text(theme.headerStyle == .brackets ? "PREVIEW:" : "Preview:")
@@ -853,61 +936,110 @@ struct CreateMeetingView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: theme.cornerRadius)
-                            .fill(theme.secondaryBackgroundColor.opacity(0.3))
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        theme.secondaryBackgroundColor.opacity(0.3),
+                                        theme.accentColor.opacity(0.05)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                     )
                 }
+                .transition(.scale.combined(with: .opacity))
             }
 
             // Fallback spinner for when no detailed progress is available
             if transcriptionProgress == 0 && totalChunks == 0 {
                 ProgressView()
                     .scaleEffect(1.5)
+                    .tint(theme.accentColor)
             }
         }
         .padding(.horizontal, 8)
+        .padding(.vertical, 20)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadius * 1.5)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            theme.backgroundColor,
+                            theme.accentColor.opacity(0.05)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.cornerRadius * 1.5)
+                .stroke(theme.accentColor.opacity(0.3), lineWidth: 1)
+        )
     }
 
     @ViewBuilder
     private func meetingResultsCard(theme: AppTheme) -> some View {
         VStack(spacing: 20) {
-            // Header
+            // Animated header with sparkles icon
             VStack(spacing: 8) {
-                Text(theme.headerStyle == .brackets ? "GENERATING MEETING INSIGHTS..." : "Generating meeting insights...")
-                    .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                    .foregroundColor(theme.accentColor)
+                HStack(spacing: 10) {
+                    Image(systemName: "sparkles")
+                        .font(.title3)
+                        .foregroundColor(.purple)
+                        .rotationEffect(.degrees(rotationAnimation ? 360 : 0))
+                        .animation(.linear(duration: 3).repeatForever(autoreverses: false), value: rotationAnimation)
 
-                // Current phase indicator
+                    Text(theme.headerStyle == .brackets ? "GENERATING MEETING INSIGHTS..." : "Generating meeting insights...")
+                        .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(theme.accentColor)
+                }
+
+                // Current phase indicator with animation
                 HStack(spacing: 8) {
                     ProgressView()
                         .scaleEffect(0.8)
+                        .tint(.purple)
                     Text(phaseDescription(for: currentProcessingPhase))
                         .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
                         .foregroundColor(theme.secondaryTextColor)
+                        .transition(.opacity)
+                        .animation(.easeInOut, value: currentProcessingPhase)
                 }
             }
 
             Divider()
-                .background(theme.secondaryTextColor.opacity(0.3))
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [.purple.opacity(0.3), theme.accentColor.opacity(0.3)]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 1)
 
-            // Live content display
+            // Live content display with phase-based colors
             VStack(alignment: .leading, spacing: 16) {
-                // Overview section
+                // Overview section (blue gradient)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Image(systemName: "eye")
+                        Image(systemName: "eye.fill")
                             .font(.caption)
-                            .foregroundColor(theme.accentColor)
+                            .foregroundColor(.blue)
                         Text(theme.headerStyle == .brackets ? "OVERVIEW:" : "Overview:")
                             .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                            .foregroundColor(theme.accentColor)
+                            .foregroundColor(.blue)
                         Spacer()
                         if currentProcessingPhase == .generatingOverview {
                             ProgressView()
                                 .scaleEffect(0.6)
+                                .tint(.blue)
                         } else if !liveOverview.isEmpty {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.caption)
                                 .foregroundColor(.green)
+                                .transition(.scale.combined(with: .opacity))
                         }
                     }
 
@@ -920,27 +1052,40 @@ struct CreateMeetingView: View {
                         .padding(.vertical, 8)
                         .background(
                             RoundedRectangle(cornerRadius: theme.cornerRadius)
-                                .fill(theme.secondaryBackgroundColor.opacity(0.3))
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            theme.secondaryBackgroundColor.opacity(0.3),
+                                            Color.blue.opacity(0.05)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
                         )
+                        .transition(.opacity)
+                        .animation(.easeInOut, value: liveOverview)
                 }
 
-                // Summary section
+                // Summary section (purple gradient)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Image(systemName: "doc.text")
+                        Image(systemName: "doc.text.fill")
                             .font(.caption)
-                            .foregroundColor(theme.accentColor)
+                            .foregroundColor(.purple)
                         Text(theme.headerStyle == .brackets ? "SUMMARY:" : "Summary:")
                             .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                            .foregroundColor(theme.accentColor)
+                            .foregroundColor(.purple)
                         Spacer()
                         if currentProcessingPhase == .generatingSummary {
                             ProgressView()
                                 .scaleEffect(0.6)
+                                .tint(.purple)
                         } else if !liveSummary.isEmpty {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.caption)
                                 .foregroundColor(.green)
+                                .transition(.scale.combined(with: .opacity))
                         }
                     }
 
@@ -956,31 +1101,69 @@ struct CreateMeetingView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: theme.cornerRadius)
-                            .fill(theme.secondaryBackgroundColor.opacity(0.3))
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        theme.secondaryBackgroundColor.opacity(0.3),
+                                        Color.purple.opacity(0.05)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                     )
+                    .transition(.opacity)
+                    .animation(.easeInOut, value: liveSummary)
                 }
 
-                // Actions section
+                // Actions section (green gradient)
                 HStack {
-                    Image(systemName: "list.bullet")
+                    Image(systemName: "list.bullet.circle.fill")
                         .font(.caption)
-                        .foregroundColor(theme.accentColor)
+                        .foregroundColor(.green)
                     Text(theme.headerStyle == .brackets ? "EXTRACTING ACTIONS..." : "Extracting actions...")
                         .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                        .foregroundColor(theme.accentColor)
+                        .foregroundColor(.green)
                     Spacer()
                     if currentProcessingPhase == .extractingActions {
                         ProgressView()
                             .scaleEffect(0.6)
+                            .tint(.green)
                     } else if currentProcessingPhase == .complete {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.caption)
                             .foregroundColor(.green)
+                            .transition(.scale.combined(with: .opacity))
                     }
                 }
             }
         }
         .padding(.horizontal, 8)
+        .padding(.vertical, 20)
+        .background(
+            RoundedRectangle(cornerRadius: theme.cornerRadius * 1.5)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            theme.backgroundColor,
+                            Color.purple.opacity(0.05)
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.cornerRadius * 1.5)
+                .stroke(
+                    LinearGradient(
+                        gradient: Gradient(colors: [.purple.opacity(0.3), theme.accentColor.opacity(0.3)]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
     }
 
     private func phaseDescription(for phase: ProcessingPhase) -> String {
@@ -996,6 +1179,45 @@ struct CreateMeetingView: View {
             return theme.headerStyle == .brackets ? "EXTRACTING ACTIONS..." : "Extracting actions..."
         case .complete:
             return theme.headerStyle == .brackets ? "COMPLETE!" : "Complete!"
+        }
+    }
+
+    // Calculate estimated time remaining for transcription
+    private func estimatedTimeRemaining() -> String {
+        guard transcriptionProgress > 0 && transcriptionProgress < 100 else {
+            return ""
+        }
+
+        // Estimate total time based on audio duration
+        // Typically ~30 seconds per minute of audio (with speedup)
+        let audioDurationMinutes = cachedAudioDuration / 60.0
+        let estimatedTotalSeconds = audioDurationMinutes * 30.0
+
+        // Calculate remaining time based on progress
+        let remainingPercentage = (100.0 - transcriptionProgress) / 100.0
+        let remainingSeconds = Int(estimatedTotalSeconds * remainingPercentage)
+
+        if remainingSeconds < 60 {
+            return "~\(remainingSeconds)s remaining"
+        } else {
+            let minutes = remainingSeconds / 60
+            let seconds = remainingSeconds % 60
+            return seconds > 0 ? "~\(minutes)m \(seconds)s remaining" : "~\(minutes)m remaining"
+        }
+    }
+
+    // Get encouraging message based on progress
+    private func encouragingMessage() -> String {
+        if transcriptionProgress < 25 {
+            return "Hang tight, we're processing your meeting..."
+        } else if transcriptionProgress < 50 {
+            return "Making great progress!"
+        } else if transcriptionProgress < 75 {
+            return "More than halfway there!"
+        } else if transcriptionProgress < 95 {
+            return "Almost done!"
+        } else {
+            return "Finishing up..."
         }
     }
 
@@ -1501,7 +1723,7 @@ struct CreateMeetingView: View {
             await UsageTracker.shared.trackMeetingCreated(transcribed: false, meetingSeconds: duration)
         }
 
-        // Navigate to detail view immediately
+        // Navigate immediately - MeetingDetailView will detect upload state
         onMeetingCreated?(meeting)
 
         Task {
@@ -1611,6 +1833,15 @@ struct CreateMeetingView: View {
                     for: meetingId,
                     meetingName: meeting.name
                 )
+
+                // Schedule estimated completion notification based on audio duration
+                await NotificationService.shared.scheduleEstimatedCompletionNotification(
+                    for: meetingId,
+                    meetingName: meeting.name,
+                    audioDuration: cachedAudioDuration
+                )
+
+                // Navigation already happened - jobId is now saved
 
             } catch {
                 await MainActor.run {

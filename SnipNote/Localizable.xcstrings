@@ -225,22 +225,23 @@
         }
       }
     },
+    "Almost finished!" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quasi finito!"
+          }
+        }
+      }
+    },
     "Already have an account?" : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hai già un account?"
-          }
-        }
-      }
-    },
-    "Almost finished!" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quasi finito!"
           }
         }
       }
@@ -565,6 +566,7 @@
       }
     },
     "Final touches..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -718,6 +720,17 @@
     "Loading subscription options..." : {
 
     },
+    "Making great progress!" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ottimi progressi!"
+          }
+        }
+      }
+    },
     "Mattia Da Campo" : {
 
     },
@@ -824,17 +837,11 @@
         }
       }
     },
-    "Making great progress!" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ottimi progressi!"
-          }
-        }
-      }
+    "minutes" : {
+
     },
     "More than halfway there!" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -844,8 +851,16 @@
         }
       }
     },
-    "minutes" : {
-
+    "Nearly complete - hang tight!" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quasi completo - ancora un attimo!"
+          }
+        }
+      }
     },
     "NEED HELP?" : {
 
@@ -855,16 +870,6 @@
     },
     "NEED MORE MINUTES?" : {
 
-    },
-    "Nearly complete - hang tight!" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quasi completo - ancora un attimo!"
-          }
-        }
-      }
     },
     "New Chat" : {
       "localizations" : {
@@ -1086,6 +1091,17 @@
         }
       }
     },
+    "Processing on our servers..." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elaborazione sui nostri server..."
+          }
+        }
+      }
+    },
     "Processing..." : {
       "localizations" : {
         "it" : {
@@ -1106,17 +1122,8 @@
         }
       }
     },
-    "Processing on our servers..." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elaborazione sui nostri server..."
-          }
-        }
-      }
-    },
     "Progressing smoothly - almost there!" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1287,16 +1294,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "TRASCRIZIONE SERVER"
-          }
-        }
-      }
-    },
-    "Should be ready soon - check back in a few minutes" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sarà pronto a breve - ricontrolla tra qualche minuto"
           }
         }
       }
@@ -2487,6 +2484,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tempo totale di registrazione"
+          }
+        }
+      }
+    },
+    "Should be ready soon - check back in a few minutes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sarà pronto a breve - ricontrolla tra qualche minuto"
           }
         }
       }

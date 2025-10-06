@@ -25,6 +25,8 @@ struct MeetingsView: View {
     @State private var showingPaywall = false
     @State private var searchText = ""
     @State private var isSearching = false
+    @State private var tappedMeetingId: UUID?
+    @State private var isBouncingEmpty = false
 
     private var filteredMeetings: [Meeting] {
         if searchText.isEmpty {
@@ -123,6 +125,17 @@ struct MeetingsView: View {
                 if meetings.isEmpty {
                     VStack(spacing: 20) {
                         Spacer()
+
+                        // Animated empty state icon
+                        Image(systemName: "folder.badge.plus")
+                            .font(.system(size: 60))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor.opacity(0.6))
+                            .offset(y: isBouncingEmpty ? -10 : 0)
+                            .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: isBouncingEmpty)
+                            .onAppear {
+                                isBouncingEmpty = true
+                            }
+
                         Text(themeManager.currentTheme.headerStyle == .brackets ? "NO MEETINGS FOUND" : "No meetings yet")
                             .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
@@ -209,7 +222,19 @@ struct MeetingsView: View {
                                          .stroke(themeManager.currentTheme.warningColor.opacity(0.5), lineWidth: 1)
                                      : nil
                                  )
+                                 .scaleEffect(tappedMeetingId == meeting.id ? 0.97 : 1.0)
+                                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: tappedMeetingId)
                              }
+                             .buttonStyle(PlainButtonStyle())
+                             .simultaneousGesture(
+                                 DragGesture(minimumDistance: 0)
+                                     .onChanged { _ in
+                                         tappedMeetingId = meeting.id
+                                     }
+                                     .onEnded { _ in
+                                         tappedMeetingId = nil
+                                     }
+                             )
                         }
                         .onDelete(perform: deleteMeetings)
                         .listRowBackground(Color.clear)

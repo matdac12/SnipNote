@@ -61,7 +61,14 @@
 
     },
     "%lld%% Complete" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%% Completato"
+          }
+        }
+      }
     },
     "•" : {
 
@@ -224,6 +231,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hai già un account?"
+          }
+        }
+      }
+    },
+    "Almost finished!" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quasi finito!"
           }
         }
       }
@@ -547,6 +564,16 @@
         }
       }
     },
+    "Final touches..." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultimi ritocchi..."
+          }
+        }
+      }
+    },
     "Free Tier - Minutes-based usage" : {
 
     },
@@ -797,6 +824,26 @@
         }
       }
     },
+    "Making great progress!" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ottimi progressi!"
+          }
+        }
+      }
+    },
+    "More than halfway there!" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Più della metà completato!"
+          }
+        }
+      }
+    },
     "minutes" : {
 
     },
@@ -808,6 +855,16 @@
     },
     "NEED MORE MINUTES?" : {
 
+    },
+    "Nearly complete - hang tight!" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quasi completo - ancora un attimo!"
+          }
+        }
+      }
     },
     "New Chat" : {
       "localizations" : {
@@ -958,7 +1015,14 @@
 
     },
     "Preparing your meeting for transcription..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparazione della riunione per la trascrizione..."
+          }
+        }
+      }
     },
     "Preview:" : {
 
@@ -1038,6 +1102,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ELABORAZIONE..."
+          }
+        }
+      }
+    },
+    "Processing on our servers..." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elaborazione sui nostri server..."
+          }
+        }
+      }
+    },
+    "Progressing smoothly - almost there!" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Procedendo bene - quasi finito!"
           }
         }
       }
@@ -1188,10 +1272,34 @@
       }
     },
     "Server Transcription" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizione server"
+          }
+        }
+      }
     },
     "SERVER TRANSCRIPTION" : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TRASCRIZIONE SERVER"
+          }
+        }
+      }
+    },
+    "Should be ready soon - check back in a few minutes" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sarà pronto a breve - ricontrolla tra qualche minuto"
+          }
+        }
+      }
     },
     "settings.about.developer.description" : {
       "extractionState" : "manual",
@@ -2675,10 +2783,24 @@
 
     },
     "Uploading to server..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caricamento sul server..."
+          }
+        }
+      }
     },
     "UPLOADING TO SERVER..." : {
-
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CARICAMENTO SUL SERVER..."
+          }
+        }
+      }
     },
     "VERSION" : {
 

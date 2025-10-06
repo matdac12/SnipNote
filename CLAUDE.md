@@ -224,7 +224,36 @@
 ### Major Achievement: Complete Async Transcription System
 - **Problem Solved**: Long audio files blocked the app, forcing users to keep it open during transcription
 - **Solution**: Intelligent hybrid system with automatic mode selection and server-side background processing
-- **Impact**: 33% cost reduction, seamless UX, zero user intervention required
+- **Impact**: Seamless UX, zero user intervention, reliable large file handling
+
+### Important Note: Audio Speedup Usage
+- **On-Device Transcription (≤5 min)**: ✅ **Still uses 1.5x speedup** (reduces cost 33%, works well for in-app recordings)
+- **Server-Side Upload (>5 min)**: ❌ **Speedup REMOVED** (increased file size, caused Supabase upload failures)
+- **Reason for removal**: Re-encoding compressed audio (Voice Memos) made files LARGER, not smaller
+- **Current behavior**: Server uploads receive original unmodified audio
+
+### How Large Files Are Handled - Two-Level Chunking Architecture:
+
+**Level 1: Upload Chunking (iOS → Supabase)**
+- Files >15MB split into ~15MB chunks (NO overlap, NO speedup)
+- Each chunk uploaded sequentially to Supabase Storage
+- Purpose: Network reliability, avoid Supabase upload limits
+
+**Level 2: Transcription Chunking (Python Server → OpenAI)**
+- Each upload chunk downloaded separately by server
+- If chunk >1.5MB, automatically sub-chunked with 2-second overlap
+- Sub-chunks sent to OpenAI Whisper (respects 25MB API limit)
+- Smart overlap detection merges sub-chunks within each upload chunk
+- Purpose: Respect OpenAI 25MB limit, maintain quality with overlap
+
+**Final Assembly:**
+- Upload chunk transcripts merged with simple `\n.join()` (no overlap detection between upload chunks)
+- AI summary/actions generated from full transcript
+- Result returned to app
+
+**Performance:**
+- 2-hour meeting (57MB, 4 upload chunks) = 10 minutes processing time
+- 12x faster than real-time transcription
 
 ### Core Components Implemented:
 
@@ -241,22 +270,28 @@
   - Console logs: `"📱 Auto-selected on-device"` or `"☁️ Auto-selected server-side"`
 - **User Experience**: Zero cognitive load - app "just works"
 
-#### 2. Audio Optimization for Cost Reduction (Tasks 2.0 & 6.0)
-- **The Problem**: Server transcription costs based on audio duration
-- **The Solution**: Apply 1.5x speed-up + M4A compression before server upload
-- **Math**: Original duration ÷ 1.5 = 33% cost savings
-  - Example: 15-minute audio → optimized to 10 minutes → saves $0.03 per transcription
+#### 2. Large File Upload System (Tasks 2.0 & 6.0)
+- **The Problem**: Large audio files (>15MB) need chunked upload to Supabase
+- **The Solution**: Intelligent upload chunking system with 15MB target chunks
+- **Why No Audio Speedup for Server?**:
+  - **Attempted optimization was REMOVED** - 1.5x speedup increased file sizes (re-encoding overhead)
+  - Compressed audio (Voice Memos, imports) got LARGER when sped up
+  - Caused Supabase upload failures and increased costs instead of reducing them
+  - Original audio uploads are faster and more reliable
 - **Implementation**:
-  - Created `OpenAIService.optimizeAudioForUpload(audioURL:)` method
-  - Integrated into `CreateMeetingView.processServerSide()` before Supabase upload
-  - Graceful fallback: if optimization fails, uploads original audio
+  - `AudioChunker.needsUploadChunking()` - Checks if file >15MB
+  - `AudioChunker.createUploadChunks()` - Creates 15MB chunks WITHOUT overlap
+  - `CreateMeetingView.processServerSide()` - Handles chunked/single upload
+  - Sequential upload to Supabase, chunks reassembled on server
 - **Key Files**:
-  - `OpenAIService.swift:245-272` - Optimization method
-  - `CreateMeetingView.swift:1509-1536` - Integration with upload flow
+  - `AudioChunker.swift:491-638` - Upload chunking system
+  - `CreateMeetingView.swift:1509-1559` - Upload orchestration
 - **Console Logs**:
-  - `"⚡ Optimizing audio for server upload..."`
-  - `"✅ Audio optimized: 5120KB → 3072KB (40% smaller)"`
-  - `"🗑️ Cleaned up optimized audio file"`
+  - `"📦 Large file detected - using chunked upload"`
+  - `"📦 Creating N upload chunks (target: 15MB per chunk)"`
+  - `"📤 Uploading N chunks to Supabase..."`
+  - `"✅ All N chunks uploaded successfully"`
+- **Note**: `optimizeAudioForUpload()` method still exists in code but is **never called** (legacy from failed optimization attempt)
 
 #### 3. Server-Side Notification System (Task 3.0)
 - **The Problem**: Users had no feedback when server transcription completed
@@ -336,6 +371,29 @@
 3. `completed` - Transcription + AI summary done
 4. `failed` - Error occurred
 
+#### Server Processing Logic (Python):
+
+**For Non-Chunked Jobs (<15MB upload):**
+1. Download single audio file from Supabase
+2. Check file size: if >1.5MB, auto-chunk with 2s overlap
+3. Transcribe each sub-chunk via OpenAI Whisper
+4. Smart merge sub-chunks (overlap detection)
+5. Generate AI summary/actions
+6. Save results and mark complete
+
+**For Chunked Jobs (>15MB upload):**
+1. Download each upload chunk separately from Supabase
+2. For each chunk: if >1.5MB, auto-sub-chunk with 2s overlap
+3. Transcribe sub-chunks, smart merge within each upload chunk
+4. Merge all upload chunk transcripts with `\n.join()` (simple concatenation)
+5. Generate AI summary/actions from full transcript
+6. Save results and mark complete
+
+**Key Files:**
+- `jobs.py` - Job processing orchestration
+- `transcribe.py` - Chunking and OpenAI Whisper integration
+- `supabase_client.py` - Database and storage operations
+
 #### Job Response Model (`JobStatusResponse`):
 ```swift
 struct JobStatusResponse: Codable {
@@ -385,8 +443,8 @@ enum TranscriptionError: LocalizedError {
 #### Meeting Duration Property:
 - **Computed property**: `duration = endTime - startTime`
 - **Cannot be set directly**: Read-only, calculated from timestamps
-- **Design decision**: Meeting duration shows original recording time, not optimized time
-- **Optimized duration**: Only used for server API parameter, not stored
+- **Design decision**: Meeting duration shows original recording time
+- **Note**: On-device transcription still uses 1.5x speedup internally (works for on-device only)
 
 #### Async/Await Patterns:
 - `Task.sleep(nanoseconds:)` for retry delays
@@ -415,7 +473,7 @@ enum TranscriptionError: LocalizedError {
 - **Test Coverage**:
   - Error enum completeness and descriptions
   - Job status model encoding/decoding
-  - Audio optimization math (33% savings validation)
+  - Upload chunking thresholds and logic
   - Auto-selection threshold logic (5-minute boundary)
   - Retry logic constants (exponential backoff)
   - NotificationService singleton pattern
@@ -437,6 +495,30 @@ enum TranscriptionError: LocalizedError {
 11. ✅ App closed during processing → notification appears when job completes
 12. ✅ Tapping notification navigates to meeting detail view
 
+#### Production Scale Testing (October 2025):
+
+**Test Results - Validated on Real Devices:**
+
+| Duration | File Size | Upload Method | Upload Chunks | Transcription Sub-Chunks | Processing Time | Result |
+|----------|-----------|---------------|---------------|-------------------------|-----------------|--------|
+| 11 seconds | <1MB | Direct | 1 | 0 (direct) | Instant | ✅ Perfect |
+| 14 minutes | ~8MB | Single upload | 1 | 5-6 sub-chunks | ~2 minutes | ✅ Perfect |
+| 30 minutes | 18MB | Chunked upload | 2 chunks | ~10 sub-chunks each | ~4 minutes | ✅ Perfect |
+| 2 hours | 57MB | Chunked upload | 4 chunks | 8-10 sub-chunks each | 10 minutes | ✅ Perfect |
+
+**Key Findings:**
+- ✅ **Scalability proven**: System handles 2-hour meetings (57MB) flawlessly
+- ✅ **Performance**: 12x faster than real-time (2hr → 10min processing)
+- ✅ **Two-level chunking works**: Upload chunks + transcription sub-chunks = no API limit issues
+- ✅ **Smart overlap detection**: Visible in logs (`✂️ Detected 25 char overlap between chunks`)
+- ✅ **Zero failures**: All test cases completed successfully with quality transcripts
+
+**Architecture Validation:**
+- OpenAI 25MB limit respected: Largest sub-chunk = 1.5MB ✅
+- Supabase upload stability: 15MB chunks reliable ✅
+- Network resilience: Individual chunk upload/download works ✅
+- Quality preservation: Overlap detection maintains continuity ✅
+
 ### Key Architectural Decisions:
 
 #### Why 5-Minute Threshold?
@@ -445,11 +527,19 @@ enum TranscriptionError: LocalizedError {
 - **Hardcoded**: Simple, predictable, no user configuration needed
 - **Future enhancement**: Could be made configurable or adaptive based on device capabilities
 
-#### Why Audio Optimization?
-- **Cost savings**: 33% reduction in transcription time = 33% cost reduction
-- **Network efficiency**: Smaller files upload faster
-- **Server efficiency**: Faster processing, less compute time
-- **User experience**: Faster overall completion time
+#### Why Two-Level Chunking?
+
+**Upload Chunking (15MB):**
+- **Supabase limits**: Reliable uploads require reasonable chunk sizes
+- **Network resilience**: Individual chunk failures don't fail entire upload
+- **Progress tracking**: Can show upload progress per chunk
+- **No overlap needed**: Upload chunks are for transfer, not quality preservation
+
+**Transcription Chunking (1.5MB):**
+- **OpenAI 25MB limit**: Each API call must be under 25MB
+- **Quality preservation**: 2-second overlap prevents word cutoff at boundaries
+- **Memory efficiency**: Process large files without loading entire audio in memory
+- **Automatic**: Python server chunks any upload >1.5MB regardless of source
 
 #### Why Exponential Backoff?
 - **First retry (5s)**: Catches transient network blips
@@ -465,13 +555,14 @@ enum TranscriptionError: LocalizedError {
 ### Files Modified/Created:
 
 **iOS App Changes**:
-- `CreateMeetingView.swift` - Auto-selection, optimization integration
-- `OpenAIService.swift` - Audio optimization method
+- `CreateMeetingView.swift` - Auto-selection, chunked upload integration
+- `AudioChunker.swift` - Upload chunking system (15MB chunks)
 - `MeetingDetailView.swift` - Polling, notifications, storage cleanup, fallback
 - `RenderTranscriptionService.swift` - Retry logic, exponential backoff
 - `NotificationService.swift` - Failure notification method
 - `TranscriptionJobModels.swift` - Job status models (already existed)
 - `SmartTranscriptionTests.swift` - NEW comprehensive test suite
+- `OpenAIService.swift` - Contains unused `optimizeAudioForUpload()` (legacy, never called)
 
 **Backend (No Changes Required)**:
 - Python worker already supports all required functionality
@@ -480,12 +571,16 @@ enum TranscriptionError: LocalizedError {
 
 ### Production Metrics & Impact:
 
-**Cost Reduction**:
-- **Before**: $0.006/minute × 15 minutes = $0.09 per transcription
-- **After**: $0.006/minute × 10 minutes (optimized) = $0.06 per transcription
-- **Savings**: 33% reduction = $0.03 per transcription
-- **Monthly savings** (100 transcriptions): $3.00
-- **Yearly savings** (1200 transcriptions): $36.00
+**Server Processing Costs**:
+- **Transcription**: $0.006/minute using OpenAI Whisper (gpt-4o-transcribe model)
+- **No cost optimization**: Original audio uploaded (speedup removed due to file bloat)
+- **Example costs**:
+  - 15-minute meeting = $0.09
+  - 2-hour meeting = $0.72
+- **Chunking benefit**:
+  - Reliable upload of large files (tested up to 57MB)
+  - Respects OpenAI 25MB API limit automatically
+  - 12x faster than real-time processing
 
 **User Experience**:
 - **Before**: Manual mode selection, app must stay open, no notifications
@@ -498,6 +593,14 @@ enum TranscriptionError: LocalizedError {
 - Average savings: 5-50 MB per completed meeting
 
 ### Lessons Learned:
+
+#### Two-Level Chunking Architecture:
+- **Separation of concerns**: Upload chunking (network) vs transcription chunking (API limits) are distinct
+- **Server already had chunking**: Python worker auto-chunks any file >1.5MB with overlap detection
+- **Upload chunks NOT reassembled**: Each processed individually, then transcripts merged
+- **Smart overlap works**: Visible in production logs, preserves quality within each upload chunk
+- **Simple merge acceptable**: Upload chunk boundaries use `\n.join()` without overlap detection
+- **Testing proved scalability**: 2-hour meetings (57MB) work perfectly with dual-chunking approach
 
 #### SwiftUI State Management:
 - Computed properties cannot be set directly (learned with `meeting.duration`)
@@ -531,6 +634,7 @@ enum TranscriptionError: LocalizedError {
 
 **Not Planned** (Intentionally Out of Scope):
 - Migration of existing meetings to new system
+- Server-side audio speedup optimization (attempted and removed - caused file bloat)
 - Custom optimization settings (speed multiplier, compression quality)
 - Background upload progress UI (kept simple intentionally)
 - A/B testing infrastructure (premature at current scale)

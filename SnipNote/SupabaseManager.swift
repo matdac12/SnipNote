@@ -36,12 +36,6 @@ class SupabaseManager {
         let fileAttributes = try FileManager.default.attributesOfItem(atPath: audioURL.path)
         let fileSize = fileAttributes[.size] as? Int ?? 0
 
-        // Check 50MB file size limit
-        let maxFileSize = 50 * 1024 * 1024 // 50MB
-        if fileSize > maxFileSize {
-            throw SupabaseError.fileTooLarge(size: fileSize, limit: maxFileSize)
-        }
-
         // Create file path: userId/meetingId.m4a
         let userIdString = userId.uuidString.lowercased()
         let fileName = "\(meetingId.uuidString.lowercased()).m4a"
@@ -51,23 +45,15 @@ class SupabaseManager {
         print("🎵 User ID: \(userIdString)")
         print("🎵 File size: \(fileSize) bytes")
 
-        // Choose upload method based on file size
-        let maxChunkSize = 10 * 1024 * 1024 // 10MB chunks
-
-        if fileSize <= maxChunkSize {
-            // Small file - use standard upload
-            let audioData = try Data(contentsOf: audioURL)
-            _ = try await client.storage
-                .from("recordings")
-                .upload(
-                    filePath,
-                    data: audioData,
-                    options: FileOptions(contentType: "audio/m4a")
-                )
-        } else {
-            // Large file - use chunked upload
-            try await uploadLargeFile(audioURL: audioURL, filePath: filePath)
-        }
+        // Use standard upload for all files (Supabase Pro supports large files)
+        let audioData = try Data(contentsOf: audioURL)
+        _ = try await client.storage
+            .from("recordings")
+            .upload(
+                filePath,
+                data: audioData,
+                options: FileOptions(contentType: "audio/m4a")
+            )
 
         // Create database record
         let recording = AudioRecording(
@@ -102,64 +88,6 @@ class SupabaseManager {
         return filePath
     }
 
-    /// Upload large files in chunks to prevent memory issues
-    private func uploadLargeFile(audioURL: URL, filePath: String) async throws {
-        let chunkSize = 5 * 1024 * 1024 // 5MB chunks
-        let fileHandle = try FileHandle(forReadingFrom: audioURL)
-        defer { fileHandle.closeFile() }
-
-        let fileSize = fileHandle.seekToEndOfFile()
-        fileHandle.seek(toFileOffset: 0)
-
-        print("🎵 Starting chunked upload for \(fileSize) bytes")
-
-        var uploadedData = Data()
-        var chunkIndex = 0
-
-        while true {
-            let chunk = fileHandle.readData(ofLength: chunkSize)
-            if chunk.isEmpty { break }
-
-            uploadedData.append(chunk)
-            chunkIndex += 1
-
-            print("🎵 Read chunk \(chunkIndex), size: \(chunk.count) bytes")
-
-            // Upload in batches to avoid memory buildup
-            if uploadedData.count >= 20 * 1024 * 1024 || chunk.count < chunkSize { // 20MB batches or final chunk
-                print("🎵 Uploading batch of \(uploadedData.count) bytes")
-
-                if chunkIndex == 1 && chunk.count < chunkSize {
-                    // Single small chunk - use standard upload
-                    _ = try await client.storage
-                        .from("recordings")
-                        .upload(
-                            filePath,
-                            data: uploadedData,
-                            options: FileOptions(contentType: "audio/m4a")
-                        )
-                } else {
-                    // For now, accumulate and upload as one piece since Supabase doesn't support resumable uploads
-                    // In production, you might want to use a different storage solution for very large files
-                    if chunk.count < chunkSize { // Final batch
-                        _ = try await client.storage
-                            .from("recordings")
-                            .upload(
-                                filePath,
-                                data: uploadedData,
-                                options: FileOptions(contentType: "audio/m4a")
-                            )
-                    }
-                }
-
-                if chunk.count < chunkSize { break } // Final chunk
-
-                // For demonstration, we still accumulate but could implement actual streaming here
-                // uploadedData = Data() // Reset for true streaming
-            }
-        }
-    }
-    
     /// Get signed URL for audio playback
     func getAudioURL(for meetingId: UUID) async throws -> URL? {
         guard let userId = client.auth.currentUser?.id else {
@@ -192,7 +120,7 @@ class SupabaseManager {
         guard let userId = client.auth.currentUser?.id else {
             throw SupabaseError.authRequired
         }
-        
+
         // Get recording info first
         let recordings: [AudioRecording] = try await client
             .from("recordings")
@@ -201,22 +129,90 @@ class SupabaseManager {
             .eq("user_id", value: userId.uuidString)
             .execute()
             .value
-        
+
         guard let recording = recordings.first else {
             return
         }
-        
+
         // Delete from storage
         try await client.storage
             .from("recordings")
             .remove(paths: [recording.filePath])
-        
+
         // Delete from database
         try await client
             .from("recordings")
             .delete()
             .eq("meeting_id", value: meetingId.uuidString)
             .execute()
+    }
+
+    /// Upload a single audio chunk to Supabase Storage and create database record
+    func uploadAudioChunk(
+        chunkData: Data,
+        meetingId: UUID,
+        chunkIndex: Int,
+        totalChunks: Int,
+        duration: TimeInterval
+    ) async throws -> String {
+        // Get current session to ensure we have a valid auth token
+        guard let session = try? await client.auth.session else {
+            throw SupabaseError.authRequired
+        }
+
+        let userId = session.user.id
+
+        // Create file path: userId/meetingId_chunk_0.m4a, userId/meetingId_chunk_1.m4a, etc.
+        let userIdString = userId.uuidString.lowercased()
+        let fileName = "\(meetingId.uuidString.lowercased())_chunk_\(chunkIndex).m4a"
+        let filePath = "\(userIdString)/\(fileName)"
+
+        print("📤 Uploading chunk \(chunkIndex + 1)/\(totalChunks) to path: \(filePath)")
+        print("📤 Chunk size: \(chunkData.count) bytes (\(String(format: "%.2f", Double(chunkData.count) / (1024 * 1024))) MB)")
+
+        // Upload chunk to Supabase Storage
+        _ = try await client.storage
+            .from("recordings")
+            .upload(
+                filePath,
+                data: chunkData,
+                options: FileOptions(contentType: "audio/m4a")
+            )
+
+        // Create database record in audio_chunks table
+        let chunkMetadata = AudioChunkMetadata(
+            meetingId: meetingId,
+            userId: userId,
+            chunkIndex: chunkIndex,
+            totalChunks: totalChunks,
+            filePath: filePath,
+            fileSize: chunkData.count,
+            durationSeconds: duration
+        )
+
+        print("📊 Creating chunk metadata in database")
+
+        do {
+            try await client
+                .from("audio_chunks")
+                .insert(chunkMetadata)
+                .execute()
+        } catch {
+            // If database insert fails, clean up uploaded chunk
+            print("❌ Chunk metadata insert failed, cleaning up uploaded chunk: \(error)")
+            do {
+                try await client.storage
+                    .from("recordings")
+                    .remove(paths: [filePath])
+                print("🗑️ Successfully cleaned up uploaded chunk after database failure")
+            } catch let cleanupError {
+                print("⚠️ Failed to cleanup uploaded chunk: \(cleanupError)")
+            }
+            throw error
+        }
+
+        print("✅ Chunk \(chunkIndex + 1)/\(totalChunks) uploaded successfully")
+        return filePath
     }
 
     // MARK: - Subscription Functions
@@ -324,8 +320,6 @@ class SupabaseManager {
                 return false // Don't retry auth errors
             case .transactionValidationFailed:
                 return false // Don't retry validation errors
-            case .fileTooLarge:
-                return false // Don't retry file size errors
             }
         }
 
@@ -397,7 +391,6 @@ enum SupabaseError: LocalizedError {
     case authRequired
     case transactionValidationFailed(String)
     case networkTimeout
-    case fileTooLarge(size: Int, limit: Int)
 
     var errorDescription: String? {
         switch self {
@@ -407,10 +400,6 @@ enum SupabaseError: LocalizedError {
             return "Transaction validation failed: \(message)"
         case .networkTimeout:
             return "Network request timed out"
-        case .fileTooLarge(let size, let limit):
-            let sizeMB = Double(size) / (1024 * 1024)
-            let limitMB = Double(limit) / (1024 * 1024)
-            return "Audio file too large (\(String(format: "%.1f", sizeMB)) MB). Please reduce the audio length or split it into multiple parts. Maximum file size: \(Int(limitMB)) MB."
         }
     }
 }
@@ -545,6 +534,53 @@ struct ServerSubscription: Codable {
         case environment
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+}
+
+// MARK: - Audio Chunk Types
+
+struct AudioChunkMetadata: Codable {
+    let id: UUID?
+    let meetingId: UUID
+    let userId: UUID
+    let chunkIndex: Int
+    let totalChunks: Int
+    let filePath: String
+    let fileSize: Int
+    let durationSeconds: Double
+    let uploadedAt: Date?
+    let transcribed: Bool
+    let transcript: String?
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case meetingId = "meeting_id"
+        case userId = "user_id"
+        case chunkIndex = "chunk_index"
+        case totalChunks = "total_chunks"
+        case filePath = "file_path"
+        case fileSize = "file_size"
+        case durationSeconds = "duration_seconds"
+        case uploadedAt = "uploaded_at"
+        case transcribed
+        case transcript
+        case createdAt = "created_at"
+    }
+
+    init(meetingId: UUID, userId: UUID, chunkIndex: Int, totalChunks: Int, filePath: String, fileSize: Int, durationSeconds: Double) {
+        self.id = nil
+        self.meetingId = meetingId
+        self.userId = userId
+        self.chunkIndex = chunkIndex
+        self.totalChunks = totalChunks
+        self.filePath = filePath
+        self.fileSize = fileSize
+        self.durationSeconds = durationSeconds
+        self.uploadedAt = nil
+        self.transcribed = false
+        self.transcript = nil
+        self.createdAt = nil
     }
 }
 

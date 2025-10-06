@@ -154,8 +154,8 @@ class OpenAIService: ObservableObject {
         return resultData
     }
 
-    /// Speed-up with compression (for high-quality external audio)
-    /// Same as simpleSpeedUp but uses AppleM4A preset for consistent output
+    /// Speed-up without re-encoding (for already-compressed Voice Memos)
+    /// Applies 1.5x speed with minimal quality settings to avoid file bloat
     private func speedUpAndCompress(audioData: Data, inputURL: URL, outputURL: URL) async throws -> Data {
         let asset = AVURLAsset(url: inputURL)
         let originalDuration = try await asset.load(.duration)
@@ -181,8 +181,9 @@ class OpenAIService: ObservableObject {
             toDuration: newDuration
         )
 
-        // Export with AppleM4A preset (provides reasonable compression for high-quality audio)
-        guard let exportSession = AVAssetExportSession(asset: timeMapping, presetName: AVAssetExportPresetAppleM4A) else {
+        // Use Passthrough preset - keeps original codec, just applies 1.5x speed
+        // No re-encoding = no file bloat, no crashes
+        guard let exportSession = AVAssetExportSession(asset: timeMapping, presetName: AVAssetExportPresetPassthrough) else {
             throw OpenAIError.apiError("Failed to create export session")
         }
 
@@ -193,7 +194,7 @@ class OpenAIService: ObservableObject {
         try await exportSession.export(to: outputURL, as: .m4a)
 
         let resultData = try Data(contentsOf: outputURL)
-        print("🚀 [OpenAI] Audio sped up 1.5x with compression (\(resultData.count / 1024)KB) - optimized for external memos")
+        print("🚀 [OpenAI] Audio sped up 1.5x (\(resultData.count / 1024)KB) - no re-compression")
         return resultData
     }
 
@@ -229,8 +230,8 @@ class OpenAIService: ObservableObject {
                 print("📱 [OpenAI] Low sample rate audio (\(Int(sampleRate))Hz) - using original audio")
                 return audioData
             } else {
-                // High quality audio - apply speed-up and compression
-                return try await speedUpAndCompress(audioData: audioData, inputURL: tempInputURL, outputURL: tempOutputURL)
+                // High quality audio - apply speed-up only (using AppleM4A preset)
+                return try await simpleSpeedUp(audioData: audioData, inputURL: tempInputURL, outputURL: tempOutputURL)
             }
         } catch {
             // Fallback to original audio if speed-up fails
@@ -589,7 +590,7 @@ class OpenAIService: ObservableObject {
         """
         
         let requestBody = ChatRequest(
-            model: "gpt-4o",
+            model: "gpt-5-mini",
             messages: [
                 ChatMessage(role: "system", content: "You create concise one-sentence meeting overviews. Always respond with exactly one clear, informative sentence in the same language as the input transcript."),
                 ChatMessage(role: "user", content: prompt)
@@ -641,7 +642,7 @@ class OpenAIService: ObservableObject {
         """
         
         let requestBody = ChatRequest(
-            model: "gpt-4o",
+            model: "gpt-5-mini",
             messages: [
                 ChatMessage(role: "system", content: "You are a professional meeting summarizer. Create structured, comprehensive summaries that capture key decisions, action items, and next steps. Always respond in the same language as the input transcript."),
                 ChatMessage(role: "user", content: prompt)
@@ -684,7 +685,7 @@ class OpenAIService: ObservableObject {
         """
         
         let requestBody = ChatRequest(
-            model: "gpt-4o",
+            model: "gpt-5-mini",
             messages: [
                 ChatMessage(role: "system", content: "You extract actionable items from text and return them as JSON. Be precise and only return valid JSON. Always use the same language as the input transcript for action descriptions."),
                 ChatMessage(role: "user", content: prompt)

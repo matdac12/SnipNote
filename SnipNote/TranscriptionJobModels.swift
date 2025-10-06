@@ -35,6 +35,22 @@ struct CreateJobRequest: Codable {
     }
 }
 
+struct CreateChunkedJobRequest: Codable {
+    let userId: String
+    let meetingId: String
+    let isChunked: Bool
+    let totalChunks: Int
+    let duration: Double
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case meetingId = "meeting_id"
+        case isChunked = "is_chunked"
+        case totalChunks = "total_chunks"
+        case duration
+    }
+}
+
 struct CreateJobResponse: Codable {
     let jobId: String
     let status: JobStatus
@@ -51,7 +67,7 @@ struct JobStatusResponse: Codable {
     let id: String
     let userId: String
     let meetingId: String
-    let audioUrl: String
+    let audioUrl: String?           // Optional for chunked jobs
     let status: JobStatus
     let transcript: String?
     let overview: String?       // 1-sentence overview

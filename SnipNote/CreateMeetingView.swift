@@ -79,10 +79,6 @@ struct CreateMeetingView: View {
     @State private var showingMinutesPaywall = false
     @State private var estimatedMinutesNeeded = 0
 
-    // File size error
-    @State private var showingFileTooLargeAlert = false
-    @State private var fileTooLargeMessage = ""
-
     // Countdown state
     @State private var showingCountdown = false
     @State private var countdownValue = 3
@@ -1147,11 +1143,6 @@ struct CreateMeetingView: View {
         } message: {
             Text("Are you sure you want to cancel? All progress will be lost.")
         }
-        .alert("File Too Large", isPresented: $showingFileTooLargeAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(fileTooLargeMessage)
-        }
         .onAppear {
             print("🎵 CreateMeetingView appeared with importedAudioURL: \(importedAudioURL?.absoluteString ?? "nil")")
             print("🎵 hasImportedAudio: \(hasImportedAudio)")
@@ -1379,15 +1370,6 @@ struct CreateMeetingView: View {
                         }
                     } catch {
                         print("Error uploading imported audio to Supabase: \(error)")
-
-                        // Check if error is file too large
-                        await MainActor.run {
-                            if let supabaseError = error as? SupabaseError,
-                               case .fileTooLarge = supabaseError {
-                                fileTooLargeMessage = supabaseError.localizedDescription
-                                showingFileTooLargeAlert = true
-                            }
-                        }
                     }
                 }
                 
@@ -1524,57 +1506,90 @@ struct CreateMeetingView: View {
 
         Task {
             do {
-                // 1. Optimize audio before upload (1.5x speed-up + compression)
-                var uploadURL = audioURL
-                var uploadDuration = cachedAudioDuration
+                // Check if file needs chunking for upload (>15MB)
+                let needsChunking = try AudioChunker.needsUploadChunking(url: audioURL)
+                var totalChunks = 1
+                var audioPath: String? = nil
 
-                do {
-                    print("⚡ Optimizing audio for server upload...")
-                    let optimizedURL = try await openAIService.optimizeAudioForUpload(audioURL: audioURL)
-                    uploadURL = optimizedURL
-                    uploadDuration = cachedAudioDuration / 1.5
-                    print("✅ Audio optimization complete - new duration: \(Int(uploadDuration))s")
-                } catch {
-                    print("⚠️ Audio optimization failed, uploading original audio: \(error.localizedDescription)")
-                    // Continue with original audio - uploadURL and uploadDuration already set
+                if needsChunking {
+                    print("📦 Large file detected - using chunked upload")
+
+                    // Create upload chunks (15MB each)
+                    let chunks = try await AudioChunker.createUploadChunks(
+                        from: audioURL,
+                        progressCallback: { progress in
+                            // Optionally update UI with chunking progress
+                            print("📦 Chunk progress: \(progress.currentStage)")
+                        }
+                    )
+
+                    totalChunks = chunks.count
+                    print("📤 Uploading \(chunks.count) chunks to Supabase...")
+
+                    // Upload each chunk sequentially
+                    for chunk in chunks {
+                        _ = try await SupabaseManager.shared.uploadAudioChunk(
+                            chunkData: chunk.data,
+                            meetingId: meetingId,
+                            chunkIndex: chunk.chunkIndex,
+                            totalChunks: chunk.totalChunks,
+                            duration: chunk.duration
+                        )
+                    }
+
+                    await MainActor.run {
+                        meeting.hasRecording = true
+                    }
+
+                    print("✅ All \(chunks.count) chunks uploaded successfully")
+
+                } else {
+                    // Small file - use single upload
+                    print("📤 Uploading original audio to Supabase...")
+                    audioPath = try await SupabaseManager.shared.uploadAudioRecording(
+                        audioURL: audioURL,
+                        meetingId: meetingId,
+                        duration: cachedAudioDuration
+                    )
+
+                    await MainActor.run {
+                        meeting.hasRecording = true
+                    }
+
+                    print("✅ Audio uploaded: \(audioPath!)")
                 }
 
-                // 2. Upload audio to Supabase Storage
-                print("📤 Uploading audio to Supabase...")
-                let audioPath = try await SupabaseManager.shared.uploadAudioRecording(
-                    audioURL: uploadURL,
-                    meetingId: meetingId,
-                    duration: uploadDuration
-                )
-
-                // Clean up optimized file after successful upload (if we created one)
-                if uploadURL != audioURL {
-                    try? FileManager.default.removeItem(at: uploadURL)
-                    print("🗑️ Cleaned up optimized audio file")
-                }
-
-                await MainActor.run {
-                    meeting.hasRecording = true
-                }
-
-                print("✅ Audio uploaded: \(audioPath)")
-
-                // 3. Get public URL for the audio and user ID
+                // 3. Get user ID for job creation
                 guard let session = try? await SupabaseManager.shared.client.auth.session else {
                     throw NSError(domain: "CreateMeeting", code: -1, userInfo: [NSLocalizedDescriptionKey: "No auth session"])
                 }
 
                 let userId = session.user.id
-                let publicAudioURL = "https://bndbnqtvicvynzkyygte.supabase.co/storage/v1/object/public/recordings/\(audioPath)"
-                print("📍 Public audio URL: \(publicAudioURL)")
 
-                // 4. Create transcription job
-                print("🔨 Creating transcription job...")
-                let jobResponse = try await transcriptionService.createJob(
-                    userId: userId,
-                    meetingId: meetingId,
-                    audioURL: publicAudioURL
-                )
+                // 4. Create transcription job (chunked or non-chunked)
+                print("🔨 Creating transcription job (chunked: \(needsChunking), chunks: \(totalChunks))...")
+
+                let jobResponse: CreateJobResponse
+                if needsChunking {
+                    // For chunked jobs, worker will fetch chunks from database using meeting_id
+                    // Pass placeholder URL since chunks are in database
+                    jobResponse = try await transcriptionService.createChunkedJob(
+                        userId: userId,
+                        meetingId: meetingId,
+                        totalChunks: totalChunks,
+                        duration: cachedAudioDuration
+                    )
+                } else {
+                    // For non-chunked jobs, pass direct audio URL
+                    let publicAudioURL = "https://bndbnqtvicvynzkyygte.supabase.co/storage/v1/object/public/recordings/\(audioPath!)"
+                    print("📍 Public audio URL: \(publicAudioURL)")
+
+                    jobResponse = try await transcriptionService.createJob(
+                        userId: userId,
+                        meetingId: meetingId,
+                        audioURL: publicAudioURL
+                    )
+                }
 
                 print("✅ Job created: \(jobResponse.jobId)")
 
@@ -1600,14 +1615,6 @@ struct CreateMeetingView: View {
             } catch {
                 await MainActor.run {
                     print("❌ Error in server-side transcription: \(error)")
-
-                    // Check if error is file too large
-                    if let supabaseError = error as? SupabaseError,
-                       case .fileTooLarge = supabaseError {
-                        fileTooLargeMessage = supabaseError.localizedDescription
-                        showingFileTooLargeAlert = true
-                    }
-
                     meeting.setProcessingError("Failed to upload audio or create transcription job: \(error.localizedDescription)")
                     meeting.isProcessing = false
 
@@ -1734,15 +1741,6 @@ struct CreateMeetingView: View {
                         }
                     } catch {
                         print("Error uploading audio to Supabase: \(error)")
-
-                        // Check if error is file too large
-                        await MainActor.run {
-                            if let supabaseError = error as? SupabaseError,
-                               case .fileTooLarge = supabaseError {
-                                fileTooLargeMessage = supabaseError.localizedDescription
-                                showingFileTooLargeAlert = true
-                            }
-                        }
                     }
                 }
 

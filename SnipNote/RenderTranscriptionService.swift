@@ -93,6 +93,65 @@ class RenderTranscriptionService: ObservableObject {
         }
     }
 
+    func createChunkedJob(userId: UUID, meetingId: UUID, totalChunks: Int, duration: TimeInterval) async throws -> CreateJobResponse {
+        guard let endpoint = URL(string: "\(baseURL)/jobs") else {
+            throw TranscriptionError.invalidURL
+        }
+
+        print("📦 Creating chunked transcription job for meeting: \(meetingId) (chunks: \(totalChunks))")
+
+        // Create request
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
+
+        // Create request body for chunked job
+        let jobRequest = CreateChunkedJobRequest(
+            userId: userId.uuidString,
+            meetingId: meetingId.uuidString,
+            isChunked: true,
+            totalChunks: totalChunks,
+            duration: duration
+        )
+
+        do {
+            request.httpBody = try JSONEncoder().encode(jobRequest)
+        } catch {
+            throw TranscriptionError.networkError(error)
+        }
+
+        // Send request
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            throw TranscriptionError.networkError(error)
+        }
+
+        // Check HTTP response
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TranscriptionError.serverError("Invalid response from server")
+        }
+
+        print("📥 Create chunked job response status: \(httpResponse.statusCode)")
+
+        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw TranscriptionError.serverError("HTTP \(httpResponse.statusCode): \(errorMessage)")
+        }
+
+        // Decode response
+        do {
+            let result = try JSONDecoder().decode(CreateJobResponse.self, from: data)
+            print("✅ Chunked job created successfully: \(result.jobId)")
+            return result
+        } catch {
+            print("❌ Decoding error: \(error)")
+            throw TranscriptionError.decodingError
+        }
+    }
+
     func getJobStatus(jobId: String) async throws -> JobStatusResponse {
         guard let endpoint = URL(string: "\(baseURL)/jobs/\(jobId)") else {
             throw TranscriptionError.invalidURL

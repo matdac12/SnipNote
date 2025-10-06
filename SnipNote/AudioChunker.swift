@@ -27,6 +27,7 @@ struct AudioChunkerProgress {
 
 class AudioChunker {
     static let maxChunkSizeBytes = Int(1.5 * 1024 * 1024) // 1.5MB for more frequent progress updates
+    static let uploadChunkSizeBytes = Int(15 * 1024 * 1024) // 15MB for Supabase upload chunks (safe limit)
     static let overlapSeconds: TimeInterval = 2.0 // 2 seconds overlap between chunks
     
     enum ChunkerError: Error {
@@ -485,5 +486,154 @@ class AudioChunker {
             result.append(chunk)
         }
         return result
+    }
+
+    // MARK: - Upload Chunking (15MB chunks for Supabase)
+
+    /// Check if file needs chunking for upload (>15MB)
+    static func needsUploadChunking(url: URL) throws -> Bool {
+        let fileSize = try getFileSize(url: url)
+        return fileSize > uploadChunkSizeBytes
+    }
+
+    /// Create chunks for upload to Supabase (15MB target, no overlap)
+    static func createUploadChunks(
+        from audioURL: URL,
+        progressCallback: @escaping (AudioChunkerProgress) -> Void
+    ) async throws -> [AudioChunk] {
+
+        guard FileManager.default.fileExists(atPath: audioURL.path) else {
+            throw ChunkerError.fileNotFound
+        }
+
+        let fileSize = try getFileSize(url: audioURL)
+
+        // If file is small enough, return single chunk
+        if fileSize <= uploadChunkSizeBytes {
+            progressCallback(AudioChunkerProgress(
+                currentChunk: 1,
+                totalChunks: 1,
+                currentStage: "Preparing audio for upload",
+                percentComplete: 50.0,
+                partialTranscript: nil
+            ))
+
+            let audioFile = try AVAudioFile(forReading: audioURL)
+            let duration = Double(audioFile.length) / audioFile.fileFormat.sampleRate
+            let audioData = try readFileInChunks(audioURL: audioURL)
+
+            progressCallback(AudioChunkerProgress(
+                currentChunk: 1,
+                totalChunks: 1,
+                currentStage: "Audio ready for upload",
+                percentComplete: 100.0,
+                partialTranscript: nil
+            ))
+
+            return [AudioChunk(
+                data: audioData,
+                startTime: 0,
+                duration: duration,
+                chunkIndex: 0,
+                totalChunks: 1
+            )]
+        }
+
+        // For large files, split into 15MB chunks
+        return try await createLargeUploadChunks(
+            from: audioURL,
+            fileSize: fileSize,
+            progressCallback: progressCallback
+        )
+    }
+
+    private static func createLargeUploadChunks(
+        from audioURL: URL,
+        fileSize: UInt64,
+        progressCallback: @escaping (AudioChunkerProgress) -> Void
+    ) async throws -> [AudioChunk] {
+
+        // Get total duration
+        let asset = AVURLAsset(url: audioURL)
+        let totalDuration = try await asset.load(.duration).seconds
+
+        // Calculate chunk duration for 15MB target
+        let avgBytesPerSecond = Double(fileSize) / totalDuration
+        let targetChunkDuration = Double(uploadChunkSizeBytes) / avgBytesPerSecond
+
+        // Ensure minimum chunk duration
+        let chunkDuration = max(targetChunkDuration, 120.0) // At least 2 minutes per chunk
+
+        var chunks: [AudioChunk] = []
+        var currentTime: TimeInterval = 0
+        var chunkIndex = 0
+
+        // Estimate total chunks
+        let estimatedChunks = Int(ceil(totalDuration / chunkDuration))
+
+        print("📦 Creating \(estimatedChunks) upload chunks (target: 15MB per chunk)")
+
+        while currentTime < totalDuration {
+            // Check for cancellation
+            try Task.checkCancellation()
+
+            let endTime = min(currentTime + chunkDuration, totalDuration)
+            let actualChunkDuration = endTime - currentTime
+
+            progressCallback(AudioChunkerProgress(
+                currentChunk: chunkIndex + 1,
+                totalChunks: estimatedChunks,
+                currentStage: "Creating upload chunk \(chunkIndex + 1)/\(estimatedChunks)",
+                percentComplete: (Double(chunkIndex) / Double(estimatedChunks)) * 100.0,
+                partialTranscript: nil
+            ))
+
+            // Extract chunk WITHOUT overlap for upload
+            let chunkData = try await extractAudioSegment(
+                from: audioURL,
+                startTime: currentTime,
+                endTime: endTime
+            )
+
+            let chunkSizeMB = Double(chunkData.count) / (1024 * 1024)
+            print("📦 Upload chunk \(chunkIndex + 1) created: \(String(format: "%.2f", chunkSizeMB)) MB, duration: \(String(format: "%.1f", actualChunkDuration))s")
+
+            let chunk = AudioChunk(
+                data: chunkData,
+                startTime: currentTime,
+                duration: actualChunkDuration,
+                chunkIndex: chunkIndex,
+                totalChunks: estimatedChunks
+            )
+
+            chunks.append(chunk)
+
+            // Move to next chunk
+            currentTime = endTime
+            chunkIndex += 1
+        }
+
+        // Update total chunks count in all chunks
+        let finalChunks = chunks.enumerated().map { index, chunk in
+            AudioChunk(
+                data: chunk.data,
+                startTime: chunk.startTime,
+                duration: chunk.duration,
+                chunkIndex: chunk.chunkIndex,
+                totalChunks: chunks.count
+            )
+        }
+
+        progressCallback(AudioChunkerProgress(
+            currentChunk: chunks.count,
+            totalChunks: chunks.count,
+            currentStage: "Upload chunks ready",
+            percentComplete: 100.0,
+            partialTranscript: nil
+        ))
+
+        print("✅ Created \(chunks.count) upload chunks, total size: \(String(format: "%.2f", Double(fileSize) / (1024 * 1024))) MB")
+
+        return finalChunks
     }
 }

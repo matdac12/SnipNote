@@ -9,13 +9,25 @@ import Foundation
 
 struct ChatRequest: Codable {
     let model: String
-    let messages: [ChatMessage]
-    let maxTokens: Int
+    let input: [ChatMessage]
+    let maxTokens: Int?
+    let reasoning: ReasoningConfig?
+    let text: TextConfig?
 
     enum CodingKeys: String, CodingKey {
-        case model, messages
-        case maxTokens = "max_completion_tokens"
+        case model, input
+        case maxTokens = "max_output_tokens"
+        case reasoning
+        case text
     }
+}
+
+struct TextConfig: Codable {
+    let verbosity: String
+}
+
+struct ReasoningConfig: Codable {
+    let effort: String
 }
 
 struct ChatMessage: Codable {

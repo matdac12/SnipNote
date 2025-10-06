@@ -488,52 +488,67 @@ class OpenAIService: ObservableObject {
             throw OpenAIError.noAPIKey
         }
         
-        let url = URL(string: "\(baseURL)/chat/completions")!
+        let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         let prompt = """
         Please analyze the following transcript and provide:
         1. Key points and insights
         2. Actionable items or tasks mentioned
         3. Important decisions or conclusions
-        
+
         Keep the summary concise but comprehensive. Format as bullet points.
-        
+
         Transcript: \(text)
         """
-        
+
         let requestBody = ChatRequest(
-            model: "gpt-4o",
-            messages: [
+            model: "gpt-5-mini",
+            input: [
                 ChatMessage(role: "system", content: "You are a helpful assistant that summarizes spoken notes into actionable insights."),
                 ChatMessage(role: "user", content: prompt)
             ],
-            maxTokens: 500
+            maxTokens: nil,
+            reasoning: ReasoningConfig(effort: "minimal"),
+            text: nil
         )
-        
+
         let jsonData = try JSONEncoder().encode(requestBody)
         request.httpBody = jsonData
 
-        let (data, _) = try await urlSession.data(for: request)
+        let (data, urlResponse) = try await urlSession.data(for: request)
+
+        // Check HTTP status code
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? "<binary>"
+            throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(body)")
+        }
+
+        // Debug: Print the response to see what we're getting
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("📥 OpenAI Response: \(responseString)")
+        }
+
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
-        
-        return response.choices.first?.message.content ?? "No summary generated"
+
+        return response.outputText
     }
-    
+
     func generateTitle(_ text: String) async throws -> String {
         guard let apiKey = apiKey else {
             throw OpenAIError.noAPIKey
         }
         
-        let url = URL(string: "\(baseURL)/chat/completions")!
+        let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         let prompt = """
         Identify the language spoken and always respond in the same language as the input transcript.
         Generate an appropriate title for this note transcript in exactly 3-4 words. The title should be concise, descriptive, and capture the main topic or purpose.
@@ -546,36 +561,51 @@ class OpenAIService: ObservableObject {
 
         Transcript: \(text)
         """
-        
+
         let requestBody = ChatRequest(
-            model: "gpt-4o",
-            messages: [
+            model: "gpt-5-mini",
+            input: [
                 ChatMessage(role: "system", content: "You generate concise, descriptive titles for notes. Always respond with exactly 2-3 words, properly capitalized, in the same language as the input transcript."),
                 ChatMessage(role: "user", content: prompt)
             ],
-            maxTokens: 20
+            maxTokens: nil,
+            reasoning: ReasoningConfig(effort: "minimal"),
+            text: nil
         )
-        
+
         let jsonData = try JSONEncoder().encode(requestBody)
         request.httpBody = jsonData
 
-        let (data, _) = try await urlSession.data(for: request)
+        let (data, urlResponse) = try await urlSession.data(for: request)
+
+        // Check HTTP status code
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? "<binary>"
+            throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(body)")
+        }
+
+        // Debug: Print the response to see what we're getting
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("📥 OpenAI Response: \(responseString)")
+        }
+
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
 
-        return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Untitled Note"
+        return response.outputText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
-    
+
     func generateMeetingOverview(_ text: String) async throws -> String {
         guard let apiKey = apiKey else {
             throw OpenAIError.noAPIKey
         }
-        
-        let url = URL(string: "\(baseURL)/chat/completions")!
+
+        let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         let prompt = """
         Identify the language spoken and always respond in the same language as the input transcript.
         Summarize this meeting transcript in exactly one short, clear sentence. Capture the main topic and key outcome or focus of the meeting.
@@ -588,36 +618,51 @@ class OpenAIService: ObservableObject {
 
         Meeting Transcript: \(text)
         """
-        
+
         let requestBody = ChatRequest(
             model: "gpt-5-mini",
-            messages: [
+            input: [
                 ChatMessage(role: "system", content: "You create concise one-sentence meeting overviews. Always respond with exactly one clear, informative sentence in the same language as the input transcript."),
                 ChatMessage(role: "user", content: prompt)
             ],
-            maxTokens: 50
+            maxTokens: nil,
+            reasoning: ReasoningConfig(effort: "minimal"),
+            text: TextConfig(verbosity: "low")
         )
-        
+
         let jsonData = try JSONEncoder().encode(requestBody)
         request.httpBody = jsonData
 
-        let (data, _) = try await urlSession.data(for: request)
+        let (data, urlResponse) = try await urlSession.data(for: request)
+
+        // Check HTTP status code
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? "<binary>"
+            throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(body)")
+        }
+
+        // Debug: Print the response to see what we're getting
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("📥 OpenAI Response: \(responseString)")
+        }
+
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
 
-        return response.choices.first?.message.content.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Meeting discussion on various topics."
+        return response.outputText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
-    
+
     func summarizeMeeting(_ text: String) async throws -> String {
         guard let apiKey = apiKey else {
             throw OpenAIError.noAPIKey
         }
-        
-        let url = URL(string: "\(baseURL)/chat/completions")!
+
+        let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         let prompt = """
         Identify the language spoken and always respond in the same language as the input transcript.
         Please create a comprehensive meeting summary from this transcript. Structure your response with the following sections:
@@ -640,36 +685,51 @@ class OpenAIService: ObservableObject {
 
         Meeting Transcript: \(text)
         """
-        
+
         let requestBody = ChatRequest(
             model: "gpt-5-mini",
-            messages: [
+            input: [
                 ChatMessage(role: "system", content: "You are a professional meeting summarizer. Create structured, comprehensive summaries that capture key decisions, action items, and next steps. Always respond in the same language as the input transcript."),
                 ChatMessage(role: "user", content: prompt)
             ],
-            maxTokens: 800
+            maxTokens: nil,
+            reasoning: ReasoningConfig(effort: "minimal"),
+            text: TextConfig(verbosity: "low")
         )
-        
+
         let jsonData = try JSONEncoder().encode(requestBody)
         request.httpBody = jsonData
 
-        let (data, _) = try await urlSession.data(for: request)
+        let (data, urlResponse) = try await urlSession.data(for: request)
+
+        // Check HTTP status code
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? "<binary>"
+            throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(body)")
+        }
+
+        // Debug: Print the response to see what we're getting
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("📥 OpenAI Response: \(responseString)")
+        }
+
         let response = try JSONDecoder().decode(ChatResponse.self, from: data)
 
-        return response.choices.first?.message.content ?? "No meeting summary generated"
+        return response.outputText
     }
-    
+
     func extractActions(_ text: String) async throws -> [ActionItem] {
         guard let apiKey = apiKey else {
             throw OpenAIError.noAPIKey
         }
-        
-        let url = URL(string: "\(baseURL)/chat/completions")!
+
+        let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         let prompt = """
         Identify the language spoken and always respond in the same language as the input transcript.
         Extract actionable items from this transcript. For each action item, provide:
@@ -683,26 +743,39 @@ class OpenAIService: ObservableObject {
 
         Transcript: \(text)
         """
-        
+
         let requestBody = ChatRequest(
             model: "gpt-5-mini",
-            messages: [
+            input: [
                 ChatMessage(role: "system", content: "You extract actionable items from text and return them as JSON. Be precise and only return valid JSON. Always use the same language as the input transcript for action descriptions."),
                 ChatMessage(role: "user", content: prompt)
             ],
-            maxTokens: 300
+            maxTokens: nil,
+            reasoning: ReasoningConfig(effort: "minimal"),
+            text: nil
         )
-        
+
         let jsonData = try JSONEncoder().encode(requestBody)
         request.httpBody = jsonData
 
-        let (data, _) = try await urlSession.data(for: request)
-        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
-        
-        guard let content = response.choices.first?.message.content else {
-            return []
+        let (data, urlResponse) = try await urlSession.data(for: request)
+
+        // Check HTTP status code
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? "<binary>"
+            throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(body)")
         }
-        
+
+        // Debug: Print the response to see what we're getting
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("📥 OpenAI Response: \(responseString)")
+        }
+
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+
+        let content = response.outputText
+
         // Parse the JSON response
         do {
             let actionData = content.data(using: .utf8) ?? Data()

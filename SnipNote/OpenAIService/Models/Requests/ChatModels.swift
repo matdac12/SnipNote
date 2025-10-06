@@ -14,7 +14,7 @@ struct ChatRequest: Codable {
 
     enum CodingKeys: String, CodingKey {
         case model, messages
-        case maxTokens = "max_tokens"
+        case maxTokens = "max_completion_tokens"
     }
 }
 

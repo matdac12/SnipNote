@@ -25,7 +25,6 @@ struct MeetingsView: View {
     @State private var showingPaywall = false
     @State private var searchText = ""
     @State private var isSearching = false
-    @State private var tappedMeetingId: UUID?
     @State private var isBouncingEmpty = false
 
     private var filteredMeetings: [Meeting] {
@@ -222,19 +221,8 @@ struct MeetingsView: View {
                                          .stroke(themeManager.currentTheme.warningColor.opacity(0.5), lineWidth: 1)
                                      : nil
                                  )
-                                 .scaleEffect(tappedMeetingId == meeting.id ? 0.97 : 1.0)
-                                 .animation(.spring(response: 0.3, dampingFraction: 0.6), value: tappedMeetingId)
                              }
                              .buttonStyle(PlainButtonStyle())
-                             .simultaneousGesture(
-                                 DragGesture(minimumDistance: 0)
-                                     .onChanged { _ in
-                                         tappedMeetingId = meeting.id
-                                     }
-                                     .onEnded { _ in
-                                         tappedMeetingId = nil
-                                     }
-                             )
                         }
                         .onDelete(perform: deleteMeetings)
                         .listRowBackground(Color.clear)

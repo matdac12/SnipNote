@@ -2118,6 +2118,16 @@ struct CreateMeetingView: View {
 
         do {
             try modelContext.save()
+
+            // Sync meeting to Supabase
+            Task {
+                do {
+                    try await SupabaseManager.shared.saveMeeting(meeting)
+                } catch {
+                    print("⚠️ Failed to sync meeting to Supabase: \(error)")
+                    // Don't fail the operation - meeting is saved locally
+                }
+            }
         } catch {
             print("Error saving meeting: \(error)")
         }
@@ -2194,9 +2204,18 @@ struct CreateMeetingView: View {
                 
                 modelContext.insert(action)
             }
-            
+
             try modelContext.save()
-            
+
+            // Sync updated meeting to Supabase
+            Task {
+                do {
+                    try await SupabaseManager.shared.saveMeeting(meeting)
+                } catch {
+                    print("⚠️ Failed to sync updated meeting to Supabase: \(error)")
+                }
+            }
+
             // Track action creation
             if !actionItems.isEmpty {
                 Task {

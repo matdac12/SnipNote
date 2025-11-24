@@ -1056,9 +1056,18 @@ struct MeetingDetailView: View {
         meeting.name = tempName
         meeting.dateModified = Date()
         isEditingName = false
-        
+
         do {
             try modelContext.save()
+
+            // Sync to Supabase
+            Task {
+                do {
+                    try await SupabaseManager.shared.saveMeeting(meeting)
+                } catch {
+                    print("⚠️ Failed to sync meeting name to Supabase: \(error)")
+                }
+            }
         } catch {
             print("Error saving name: \(error)")
         }
@@ -1073,9 +1082,18 @@ struct MeetingDetailView: View {
         meeting.aiSummary = tempSummary
         meeting.dateModified = Date()
         isEditingSummary = false
-        
+
         do {
             try modelContext.save()
+
+            // Sync to Supabase
+            Task {
+                do {
+                    try await SupabaseManager.shared.saveMeeting(meeting)
+                } catch {
+                    print("⚠️ Failed to sync meeting summary to Supabase: \(error)")
+                }
+            }
         } catch {
             print("Error saving summary: \(error)")
         }
@@ -1375,6 +1393,15 @@ struct MeetingDetailView: View {
             do {
                 try modelContext.save()
                 print("💾 [MeetingDetail] Successfully saved completed job to database")
+
+                // Sync updated meeting to Supabase
+                Task {
+                    do {
+                        try await SupabaseManager.shared.saveMeeting(meeting)
+                    } catch {
+                        print("⚠️ Failed to sync completed meeting to Supabase: \(error)")
+                    }
+                }
             } catch {
                 print("❌ [MeetingDetail] Failed to save: \(error)")
             }
@@ -1603,6 +1630,15 @@ struct MeetingDetailView: View {
 
             do {
                 try modelContext.save()
+
+                // Sync updated meeting to Supabase
+                Task {
+                    do {
+                        try await SupabaseManager.shared.saveMeeting(meeting)
+                    } catch {
+                        print("⚠️ Failed to sync retry results to Supabase: \(error)")
+                    }
+                }
             } catch {
                 print("Error saving retry results: \(error)")
             }

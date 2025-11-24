@@ -16,8 +16,10 @@ struct MeetingsView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var authManager: AuthenticationManager
     @StateObject private var storeManager = StoreManager.shared
-    
+    @StateObject private var syncService = MeetingSyncService.shared
+
     @State private var showingCreateMeeting = false
+    @State private var hasSyncedOnLaunch = false
     @State private var selectedMeeting: Meeting?
     @State private var navigateToCreate = false
     @State private var createdMeeting: Meeting?
@@ -229,6 +231,9 @@ struct MeetingsView: View {
                     }
                     .listStyle(PlainListStyle())
                     .scrollContentBackground(.hidden)
+                    .refreshable {
+                        await performSync()
+                    }
                 }
             }
             .themedBackground()
@@ -273,6 +278,12 @@ struct MeetingsView: View {
             }
         }
         .task {
+            // Auto-sync from Supabase on app launch (only once per session)
+            if !hasSyncedOnLaunch && authManager.isAuthenticated {
+                hasSyncedOnLaunch = true
+                await performSync()
+            }
+
             // Also handle deep link in task (runs after view is fully loaded)
             if deepLinkAudioURL != nil && !navigateToCreate {
                 print("🎵 MeetingsView task with audio URL: \(deepLinkAudioURL!)")
@@ -324,6 +335,15 @@ struct MeetingsView: View {
                 }
 
                 await cleanupMeetingFromVectorStore(meetingId: meeting.id)
+
+                // Delete from Supabase meetings table
+                do {
+                    try await SupabaseManager.shared.deleteMeeting(id: meeting.id)
+                } catch {
+                    print("⚠️ Failed to delete meeting from Supabase: \(error)")
+                    // Continue with deletion anyway - user intent is to delete
+                }
+
                 withAnimation {
                     modelContext.delete(meeting)
                 }
@@ -364,6 +384,24 @@ struct MeetingsView: View {
             }
         } catch {
             print("Error cleaning meeting from vector store: \(error)")
+        }
+    }
+
+    // MARK: - Sync
+
+    /// Sync meetings from Supabase (called on launch and pull-to-refresh)
+    private func performSync() async {
+        guard authManager.isAuthenticated else {
+            print("⚠️ [Sync] User not authenticated, skipping sync")
+            return
+        }
+
+        do {
+            try await syncService.syncFromServer(modelContext: modelContext)
+        } catch {
+            print("⚠️ [Sync] Failed: \(error.localizedDescription)")
+            // Don't show error to user - sync failures should be silent
+            // Local data is still available
         }
     }
 }

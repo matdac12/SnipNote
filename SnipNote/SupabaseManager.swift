@@ -215,6 +215,133 @@ class SupabaseManager {
         return filePath
     }
 
+    // MARK: - Meeting Sync Functions
+
+    /// Save or update meeting metadata in Supabase
+    func saveMeeting(_ meeting: Meeting) async throws {
+        guard let userId = client.auth.currentUser?.id else {
+            throw SupabaseError.authRequired
+        }
+
+        let meetingRecord = MeetingRecord(from: meeting, userId: userId)
+
+        print("💾 Syncing meeting '\(meeting.name)' to Supabase...")
+
+        do {
+            // Use upsert to handle both insert and update
+            try await client
+                .from("meetings")
+                .upsert(meetingRecord)
+                .execute()
+
+            print("✅ Meeting synced successfully")
+        } catch {
+            print("❌ Failed to sync meeting: \(error)")
+            throw error
+        }
+    }
+
+    /// Get meeting metadata from Supabase
+    func getMeeting(id: UUID) async throws -> MeetingRecord? {
+        guard let userId = client.auth.currentUser?.id else {
+            throw SupabaseError.authRequired
+        }
+
+        let meetings: [MeetingRecord] = try await client
+            .from("meetings")
+            .select()
+            .eq("id", value: id.uuidString)
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+            .value
+
+        return meetings.first
+    }
+
+    /// Get all meetings for current user
+    func getAllMeetings() async throws -> [MeetingRecord] {
+        guard let userId = client.auth.currentUser?.id else {
+            throw SupabaseError.authRequired
+        }
+
+        let meetings: [MeetingRecord] = try await client
+            .from("meetings")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .order("date_created", ascending: false)
+            .execute()
+            .value
+
+        return meetings
+    }
+
+    /// Delete meeting metadata from Supabase
+    func deleteMeeting(id: UUID) async throws {
+        guard let userId = client.auth.currentUser?.id else {
+            throw SupabaseError.authRequired
+        }
+
+        try await client
+            .from("meetings")
+            .delete()
+            .eq("id", value: id.uuidString)
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+
+        print("🗑️ Meeting deleted from Supabase")
+    }
+
+    /// Get all meetings with their transcript/summary content (for cross-device sync)
+    /// Joins meetings table with transcription_jobs table to get full content
+    func getAllMeetingsWithContent() async throws -> [MeetingWithContent] {
+        guard let userId = client.auth.currentUser?.id else {
+            throw SupabaseError.authRequired
+        }
+
+        print("🔄 Fetching all meetings with content for sync...")
+
+        // Fetch meetings
+        let meetings: [MeetingRecord] = try await client
+            .from("meetings")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .order("date_created", ascending: false)
+            .execute()
+            .value
+
+        print("📋 Found \(meetings.count) meetings in Supabase")
+
+        // Fetch completed transcription jobs for content
+        let jobs: [TranscriptionJobRecord] = try await client
+            .from("transcription_jobs")
+            .select()
+            .eq("user_id", value: userId.uuidString)
+            .eq("status", value: "completed")
+            .execute()
+            .value
+
+        print("📝 Found \(jobs.count) completed transcription jobs")
+
+        // Create lookup by meeting_id
+        let jobsByMeetingId = Dictionary(grouping: jobs, by: { $0.meetingId })
+            .mapValues { $0.first }
+
+        // Combine meetings with their content
+        let meetingsWithContent = meetings.map { meeting -> MeetingWithContent in
+            // Flatten the double optional (dictionary subscript + .first both return optionals)
+            let job = jobsByMeetingId[meeting.id] ?? nil
+            return MeetingWithContent(
+                meeting: meeting,
+                transcript: job?.transcript,
+                shortSummary: job?.overview,
+                aiSummary: job?.summary
+            )
+        }
+
+        print("✅ Combined \(meetingsWithContent.count) meetings with content")
+        return meetingsWithContent
+    }
+
     // MARK: - Subscription Functions
 
     /// Validate and sync StoreKit transaction with server with retry logic
@@ -437,6 +564,71 @@ struct AudioRecording: Codable {
     }
 }
 
+// MARK: - Meeting Types
+
+struct MeetingRecord: Codable {
+    let id: UUID
+    let userId: UUID
+    let name: String
+    let location: String?
+    let meetingNotes: String?
+    let startTime: Date?
+    let endTime: Date?
+    let dateCreated: Date
+    let dateModified: Date
+    let hasRecording: Bool
+    let processingState: String
+    let processingError: String?
+    let isProcessing: Bool
+    let lastProcessedChunk: Int
+    let totalChunks: Int
+    let transcriptionJobId: UUID?
+    let createdAt: Date?
+    let updatedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case name
+        case location
+        case meetingNotes = "meeting_notes"
+        case startTime = "start_time"
+        case endTime = "end_time"
+        case dateCreated = "date_created"
+        case dateModified = "date_modified"
+        case hasRecording = "has_recording"
+        case processingState = "processing_state"
+        case processingError = "processing_error"
+        case isProcessing = "is_processing"
+        case lastProcessedChunk = "last_processed_chunk"
+        case totalChunks = "total_chunks"
+        case transcriptionJobId = "transcription_job_id"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+
+    init(from meeting: Meeting, userId: UUID) {
+        self.id = meeting.id
+        self.userId = userId
+        self.name = meeting.name
+        self.location = meeting.location.isEmpty ? nil : meeting.location
+        self.meetingNotes = meeting.meetingNotes.isEmpty ? nil : meeting.meetingNotes
+        self.startTime = meeting.startTime
+        self.endTime = meeting.endTime
+        self.dateCreated = meeting.dateCreated
+        self.dateModified = meeting.dateModified
+        self.hasRecording = meeting.hasRecording
+        self.processingState = meeting.processingStateRaw
+        self.processingError = meeting.processingError
+        self.isProcessing = meeting.isProcessing
+        self.lastProcessedChunk = meeting.lastProcessedChunk
+        self.totalChunks = meeting.totalChunks
+        self.transcriptionJobId = meeting.transcriptionJobId.flatMap { UUID(uuidString: $0) }
+        self.createdAt = nil
+        self.updatedAt = nil
+    }
+}
+
 // MARK: - User Usage Types
 
 struct UserUsage: Codable {
@@ -582,5 +774,34 @@ struct AudioChunkMetadata: Codable {
         self.transcript = nil
         self.createdAt = nil
     }
+}
+
+// MARK: - Transcription Job Types (for sync)
+
+/// Record from transcription_jobs table containing transcript and AI-generated content
+struct TranscriptionJobRecord: Codable {
+    let id: UUID
+    let meetingId: UUID
+    let transcript: String?
+    let overview: String?  // This is shortSummary in the app
+    let summary: String?   // This is aiSummary in the app
+    let status: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case meetingId = "meeting_id"
+        case transcript
+        case overview
+        case summary
+        case status
+    }
+}
+
+/// Combined meeting metadata + content for sync operations
+struct MeetingWithContent {
+    let meeting: MeetingRecord
+    let transcript: String?
+    let shortSummary: String?
+    let aiSummary: String?
 }
 

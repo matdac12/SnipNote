@@ -97,11 +97,7 @@ struct ContentView: View {
     }
 
     private func tabTitle(for key: String) -> String {
-        let base = localizationManager.localizedString(key)
-        if themeManager.currentTheme.headerStyle == .brackets {
-            return base.uppercased()
-        }
-        return base
+        return localizationManager.localizedString(key)
     }
 
     func navigateToEveWith(meetingId: UUID) {

@@ -18,13 +18,13 @@ struct ActionsReportView: View {
             VStack(spacing: 0) {
                 // Header
                 HStack {
-                    Text(themeManager.currentTheme.headerStyle == .brackets ? "[ ACTIONS REPORT ]" : "Actions Report")
+                    Text("Actions Report")
                         .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.accentColor)
                     
                     Spacer()
                     
-                    Button(themeManager.currentTheme.headerStyle == .brackets ? "CLOSE" : "Close") {
+                    Button("Close") {
                         dismiss()
                     }
                     .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
@@ -66,7 +66,7 @@ struct ActionsReportView: View {
                     }) {
                         HStack(spacing: 8) {
                             Image(systemName: showingCopyConfirmation ? "checkmark" : "doc.on.doc")
-                            Text(showingCopyConfirmation ? (themeManager.currentTheme.headerStyle == .brackets ? "COPIED!" : "Copied!") : (themeManager.currentTheme.headerStyle == .brackets ? "COPY REPORT" : "Copy Report"))
+                            Text(showingCopyConfirmation ? "Copied!" : "Copy Report")
                         }
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.accentColor)

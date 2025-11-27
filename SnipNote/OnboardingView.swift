@@ -113,7 +113,7 @@ struct WelcomeScreen: View {
                 .padding(.bottom, 20)
 
             VStack(spacing: 16) {
-                Text(themeManager.currentTheme.headerStyle == .brackets ? "[ WELCOME TO SNIPNOTE ]" : "Welcome to SnipNote")
+                Text("Welcome to SnipNote")
                     .themedTitle()
                     .multilineTextAlignment(.center)
 
@@ -160,7 +160,7 @@ struct RecordingTutorialScreen: View {
             }
 
             VStack(spacing: 16) {
-                Text(themeManager.currentTheme.headerStyle == .brackets ? "[ RECORD YOUR MEETINGS ]" : "Record Your Meetings")
+                Text("Record Your Meetings")
                     .themedTitle()
                     .multilineTextAlignment(.center)
 
@@ -190,7 +190,7 @@ struct AIFeaturesScreen: View {
                 .symbolEffect(.variableColor.iterative.dimInactiveLayers.nonReversing)
 
             VStack(spacing: 16) {
-                Text(themeManager.currentTheme.headerStyle == .brackets ? "[ AI POWERED INSIGHTS ]" : "AI-Powered Insights")
+                Text("AI-Powered Insights")
                     .themedTitle()
                     .multilineTextAlignment(.center)
 
@@ -256,7 +256,7 @@ struct PermissionsScreen: View {
                 .foregroundColor(themeManager.currentTheme.accentColor)
 
             VStack(spacing: 16) {
-                Text(themeManager.currentTheme.headerStyle == .brackets ? "[ PERMISSIONS NEEDED ]" : "Permissions Needed")
+                Text("Permissions Needed")
                     .themedTitle()
                     .multilineTextAlignment(.center)
 

@@ -43,7 +43,7 @@ struct LoginView: View {
             
             VStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(themeManager.currentTheme.headerStyle == .brackets ? "EMAIL" : "Email")
+                    Text("Email")
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     
@@ -63,7 +63,7 @@ struct LoginView: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(themeManager.currentTheme.headerStyle == .brackets ? "PASSWORD" : "Password")
+                    Text("Password")
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                     
@@ -102,7 +102,7 @@ struct LoginView: View {
                                 .progressViewStyle(CircularProgressViewStyle(tint: themeManager.currentTheme.backgroundColor))
                                 .scaleEffect(0.8)
                         } else {
-                            Text(isSignUp ? (themeManager.currentTheme.headerStyle == .brackets ? "CREATE ACCOUNT" : "Create Account") : (themeManager.currentTheme.headerStyle == .brackets ? "SIGN IN" : "Sign In"))
+                            Text(isSignUp ? "Create Account" : "Sign In")
                                 .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         }
                     }

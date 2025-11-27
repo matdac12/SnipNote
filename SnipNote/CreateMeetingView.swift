@@ -226,7 +226,7 @@ struct CreateMeetingView: View {
         let theme = themeManager.currentTheme
 
         let localizedNewMeeting = localized("New Meeting")
-        let defaultTitle = theme.headerStyle == .brackets ? "[ \(localizedNewMeeting.uppercased()) ]" : localizedNewMeeting
+        let defaultTitle = localizedNewMeeting
         let headerTitle = meetingNameTrimmed.isEmpty ? defaultTitle : meetingNameTrimmed
 
         HStack(alignment: .center, spacing: 12) {
@@ -329,7 +329,7 @@ struct CreateMeetingView: View {
         } else {
             optionalCollapsedCard(
                 theme: theme,
-                title: theme.headerStyle == .brackets ? "ADD LOCATION" : "Add Location",
+                title: "Add Location",
                 subtitle: "Optional — include room, link, or dial-in.",
                 iconSystemName: "mappin.and.ellipse",
                 summary: meetingLocationTrimmed.isEmpty ? nil : meetingLocationSummary
@@ -350,7 +350,7 @@ struct CreateMeetingView: View {
         } else {
             optionalCollapsedCard(
                 theme: theme,
-                title: theme.headerStyle == .brackets ? "ADD NOTES" : "Add Notes",
+                title: "Add Notes",
                 subtitle: "Optional — capture agenda, attendees, or goals.",
                 iconSystemName: "note.text",
                 summary: meetingNotesTrimmed.isEmpty ? nil : meetingNotesSummary
@@ -440,7 +440,7 @@ struct CreateMeetingView: View {
                                        iconSystemName: String,
                                        summary: String?,
                                        action: @escaping () -> Void) -> some View {
-        let displayTitle = theme.headerStyle == .brackets ? title.uppercased() : title
+        let displayTitle = title
         let detailText = summary?.isEmpty == false ? (summary ?? subtitle) : subtitle
 
         return Button(action: action) {
@@ -540,8 +540,8 @@ struct CreateMeetingView: View {
                         .font(.system(size: 16))
 
                     Text(isPermissionDenied(microphonePermissionStatus) ?
-                         (theme.headerStyle == .brackets ? "MICROPHONE ACCESS DENIED" : "Microphone Access Denied") :
-                         (theme.headerStyle == .brackets ? "MICROPHONE PERMISSION NEEDED" : "Microphone Permission Needed"))
+                         "Microphone Access Denied" :
+                         "Microphone Permission Needed")
                         .font(.system(.headline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(isPermissionDenied(microphonePermissionStatus) ? theme.destructiveColor : theme.warningColor)
 
@@ -564,7 +564,7 @@ struct CreateMeetingView: View {
 
                 if showingMicPermissionHelp {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(theme.headerStyle == .brackets ? "TROUBLESHOOTING:" : "Troubleshooting:")
+                        Text("Troubleshooting:")
                             .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                             .foregroundColor(theme.accentColor)
 
@@ -593,7 +593,7 @@ struct CreateMeetingView: View {
                 Circle()
                     .fill(audioRecorder.isRecording || hasFinishedRecording ? theme.accentColor : theme.secondaryTextColor.opacity(0.3))
                     .frame(width: 8, height: 8)
-                Text(theme.headerStyle == .brackets ? "RECORD" : "Record")
+                Text("Record")
                     .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
                     .foregroundColor(audioRecorder.isRecording || hasFinishedRecording ? theme.accentColor : theme.secondaryTextColor)
             }
@@ -607,7 +607,7 @@ struct CreateMeetingView: View {
                 Circle()
                     .fill(hasFinishedRecording || isProcessingAudio ? theme.accentColor : theme.secondaryTextColor.opacity(0.3))
                     .frame(width: 8, height: 8)
-                Text(theme.headerStyle == .brackets ? "PROCESS" : "Process")
+                Text("Process")
                     .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
                     .foregroundColor(hasFinishedRecording || isProcessingAudio ? theme.accentColor : theme.secondaryTextColor)
             }
@@ -621,7 +621,7 @@ struct CreateMeetingView: View {
                 Circle()
                     .fill(theme.secondaryTextColor.opacity(0.3))
                     .frame(width: 8, height: 8)
-                Text(theme.headerStyle == .brackets ? "REVIEW" : "Review")
+                Text("Review")
                     .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
                     .foregroundColor(theme.secondaryTextColor)
             }
@@ -670,7 +670,7 @@ struct CreateMeetingView: View {
     @ViewBuilder
     private func importedAudioCard(theme: AppTheme) -> some View {
         VStack(spacing: 20) {
-            Text(theme.headerStyle == .brackets ? "IMPORTED AUDIO READY" : "Imported Audio Ready")
+            Text("Imported Audio Ready")
                 .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 .foregroundColor(theme.accentColor)
 
@@ -692,7 +692,7 @@ struct CreateMeetingView: View {
                 .frame(width: 200, height: 4)
                 .opacity(0.7)
 
-            Button(theme.headerStyle == .brackets ? "ANALYZE MEETING" : "Analyze Meeting") {
+            Button("Analyze Meeting") {
                 analyzeImportedAudio()
             }
             .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
@@ -724,7 +724,7 @@ struct CreateMeetingView: View {
                         }
                 }
 
-                Text(theme.headerStyle == .brackets ? (audioRecorder.isPaused ? "MEETING PAUSED" : "RECORDING MEETING...") : (audioRecorder.isPaused ? "Meeting Paused" : "Recording Meeting..."))
+                Text(audioRecorder.isPaused ? "Meeting Paused" : "Recording Meeting...")
                     .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(audioRecorder.isPaused ? theme.warningColor : theme.destructiveColor)
             }
@@ -750,7 +750,7 @@ struct CreateMeetingView: View {
             }
 
             VStack(spacing: 8) {
-                Button(theme.headerStyle == .brackets ? "STOP MEETING" : "Stop Meeting") {
+                Button("Stop Meeting") {
                     stopMeetingRecording()
                 }
                 .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
@@ -761,7 +761,7 @@ struct CreateMeetingView: View {
                 .cornerRadius(theme.cornerRadius)
 
                 HStack(spacing: 12) {
-                    Button(audioRecorder.isPaused ? (theme.headerStyle == .brackets ? "RESUME" : "Resume") : (theme.headerStyle == .brackets ? "PAUSE" : "Pause")) {
+                    Button(audioRecorder.isPaused ? "Resume" : "Pause") {
                         if audioRecorder.isPaused {
                             resumeMeetingRecording()
                         } else {
@@ -778,7 +778,7 @@ struct CreateMeetingView: View {
                     Button(role: .destructive) {
                         cancelMeetingRecording()
                     } label: {
-                        Text(theme.headerStyle == .brackets ? "CANCEL" : "Cancel")
+                        Text("Cancel")
                             .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                             .foregroundColor(theme.secondaryTextColor)
                             .padding(.horizontal, 12)
@@ -803,7 +803,7 @@ struct CreateMeetingView: View {
                     .animation(.linear(duration: 2).repeatForever(autoreverses: false), value: rotationAnimation)
                     .onAppear { rotationAnimation = true }
 
-                Text(theme.headerStyle == .brackets ? "PROCESSING MEETING..." : "Processing meeting...")
+                Text("Processing meeting...")
                     .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                     .foregroundColor(theme.warningColor)
             }
@@ -917,7 +917,7 @@ struct CreateMeetingView: View {
                         Image(systemName: "text.bubble.fill")
                             .font(.caption)
                             .foregroundColor(theme.accentColor)
-                        Text(theme.headerStyle == .brackets ? "PREVIEW:" : "Preview:")
+                        Text("Preview:")
                             .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                             .foregroundColor(theme.accentColor)
                         Spacer()
@@ -991,7 +991,7 @@ struct CreateMeetingView: View {
                         .rotationEffect(.degrees(rotationAnimation ? 360 : 0))
                         .animation(.linear(duration: 3).repeatForever(autoreverses: false), value: rotationAnimation)
 
-                    Text(theme.headerStyle == .brackets ? "GENERATING MEETING INSIGHTS..." : "Generating meeting insights...")
+                    Text("Generating meeting insights...")
                         .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(theme.accentColor)
                 }
@@ -1027,7 +1027,7 @@ struct CreateMeetingView: View {
                         Image(systemName: "eye.fill")
                             .font(.caption)
                             .foregroundColor(.blue)
-                        Text(theme.headerStyle == .brackets ? "OVERVIEW:" : "Overview:")
+                        Text("Overview:")
                             .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                             .foregroundColor(.blue)
                         Spacer()
@@ -1073,7 +1073,7 @@ struct CreateMeetingView: View {
                         Image(systemName: "doc.text.fill")
                             .font(.caption)
                             .foregroundColor(.purple)
-                        Text(theme.headerStyle == .brackets ? "SUMMARY:" : "Summary:")
+                        Text("Summary:")
                             .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                             .foregroundColor(.purple)
                         Spacer()
@@ -1121,7 +1121,7 @@ struct CreateMeetingView: View {
                     Image(systemName: "list.bullet.circle.fill")
                         .font(.caption)
                         .foregroundColor(.green)
-                    Text(theme.headerStyle == .brackets ? "EXTRACTING ACTIONS..." : "Extracting actions...")
+                    Text("Extracting actions...")
                         .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(.green)
                     Spacer()
@@ -1167,18 +1167,17 @@ struct CreateMeetingView: View {
     }
 
     private func phaseDescription(for phase: ProcessingPhase) -> String {
-        let theme = themeManager.currentTheme
         switch phase {
         case .transcribing:
-            return theme.headerStyle == .brackets ? "TRANSCRIBING AUDIO..." : "Transcribing audio..."
+            return "Transcribing audio..."
         case .generatingOverview:
-            return theme.headerStyle == .brackets ? "GENERATING OVERVIEW..." : "Generating overview..."
+            return "Generating overview..."
         case .generatingSummary:
-            return theme.headerStyle == .brackets ? "CREATING SUMMARY..." : "Creating summary..."
+            return "Creating summary..."
         case .extractingActions:
-            return theme.headerStyle == .brackets ? "EXTRACTING ACTIONS..." : "Extracting actions..."
+            return "Extracting actions..."
         case .complete:
-            return theme.headerStyle == .brackets ? "COMPLETE!" : "Complete!"
+            return "Complete!"
         }
     }
 
@@ -1224,7 +1223,7 @@ struct CreateMeetingView: View {
     @ViewBuilder
     private func countdownCard(theme: AppTheme) -> some View {
         VStack(spacing: 20) {
-            Text(theme.headerStyle == .brackets ? "STARTING IN..." : "Starting in...")
+            Text("Starting in...")
                 .font(.system(.title, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 .foregroundColor(theme.warningColor)
 
@@ -1234,7 +1233,7 @@ struct CreateMeetingView: View {
                 .scaleEffect(countdownValue > 0 ? 1.5 : 0.8)
                 .animation(.easeOut(duration: 0.3), value: countdownValue)
 
-            Button(theme.headerStyle == .brackets ? "CANCEL" : "Cancel") {
+            Button("Cancel") {
                 cancelCountdown()
             }
             .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
@@ -1248,7 +1247,7 @@ struct CreateMeetingView: View {
     @ViewBuilder
     private func idleRecordingCard(theme: AppTheme) -> some View {
         VStack(spacing: 16) {
-            Button(theme.headerStyle == .brackets ? "START MEETING RECORDING" : "Start Meeting Recording") {
+            Button("Start Meeting Recording") {
                 startCountdown()
             }
             .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
@@ -2374,7 +2373,7 @@ private struct MeetingInputCard<Content: View>: View {
     }
 
     private var labelText: String {
-        themeManager.currentTheme.headerStyle == .brackets ? title.uppercased() : title
+        title
     }
 
     private var outerBackgroundOpacity: Double {

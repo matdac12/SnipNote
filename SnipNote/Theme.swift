@@ -10,7 +10,7 @@ import SwiftUI
 protocol AppTheme {
     var name: String { get }
     var colorScheme: ColorScheme { get }
-    
+
     // Colors
     var backgroundColor: Color { get }
     var secondaryBackgroundColor: Color { get }
@@ -20,26 +20,20 @@ protocol AppTheme {
     var secondaryTextColor: Color { get }
     var destructiveColor: Color { get }
     var warningColor: Color { get }
-    
+
     // Typography
     var useMonospacedFont: Bool { get }
-    var headerStyle: HeaderStyle { get }
-    
+
     // UI Elements
     var materialStyle: Material { get }
     var cornerRadius: CGFloat { get }
     var gradient: LinearGradient { get }
 }
 
-enum HeaderStyle {
-    case brackets  // [ HEADER ]
-    case plain     // Header
-}
-
 struct LightTheme: AppTheme {
     let name = "Light"
     let colorScheme: ColorScheme = .light
-    
+
     // Colors
     let backgroundColor = Color(UIColor.systemBackground)
     let secondaryBackgroundColor = Color(UIColor.secondarySystemBackground)
@@ -49,11 +43,10 @@ struct LightTheme: AppTheme {
     let secondaryTextColor = Color(UIColor.secondaryLabel)
     let destructiveColor = Color.red
     let warningColor = Color.orange
-    
+
     // Typography
     let useMonospacedFont = false
-    let headerStyle: HeaderStyle = .plain
-    
+
     // UI Elements
     let materialStyle: Material = .regular
     let cornerRadius: CGFloat = 12
@@ -64,29 +57,28 @@ struct LightTheme: AppTheme {
     )
 }
 
-struct TerminalTheme: AppTheme {
-    let name = "Terminal"
+struct DarkTheme: AppTheme {
+    let name = "Dark"
     let colorScheme: ColorScheme = .dark
-    
-    // Colors
-    let backgroundColor = Color.black
-    let secondaryBackgroundColor = Color(white: 0.1)
-    let tertiaryBackgroundColor = Color(white: 0.15)
-    let accentColor = Color.green
-    let textColor = Color.white
-    let secondaryTextColor = Color(white: 0.7)
+
+    // Colors - Uses system colors that automatically adapt to dark mode
+    let backgroundColor = Color(UIColor.systemBackground)
+    let secondaryBackgroundColor = Color(UIColor.secondarySystemBackground)
+    let tertiaryBackgroundColor = Color(UIColor.tertiarySystemBackground)
+    let accentColor = Color(red: 1.0, green: 0.42, blue: 0.21) // #FF6B35 - Same orange as Light
+    let textColor = Color(UIColor.label)
+    let secondaryTextColor = Color(UIColor.secondaryLabel)
     let destructiveColor = Color.red
     let warningColor = Color.orange
-    
-    // Typography
-    let useMonospacedFont = true
-    let headerStyle: HeaderStyle = .brackets
-    
-    // UI Elements
-    let materialStyle: Material = .ultraThin
-    let cornerRadius: CGFloat = 8
+
+    // Typography - Same as Light theme
+    let useMonospacedFont = false
+
+    // UI Elements - Same as Light theme
+    let materialStyle: Material = .regular
+    let cornerRadius: CGFloat = 12
     let gradient: LinearGradient = LinearGradient(
-        colors: [Color.green.opacity(0.1), Color.black.opacity(0.05)],
+        colors: [Color(red: 1.0, green: 0.42, blue: 0.21).opacity(0.1), Color(red: 1.0, green: 0.42, blue: 0.21).opacity(0.05)],
         startPoint: .top,
         endPoint: .bottom
     )
@@ -94,14 +86,14 @@ struct TerminalTheme: AppTheme {
 
 enum ThemeType: String, CaseIterable {
     case light = "Light"
-    case terminal = "Terminal"
-    
+    case dark = "Dark"
+
     var theme: AppTheme {
         switch self {
         case .light:
             return LightTheme()
-        case .terminal:
-            return TerminalTheme()
+        case .dark:
+            return DarkTheme()
         }
     }
 }

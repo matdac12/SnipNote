@@ -7,52 +7,28 @@
     "-%@" : {
 
     },
-    "[ ACTIONS ]" : {
-
-    },
-    "[ ACTIONS REPORT ]" : {
-
-    },
-    "[ AI POWERED INSIGHTS ]" : {
-
-    },
-    "[ EVE ]" : {
-
-    },
-    "[ MEETINGS ]" : {
-
-    },
-    "[ PERMISSIONS NEEDED ]" : {
-
-    },
-    "[ RECORD YOUR MEETINGS ]" : {
-
-    },
-    "[ WELCOME TO SNIPNOTE ]" : {
-
-    },
     "%@×" : {
 
     },
     "%lld" : {
 
     },
-    "%lld %@" : {
+    "%lld action%@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$lld %2$@"
+            "value" : "%1$lld action%2$@"
           }
         }
       }
     },
-    "%lld %@%@" : {
+    "%lld meetings%@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$lld %2$@%3$@"
+            "value" : "%1$lld meetings%2$@"
           }
         }
       }
@@ -257,6 +233,7 @@
       }
     },
     "ANALYZE MEETING" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -331,6 +308,7 @@
       }
     },
     "CANCEL" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -376,6 +354,7 @@
       }
     },
     "CLOSE" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -386,9 +365,6 @@
       }
     },
     "Collapse All" : {
-
-    },
-    "COLLAPSE ALL" : {
 
     },
     "CONTACT" : {
@@ -416,16 +392,10 @@
     "Copied!" : {
 
     },
-    "COPIED!" : {
-
-    },
     "Copy Debug Info" : {
 
     },
     "Copy Report" : {
-
-    },
-    "COPY REPORT" : {
 
     },
     "Create Account" : {
@@ -437,9 +407,6 @@
           }
         }
       }
-    },
-    "CREATE ACCOUNT" : {
-
     },
     "Current Balance" : {
 
@@ -496,6 +463,7 @@
       }
     },
     "EMAIL" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -523,9 +491,6 @@
     "Expand All" : {
 
     },
-    "EXPAND ALL" : {
-
-    },
     "EXTRA MINUTES" : {
 
     },
@@ -542,9 +507,6 @@
     "Extracting actions..." : {
 
     },
-    "EXTRACTING ACTIONS..." : {
-
-    },
     "Extracting..." : {
       "localizations" : {
         "it" : {
@@ -556,6 +518,7 @@
       }
     },
     "EXTRACTING..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -590,9 +553,6 @@
       }
     },
     "Generating meeting insights..." : {
-
-    },
-    "GENERATING MEETING INSIGHTS..." : {
 
     },
     "Get automatic summaries, action item extraction, and smart organization. Focus on the conversation while SnipNote handles the notes." : {
@@ -638,9 +598,6 @@
 
     },
     "Imported Audio Ready" : {
-
-    },
-    "IMPORTED AUDIO READY" : {
 
     },
     "Insufficient Minutes" : {
@@ -768,6 +725,7 @@
       }
     },
     "MEETING PAUSED" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -808,6 +766,7 @@
       }
     },
     "MICROPHONE ACCESS DENIED" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -828,6 +787,7 @@
       }
     },
     "MICROPHONE PERMISSION NEEDED" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -908,28 +868,16 @@
     "No %@ actions" : {
 
     },
-    "NO %@ ACTIONS" : {
-
-    },
     "No action items found in this meeting" : {
 
     },
     "No actions found" : {
 
     },
-    "NO ACTIONS FOUND" : {
-
-    },
-    "NO MEETINGS FOUND" : {
-
-    },
     "No meetings yet" : {
 
     },
     "No results found" : {
-
-    },
-    "NO RESULTS FOUND" : {
 
     },
     "Notification Time" : {
@@ -951,9 +899,6 @@
     "Overview:" : {
 
     },
-    "OVERVIEW:" : {
-
-    },
     "Password" : {
       "localizations" : {
         "it" : {
@@ -965,6 +910,7 @@
       }
     },
     "PASSWORD" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -985,6 +931,7 @@
       }
     },
     "PAUSE" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1032,9 +979,6 @@
     "Preview:" : {
 
     },
-    "PREVIEW:" : {
-
-    },
     "Privacy Policy" : {
 
     },
@@ -1052,6 +996,7 @@
       }
     },
     "PROCESS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1082,6 +1027,7 @@
       }
     },
     "PROCESSING MEETING..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1113,6 +1059,7 @@
       }
     },
     "PROCESSING..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1150,6 +1097,7 @@
       }
     },
     "RECORD" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1173,6 +1121,7 @@
       }
     },
     "RECORDING MEETING..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1195,9 +1144,6 @@
     "Report" : {
 
     },
-    "REPORT" : {
-
-    },
     "Restore Purchases" : {
 
     },
@@ -1212,6 +1158,7 @@
       }
     },
     "RESUME" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1230,9 +1177,6 @@
     "Review" : {
 
     },
-    "REVIEW" : {
-
-    },
     "Save" : {
       "localizations" : {
         "it" : {
@@ -1244,6 +1188,7 @@
       }
     },
     "SAVE" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1257,9 +1202,6 @@
 
     },
     "Select a meeting" : {
-
-    },
-    "SELECT A MEETING" : {
 
     },
     "Select All" : {
@@ -1289,6 +1231,7 @@
       }
     },
     "SERVER TRANSCRIPTION" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1740,6 +1683,23 @@
         }
       }
     },
+    "settings.appearance.darkDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dark interface for low-light environments"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interfaccia scura per ambienti con poca luce"
+          }
+        }
+      }
+    },
     "settings.appearance.lightDescription" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1753,23 +1713,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Interfaccia pulita e moderna per l’uso quotidiano"
-          }
-        }
-      }
-    },
-    "settings.appearance.terminalDescription" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminal-style interface for power users"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interfaccia in stile terminal per utenti esperti"
           }
         }
       }
@@ -2533,6 +2476,7 @@
       }
     },
     "SIGN IN" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -2571,9 +2515,6 @@
     "Start Meeting Recording" : {
 
     },
-    "START MEETING RECORDING" : {
-
-    },
     "Start New Chat" : {
 
     },
@@ -2588,6 +2529,7 @@
       }
     },
     "STARTING IN..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -2598,9 +2540,6 @@
       }
     },
     "Stop Meeting" : {
-
-    },
-    "STOP MEETING" : {
 
     },
     "Subscribe Now" : {
@@ -2617,9 +2556,6 @@
       }
     },
     "Summary:" : {
-
-    },
-    "SUMMARY:" : {
 
     },
     "tab.actions" : {
@@ -2691,9 +2627,6 @@
       }
     },
     "Tap + to create your first meeting" : {
-
-    },
-    "TAP + TO CREATE YOUR FIRST MEETING" : {
 
     },
     "Tap the record button to capture audio from meetings, calls, or voice notes. SnipNote will automatically transcribe and analyze your content." : {
@@ -2775,9 +2708,6 @@
     "Troubleshooting:" : {
 
     },
-    "TROUBLESHOOTING:" : {
-
-    },
     "Try a different search term" : {
 
     },
@@ -2801,6 +2731,7 @@
       }
     },
     "UPLOADING TO SERVER..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {

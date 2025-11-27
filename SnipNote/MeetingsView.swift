@@ -55,13 +55,13 @@ struct MeetingsView: View {
             VStack(spacing: 0) {
                 
                  HStack(alignment: .center, spacing: 12) {
-                     Text(themeManager.currentTheme.headerStyle == .brackets ? "[ MEETINGS ]" : "Meetings")
+                     Text("Meetings")
                          .themedTitle()
 
                      Spacer()
 
                      HStack(spacing: 12) {
-                         Text("\(searchText.isEmpty ? meetings.count : filteredMeetings.count) \(themeManager.currentTheme.headerStyle == .brackets ? "MEETINGS" : "meetings")\(searchText.isEmpty ? "" : " found")")
+                         Text("\(searchText.isEmpty ? meetings.count : filteredMeetings.count) meetings\(searchText.isEmpty ? "" : " found")")
                              .themedCaption()
 
                          Button(action: checkLimitAndCreate) {
@@ -137,10 +137,10 @@ struct MeetingsView: View {
                                 isBouncingEmpty = true
                             }
 
-                        Text(themeManager.currentTheme.headerStyle == .brackets ? "NO MEETINGS FOUND" : "No meetings yet")
+                        Text("No meetings yet")
                             .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                        Text(themeManager.currentTheme.headerStyle == .brackets ? "TAP + TO CREATE YOUR FIRST MEETING" : "Tap + to create your first meeting")
+                        Text("Tap + to create your first meeting")
                             .themedCaption()
                         Spacer()
                     }
@@ -150,7 +150,7 @@ struct MeetingsView: View {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 50))
                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                        Text(themeManager.currentTheme.headerStyle == .brackets ? "NO RESULTS FOUND" : "No results found")
+                        Text("No results found")
                             .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                         Text("Try a different search term")
@@ -163,13 +163,13 @@ struct MeetingsView: View {
                              NavigationLink(value: meeting) {
                                  VStack(alignment: .leading, spacing: 6) {
                                      HStack {
-                                         Text(meeting.name.isEmpty ? (themeManager.currentTheme.headerStyle == .brackets ? "UNTITLED MEETING" : "Untitled Meeting") : (themeManager.currentTheme.headerStyle == .brackets ? meeting.name.uppercased() : meeting.name))
+                                         Text(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
                                              .themedBody()
                                              .fontWeight(.bold)
                                              .lineLimit(1)
 
                                          if meeting.isProcessing {
-                                             Text(themeManager.currentTheme.headerStyle == .brackets ? "PROCESSING..." : "Processing...")
+                                             Text("Processing...")
                                                  .themedCaption()
                                                  .fontWeight(.bold)
                                                  .foregroundColor(themeManager.currentTheme.warningColor)
@@ -178,11 +178,10 @@ struct MeetingsView: View {
                                                  .background(themeManager.currentTheme.warningColor.opacity(0.2))
                                                  .cornerRadius(3)
                                          }
-
-                                         Spacer()
-                                         Text(meeting.dateCreated, style: .date)
-                                             .themedCaption()
                                      }
+
+                                     Text(meeting.dateCreated, style: .date)
+                                         .themedCaption()
 
                                      HStack {
                                          if !meeting.location.isEmpty {
@@ -260,7 +259,7 @@ struct MeetingsView: View {
         } detail: {
             VStack {
                 Spacer()
-                Text(themeManager.currentTheme.headerStyle == .brackets ? "SELECT A MEETING" : "Select a meeting")
+                Text("Select a meeting")
                     .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                     .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                 Spacer()

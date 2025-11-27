@@ -59,7 +59,7 @@ struct SettingsView: View {
         VStack(spacing: 0) {
              HStack(spacing: 12) {
                  let title = localized("settings.title")
-                 Text(themeManager.currentTheme.headerStyle == .brackets ? "[ \(title.uppercased()) ]" : title)
+                 Text(title)
                      .themedTitle()
 
                  Spacer()
@@ -231,7 +231,7 @@ struct SettingsView: View {
                                  .frame(width: 150)
                              }
 
-                             Text(themeManager.themeType == .light ? localized("settings.appearance.lightDescription") : localized("settings.appearance.terminalDescription"))
+                             Text(themeManager.themeType == .light ? localized("settings.appearance.lightDescription") : localized("settings.appearance.darkDescription"))
                                  .themedCaption()
                                  .frame(maxWidth: .infinity, alignment: .leading)
                          }

@@ -325,7 +325,7 @@ struct MeetingDetailView: View {
                     .animation(.linear(duration: 3).repeatForever(autoreverses: false), value: rotationAnimation)
                     .onAppear { rotationAnimation = true }
 
-                Text(theme.headerStyle == .brackets ? "UPLOADING TO SERVER..." : "Uploading to server...")
+                Text("Uploading to server...")
                     .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                     .foregroundColor(theme.textColor)
             }
@@ -378,7 +378,7 @@ struct MeetingDetailView: View {
                         }
                     }
 
-                Text(theme.headerStyle == .brackets ? "SERVER TRANSCRIPTION" : "Server Transcription")
+                Text("Server Transcription")
                     .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                     .foregroundColor(theme.textColor)
             }
@@ -391,7 +391,7 @@ struct MeetingDetailView: View {
                         HStack(spacing: 8) {
                             ProgressView()
                                 .scaleEffect(0.8)
-                            Text(theme.headerStyle == .brackets ? "UPLOADING TO SERVER..." : "Uploading to server...")
+                            Text("Uploading to server...")
                                 .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                                 .foregroundColor(theme.accentColor)
                         }
@@ -808,7 +808,7 @@ struct MeetingDetailView: View {
                 Spacer()
 
                 if meeting.isProcessing {
-                    Text(themeManager.currentTheme.headerStyle == .brackets ? "EXTRACTING..." : "Extracting...")
+                    Text("Extracting...")
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.warningColor)
                 }
@@ -866,7 +866,7 @@ struct MeetingDetailView: View {
     // MARK: - Helper Views
     
     private func sectionHeader(title: String, alternateTitle: String) -> some View {
-        Text(themeManager.currentTheme.headerStyle == .brackets ? title : alternateTitle)
+        Text(alternateTitle)
             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
     }
@@ -880,7 +880,7 @@ struct MeetingDetailView: View {
     }
     
     private var processingLabel: some View {
-        Text(themeManager.currentTheme.headerStyle == .brackets ? "PROCESSING..." : "Processing...")
+        Text("Processing...")
             .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
             .foregroundColor(themeManager.currentTheme.warningColor)
     }
@@ -896,7 +896,7 @@ struct MeetingDetailView: View {
                 VStack {
                     HStack {
                         Spacer()
-                        Button(themeManager.currentTheme.headerStyle == .brackets ? "SAVE" : "Save") {
+                        Button("Save") {
                             saveSummary()
                         }
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
@@ -1031,12 +1031,7 @@ struct MeetingDetailView: View {
     }
 
     private func getMeetingTitle() -> String {
-        let meetingTitle = meeting.name.isEmpty ? "UNTITLED MEETING" : meeting.name.uppercased()
-        if themeManager.currentTheme.headerStyle == .brackets {
-            return "[ \(meetingTitle) ]"
-        } else {
-            return meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
-        }
+        return meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
     }
     
     private func priorityColor(for action: Action) -> Color {
@@ -1736,7 +1731,7 @@ private struct MeetingProcessingStatusView: View {
             base = "Processing..."
         }
 
-        return theme.headerStyle == .brackets ? base.uppercased() : base
+        return base
     }
 
     private var stageDescription: String {

@@ -123,7 +123,7 @@ struct EveView: View {
         VStack(spacing: 8) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(themeManager.currentTheme.headerStyle == .brackets ? "[ EVE ]" : "Eve")
+                    Text("Eve")
                         .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                     
                     Text("Your AI Assistant")

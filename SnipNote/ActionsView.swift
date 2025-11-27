@@ -65,7 +65,7 @@ struct ActionsView: View {
         VStack(spacing: 0) {
             
             HStack {
-                Text(themeManager.currentTheme.headerStyle == .brackets ? "[ ACTIONS ]" : "Actions")
+                Text("Actions")
                     .themedTitle()
                 
                 Spacer()
@@ -82,7 +82,7 @@ struct ActionsView: View {
                             Image(systemName: "doc.text")
                                 .font(.system(size: 14, weight: .semibold))
                         }
-                        Text(themeManager.currentTheme.headerStyle == .brackets ? "REPORT" : "Report")
+                        Text("Report")
                             .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     }
                 }
@@ -156,7 +156,7 @@ struct ActionsView: View {
                         HStack(spacing: 6) {
                             Image(systemName: allExpanded ? "chevron.up.chevron.down" : "chevron.right.chevron.left")
                                 .font(.system(size: 14, weight: .semibold))
-                            Text(themeManager.currentTheme.headerStyle == .brackets ? (allExpanded ? "COLLAPSE ALL" : "EXPAND ALL") : (allExpanded ? "Collapse All" : "Expand All"))
+                            Text(allExpanded ? "Collapse All" : "Expand All")
                                 .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                         }
                         .foregroundColor(themeManager.currentTheme.warningColor)
@@ -176,10 +176,10 @@ struct ActionsView: View {
             if filteredActions.isEmpty {
                 VStack(spacing: 20) {
                     Spacer()
-                    Text(themeManager.currentTheme.headerStyle == .brackets ? "NO ACTIONS FOUND" : "No actions found")
+                    Text("No actions found")
                         .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                    Text(themeManager.currentTheme.headerStyle == .brackets ? "NO \(filter.rawValue) ACTIONS" : "No \(filter.rawValue.lowercased()) actions")
+                    Text("No \(filter.rawValue.lowercased()) actions")
                         .themedCaption()
                     Spacer()
                 }
@@ -367,12 +367,11 @@ struct ExpandableGroupHeaderView: View {
         Button(action: onTap) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(themeManager.currentTheme.headerStyle == .brackets ? title.uppercased() : title)
-
+                    Text(title)
                         .foregroundColor(themeManager.currentTheme.accentColor)
                         .lineLimit(1)
-                    
-                    Text("\(actionCount) \(themeManager.currentTheme.headerStyle == .brackets ? "ACTION\(actionCount == 1 ? "" : "S")" : "action\(actionCount == 1 ? "" : "s")" )")
+
+                    Text("\(actionCount) action\(actionCount == 1 ? "" : "s")")
                         .themedCaption()
                 }
                 
@@ -451,7 +450,7 @@ struct ActionRowView: View {
     private var displayTitle: String {
         let title = action.title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else {
-            return themeManager.currentTheme.headerStyle == .brackets ? "UNTITLED ACTION" : "Untitled Action"
+            return "Untitled Action"
         }
         return title
     }
@@ -472,15 +471,10 @@ struct ActionRowView: View {
     }
 
     private var priorityLabel: String {
-        switch themeManager.currentTheme.headerStyle {
-        case .brackets:
-            return action.priority.rawValue
-        case .plain:
-            switch action.priority {
-            case .high: return "High Priority"
-            case .medium: return "Medium Priority"
-            case .low: return "Low Priority"
-            }
+        switch action.priority {
+        case .high: return "High Priority"
+        case .medium: return "Medium Priority"
+        case .low: return "Low Priority"
         }
     }
 
@@ -490,15 +484,15 @@ struct ActionRowView: View {
         let date: Date
 
         if action.isCompleted, let completed = action.dateCompleted {
-            base = themeManager.currentTheme.headerStyle == .brackets ? "COMPLETED" : "Completed"
+            base = "Completed"
             date = completed
         } else {
-            base = themeManager.currentTheme.headerStyle == .brackets ? "CREATED" : "Created"
+            base = "Created"
             date = action.dateCreated
         }
 
         let formatted = date.formatted(formatter)
-        return themeManager.currentTheme.headerStyle == .brackets ? "\(base) \(formatted.uppercased())" : "\(base) \(formatted)"
+        return "\(base) \(formatted)"
     }
 
     private var priorityColor: Color {

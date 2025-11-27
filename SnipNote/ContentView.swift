@@ -10,21 +10,13 @@ import SwiftData
 
 struct ContentView: View {
     @Binding var deepLinkAudioURL: URL?
-    @Query private var actions: [Action]
     @State private var selectedTab: Tab = .meetings
-    @Binding var shouldNavigateToActions: Bool
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var localizationManager: LocalizationManager
-    @AppStorage("showActionsTab") private var showActionsTab = false
     @State private var selectedMeetingForEve: UUID?
-    
-    private var pendingActionsCount: Int {
-        return actions.filter { !$0.isCompleted }.count
-    }
 
     private enum Tab: Hashable {
         case meetings
-        case actions
         case eve
         case settings
     }
@@ -38,17 +30,6 @@ struct ContentView: View {
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 }
                 .tag(Tab.meetings)
-
-            if showActionsTab {
-                ActionsView()
-                    .tabItem {
-                        Image(systemName: "checklist")
-                        Text(tabTitle(for: "tab.actions"))
-                            .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                    }
-                    .badge(pendingActionsCount)
-                    .tag(Tab.actions)
-            }
 
             EveView(selectedMeetingForEve: $selectedMeetingForEve)
                 .tabItem {
@@ -72,22 +53,6 @@ struct ContentView: View {
                 selectedTab = .meetings
             }
         }
-        .onChange(of: shouldNavigateToActions) { _, newValue in
-            if newValue {
-                // Navigate to Actions tab when notification is tapped
-                if showActionsTab {
-                    selectedTab = .actions
-                } else {
-                    selectedTab = .meetings
-                }
-                shouldNavigateToActions = false
-            }
-        }
-        .onChange(of: showActionsTab) { _, isEnabled in
-            if !isEnabled && selectedTab == .actions {
-                selectedTab = .meetings
-            }
-        }
         .onChange(of: selectedMeetingForEve) { _, newMeetingId in
             if newMeetingId != nil {
                 selectedTab = .eve
@@ -106,7 +71,7 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView(deepLinkAudioURL: .constant(nil), shouldNavigateToActions: .constant(false))
+    ContentView(deepLinkAudioURL: .constant(nil))
         .modelContainer(for: [Action.self, Meeting.self, EveMessage.self, ChatConversation.self, UserAIContext.self, MeetingFileState.self], inMemory: true)
         .environmentObject(ThemeManager.shared)
         .environmentObject(LocalizationManager.shared)

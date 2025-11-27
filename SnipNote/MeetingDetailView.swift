@@ -14,7 +14,6 @@ struct MeetingDetailView: View {
     @EnvironmentObject var themeManager: ThemeManager
 
     @Query private var allActions: [Action]
-    @AppStorage("showActionsTab") private var showActionsTab = false
 
     @Environment(\.navigateToEve) private var navigateToEve
 
@@ -75,10 +74,7 @@ struct MeetingDetailView: View {
                         overviewSection
                         summarySection
                         transcriptSection
-
-                        if showActionsTab {
-                            actionsSection
-                        }
+                        actionsSection
                     }
                     .padding()
                 }

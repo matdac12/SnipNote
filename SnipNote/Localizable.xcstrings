@@ -13,16 +13,6 @@
     "%lld" : {
 
     },
-    "%lld action%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld action%2$@"
-          }
-        }
-      }
-    },
     "%lld meetings%@" : {
       "localizations" : {
         "en" : {
@@ -151,6 +141,7 @@
       }
     },
     "Actions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -161,6 +152,7 @@
       }
     },
     "Actions Report" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -364,9 +356,6 @@
         }
       }
     },
-    "Collapse All" : {
-
-    },
     "CONTACT" : {
 
     },
@@ -389,13 +378,7 @@
     "Continue your paused transcription?" : {
 
     },
-    "Copied!" : {
-
-    },
     "Copy Debug Info" : {
-
-    },
-    "Copy Report" : {
 
     },
     "Create Account" : {
@@ -486,9 +469,6 @@
 
     },
     "Everything" : {
-
-    },
-    "Expand All" : {
 
     },
     "EXTRA MINUTES" : {
@@ -865,22 +845,13 @@
     "No" : {
 
     },
-    "No %@ actions" : {
-
-    },
     "No action items found in this meeting" : {
-
-    },
-    "No actions found" : {
 
     },
     "No meetings yet" : {
 
     },
     "No results found" : {
-
-    },
-    "Notification Time" : {
 
     },
     "OK" : {
@@ -1140,9 +1111,6 @@
           }
         }
       }
-    },
-    "Report" : {
-
     },
     "Restore Purchases" : {
 
@@ -1615,74 +1583,6 @@
         }
       }
     },
-    "settings.actions.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actions keep track of follow-up items automatically extracted from your meetings. Enable them when you want a dedicated space for tasks surfaced by SnipNote."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le azioni tengono traccia dei follow-up estratti automaticamente dalle tue riunioni. Attivale quando vuoi uno spazio dedicato alle attività suggerite da SnipNote."
-          }
-        }
-      }
-    },
-    "settings.actions.section.footer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Track tasks that SnipNote discovers in your meetings."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tieni traccia delle attività che SnipNote individua nelle tue riunioni."
-          }
-        }
-      }
-    },
-    "settings.actions.section.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actions"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Azioni"
-          }
-        }
-      }
-    },
-    "settings.actions.toggle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show Actions tab"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostra la scheda Azioni"
-          }
-        }
-      }
-    },
     "settings.appearance.darkDescription" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1781,57 +1681,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lingua"
-          }
-        }
-      }
-    },
-    "settings.notifications.actionsDisabled" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enable Actions to schedule daily reminders"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Attiva Azioni per programmare i promemoria giornalieri"
-          }
-        }
-      }
-    },
-    "settings.notifications.dailyReminders" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Daily Reminders"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Promemoria giornalieri"
-          }
-        }
-      }
-    },
-    "settings.notifications.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Get notified about high priority actions"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ricevi una notifica per le azioni ad alta priorità"
           }
         }
       }
@@ -2023,23 +1872,6 @@
         }
       }
     },
-    "settings.notifications.time" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notification Time"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orario della notifica"
-          }
-        }
-      }
-    },
     "settings.section.account.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2091,23 +1923,6 @@
         }
       }
     },
-    "settings.section.statistics.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Statistics"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Statistiche"
-          }
-        }
-      }
-    },
     "settings.section.subscription.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2138,74 +1953,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Utilizzo"
-          }
-        }
-      }
-    },
-    "settings.statistics.completed" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Completed"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Completate"
-          }
-        }
-      }
-    },
-    "settings.statistics.highPriority" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "High Priority"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alta priorità"
-          }
-        }
-      }
-    },
-    "settings.statistics.pending" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pending"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Da completare"
-          }
-        }
-      }
-    },
-    "settings.statistics.totalActions" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total Actions"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Azioni totali"
           }
         }
       }
@@ -2308,40 +2055,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impostazioni"
-          }
-        }
-      }
-    },
-    "settings.usage.actionsCompleted" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actions Completed"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Azioni completate"
-          }
-        }
-      }
-    },
-    "settings.usage.actionsExtracted" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actions Extracted"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Azioni estratte"
           }
         }
       }
@@ -2557,23 +2270,6 @@
     },
     "Summary:" : {
 
-    },
-    "tab.actions" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actions"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Azioni"
-          }
-        }
-      }
     },
     "tab.eve" : {
       "extractionState" : "manual",

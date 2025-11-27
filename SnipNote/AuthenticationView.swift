@@ -12,14 +12,13 @@ struct AuthenticationView: View {
     @StateObject private var authManager = AuthenticationManager()
     @EnvironmentObject var themeManager: ThemeManager
     @Binding var deepLinkAudioURL: URL?
-    @Binding var shouldNavigateToActions: Bool
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var showingOnboarding = false
 
     var body: some View {
         Group {
             if authManager.isAuthenticated {
-                ContentView(deepLinkAudioURL: $deepLinkAudioURL, shouldNavigateToActions: $shouldNavigateToActions)
+                ContentView(deepLinkAudioURL: $deepLinkAudioURL)
                     .environmentObject(authManager)
                     .environmentObject(themeManager)
                     .task {

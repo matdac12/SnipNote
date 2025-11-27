@@ -14,7 +14,6 @@ import StoreKit
 @main
 struct SnipNoteApp: App {
     @State private var deepLinkAudioURL: URL?
-    @State private var shouldNavigateToActions = false
     @State private var showResumeAlert = false
     @State private var pausedMeetingInfo: [String: Any]?
     @Environment(\.scenePhase) private var scenePhase
@@ -58,7 +57,7 @@ struct SnipNoteApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AuthenticationView(deepLinkAudioURL: $deepLinkAudioURL, shouldNavigateToActions: $shouldNavigateToActions)
+            AuthenticationView(deepLinkAudioURL: $deepLinkAudioURL)
                 .environmentObject(themeManager)
                 .environmentObject(localizationManager)
                 .themed()
@@ -68,13 +67,8 @@ struct SnipNoteApp: App {
                 }
                 .onAppear {
                     Task {
-                        await refreshNotificationsAndBadge()
                         // Initialize minutes manager - grant free tier if needed and refresh balance
                         await MinutesManager.shared.handleAppLaunch()
-                    }
-                    // Set up the navigation handler in app delegate
-                    appDelegate.onNavigateToActions = {
-                        shouldNavigateToActions = true
                     }
                 }
                 .alert("Continue Transcription?", isPresented: $showResumeAlert) {
@@ -122,31 +116,6 @@ struct SnipNoteApp: App {
         }
     }
     
-    @MainActor
-    private func refreshNotificationsAndBadge() async {
-        // Clear all pending notifications first
-        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-
-        // Fetch all actions from the model container
-        let descriptor = FetchDescriptor<Action>()
-        do {
-            let context = sharedModelContainer.mainContext
-            let allActions = try context.fetch(descriptor)
-
-            // Check if actions tab is enabled
-            let actionsEnabled = UserDefaults.standard.bool(forKey: "showActionsTab")
-
-            // Reschedule notifications based on current actions
-            NotificationService.shared.scheduleNotification(with: allActions)
-            // Update badge immediately based on current actions and settings
-            await NotificationService.shared.updateBadgeCount(with: allActions, actionsEnabled: actionsEnabled)
-        } catch {
-            print("Error refreshing notifications: \(error)")
-            // If there's an error, clear the badge to be safe
-            try? await UNUserNotificationCenter.current().setBadgeCount(0)
-        }
-    }
-
     private func checkForPausedTranscriptions() {
         if let pauseInfo = backgroundTaskManager.checkForPausedTranscription() {
             pausedMeetingInfo = pauseInfo
@@ -194,8 +163,6 @@ extension URL {
 }
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-    var onNavigateToActions: (() -> Void)?
-    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
 
@@ -206,20 +173,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
         return true
     }
-    
+
     // Handle notification when app is in foreground
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound, .badge])
     }
-    
+
     // Handle notification tap
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        let userInfo = response.notification.request.content.userInfo
-        
-        if let navigateTo = userInfo["navigateTo"] as? String, navigateTo == "actions" {
-            onNavigateToActions?()
-        }
-        
         completionHandler()
     }
 }

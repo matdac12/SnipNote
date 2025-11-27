@@ -341,19 +341,6 @@ class BackgroundTaskManager: ObservableObject {
                 }
 
                 Task { @MainActor in
-                    if let container = try? self.makeModelContainer() {
-                        let notificationContext = ModelContext(container)
-                        let descriptor = FetchDescriptor<Action>()
-                        if let allActions = try? notificationContext.fetch(descriptor) {
-                            // Check if actions tab is enabled
-                            let actionsEnabled = UserDefaults.standard.bool(forKey: "showActionsTab")
-                            NotificationService.shared.scheduleNotification(with: allActions)
-                            await NotificationService.shared.updateBadgeCount(with: allActions, actionsEnabled: actionsEnabled)
-                        }
-                    }
-                }
-
-                Task { @MainActor in
                     await UsageTracker.shared.trackAIUsage(
                         summaries: 1,
                         actionsExtracted: actionItems.count

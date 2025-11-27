@@ -28,18 +28,12 @@ enum DeleteAccountError: LocalizedError {
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
-    @StateObject private var notificationService = NotificationService.shared
-    @Query private var actions: [Action]
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var localizationManager: LocalizationManager
     @EnvironmentObject var authManager: AuthenticationManager
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var minutesManager = MinutesManager.shared
     @Query private var meetings: [Meeting]
-    @AppStorage("showActionsTab") private var showActionsTab = false
-    @State private var showingPermissionAlert = false
-    @State private var permissionStatus: UNAuthorizationStatus = .notDetermined
-    @State private var showingTimeSheet = false
     @State private var showingLogoutConfirmation = false
     @State private var userUsage: UserUsage?
     @State private var isLoadingStats = false
@@ -247,170 +241,6 @@ struct SettingsView: View {
                              .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
                      )
                      .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-                    
-                     VStack(alignment: .leading, spacing: 16) {
-                         Text(localized("settings.actions.section.title").uppercased())
-                             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-
-                         VStack(alignment: .leading, spacing: 12) {
-                             Text(localized("settings.actions.description"))
-                                 .themedCaption()
-
-                             Toggle(isOn: $showActionsTab) {
-                                 Text(localized("settings.actions.toggle"))
-                                     .themedBody()
-                                     .fontWeight(.bold)
-                             }
-                             .toggleStyle(SwitchToggleStyle(tint: themeManager.currentTheme.accentColor))
-
-                             Text(localized("settings.actions.section.footer"))
-                                 .themedCaption()
-                         }
-                         .padding()
-                         .background(themeManager.currentTheme.materialStyle)
-                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                     }
-                     .padding(.horizontal, 10)
-                     .padding(.vertical, 12)
-                     .background(
-                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                     )
-                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-
-                     VStack(alignment: .leading, spacing: 16) {
-                         Text(localized("settings.section.notifications.title").uppercased())
-                             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-
-                         VStack(alignment: .leading, spacing: 12) {
-                             Text(localized("settings.notifications.processing.title"))
-                                 .themedBody()
-                                 .fontWeight(.bold)
-
-                             Text(localized("settings.notifications.processing.description"))
-                                 .themedCaption()
-
-                             HStack {
-                                 Text(localized("settings.notifications.permission.status"))
-                                     .themedBody()
-                                     .fontWeight(.bold)
-
-                                 Spacer()
-
-                                 Text(permissionStatusText)
-                                     .themedCaption()
-                                     .fontWeight(.bold)
-                                     .foregroundColor(permissionStatusColor)
-                                     .padding(.horizontal, 6)
-                                     .padding(.vertical, 2)
-                                     .background(permissionStatusColor.opacity(0.2))
-                                     .cornerRadius(3)
-                             }
-
-                             Button(action: openNotificationSettings) {
-                                 HStack {
-                                     Spacer()
-                                     Text(localized("settings.notifications.permission.settings"))
-                                         .themedBody()
-                                         .fontWeight(.bold)
-                                     Spacer()
-                                 }
-                                 .padding(.vertical, 10)
-                                 .background(themeManager.currentTheme.accentColor.opacity(0.15))
-                                 .cornerRadius(themeManager.currentTheme.cornerRadius)
-                             }
-                             .buttonStyle(.plain)
-                             .foregroundColor(themeManager.currentTheme.accentColor)
-                         }
-                         .padding()
-                         .background(themeManager.currentTheme.materialStyle)
-                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-
-                         VStack(spacing: 12) {
-                             VStack(alignment: .leading, spacing: 4) {
-                                 Text(localized("settings.notifications.dailyReminders"))
-                                     .themedBody()
-                                     .fontWeight(.bold)
-                                 Text(localized("settings.notifications.description"))
-                                     .themedCaption()
-                                 if !showActionsTab {
-                                     Text(localized("settings.notifications.actionsDisabled"))
-                                         .themedCaption()
-                                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                                 }
-                             }
-
-                             Toggle("", isOn: $notificationService.isNotificationEnabled)
-                                 .toggleStyle(SwitchToggleStyle(tint: themeManager.currentTheme.accentColor))
-                                 .disabled(!showActionsTab)
-                                 .onChange(of: notificationService.isNotificationEnabled) { _, newValue in
-                                     handleNotificationToggle(newValue)
-                                 }
-
-                             if showActionsTab && notificationService.isNotificationEnabled {
-                                 HStack {
-                                     Text(localized("settings.notifications.time"))
-                                         .themedBody()
-                                         .fontWeight(.bold)
-
-                                     Spacer()
-
-                                     Button(action: { showingTimeSheet = true }) {
-                                         Text(DateFormatter.timeFormatter.string(from: notificationService.notificationTime))
-                                             .themedBody()
-                                             .foregroundColor(themeManager.currentTheme.accentColor)
-                                             .padding(.horizontal, 12)
-                                             .padding(.vertical, 6)
-                                             .overlay(
-                                                 Rectangle()
-                                                     .stroke(themeManager.currentTheme.accentColor, lineWidth: 1)
-                                             )
-                                     }
-                                 }
-                             }
-                         }
-                         .padding()
-                         .background(themeManager.currentTheme.materialStyle)
-                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                     }
-                     .padding(.horizontal, 10)
-                     .padding(.vertical, 12)
-                     .background(
-                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                     )
-                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-
-                    if showActionsTab {
-                         VStack(alignment: .leading, spacing: 16) {
-                             Text(localized("settings.section.statistics.title").uppercased())
-                                 .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-
-                         VStack(spacing: 12) {
-                             StatRow(label: localized("settings.statistics.totalActions"), value: "\(actions.count)")
-                             StatRow(label: localized("settings.statistics.pending"), value: "\(actions.filter { !$0.isCompleted }.count)")
-                             StatRow(label: localized("settings.statistics.completed"), value: "\(actions.filter { $0.isCompleted }.count)")
-                             StatRow(label: localized("settings.statistics.highPriority"), value: "\(actions.filter { $0.priority == .high && !$0.isCompleted }.count)")
-                         }
-                         .padding()
-                         .background(themeManager.currentTheme.materialStyle)
-                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                         }
-                         .padding(.horizontal, 10)
-                         .padding(.vertical, 12)
-                         .background(
-                             RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                                 .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                         )
-                         .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-                    }
 
                      VStack(alignment: .leading, spacing: 16) {
                          HStack {
@@ -432,10 +262,6 @@ struct SettingsView: View {
                                  StatRow(label: localized("settings.usage.meetingsTranscribed"), value: "\(usage.totalMeetingsTranscribed)")
                                  StatRow(label: localized("settings.usage.totalRecordingTime"), value: usage.formattedMeetingTime)
                                  StatRow(label: localized("settings.usage.aiSummaries"), value: "\(usage.totalAiSummaries)")
-                                 if showActionsTab {
-                                     StatRow(label: localized("settings.usage.actionsExtracted"), value: "\(usage.totalAiActionsExtracted)")
-                                     StatRow(label: localized("settings.usage.actionsCompleted"), value: "\(usage.totalActionsCompleted)")
-                                 }
                              } else {
                                  HStack {
                                      Spacer()
@@ -581,26 +407,6 @@ struct SettingsView: View {
              )
         }
         .themedBackground()
-        .sheet(isPresented: $showingTimeSheet) {
-            TimePickerSheet(selectedTime: $notificationService.notificationTime) { time in
-                notificationService.updateNotificationSettings(
-                    enabled: notificationService.isNotificationEnabled,
-                    time: time
-                )
-                updateNotifications()
-            }
-        }
-        .alert(localized("settings.notifications.permission.title"), isPresented: $showingPermissionAlert) {
-            Button(localized("settings.notifications.permission.settings")) {
-                openNotificationSettings()
-            }
-            Button(localized("settings.notifications.permission.cancel"), role: .cancel) {
-                notificationService.isNotificationEnabled = false
-                notificationService.updateNotificationSettings(enabled: false, time: notificationService.notificationTime)
-            }
-        } message: {
-            Text(localized("settings.notifications.permission.message"))
-        }
         .alert(localized("settings.notifications.logout.title"), isPresented: $showingLogoutConfirmation) {
             Button(localized("settings.notifications.logout.confirm"), role: .destructive) {
                 Task {
@@ -652,27 +458,7 @@ struct SettingsView: View {
         .sheet(isPresented: $showingAboutSheet) {
             AboutSheetView()
         }
-        .onChange(of: showActionsTab) { _, isEnabled in
-            if !isEnabled {
-                // Disable notifications if actions are disabled
-                if notificationService.isNotificationEnabled {
-                    notificationService.isNotificationEnabled = false
-                }
-                // Clear badge when actions are disabled
-                Task {
-                    await NotificationService.shared.updateBadgeCount(with: actions, actionsEnabled: false)
-                }
-            } else {
-                // Update notifications and badge when actions are enabled
-                updateNotifications()
-                Task {
-                    await NotificationService.shared.updateBadgeCount(with: actions, actionsEnabled: true)
-                }
-            }
-        }
         .onAppear {
-            checkPermissionStatus()
-            updateNotifications()
             fetchUsageStats()
             Task { await minutesManager.refreshBalance() }
         }
@@ -687,28 +473,6 @@ struct SettingsView: View {
 
     private func localized(_ key: String) -> String {
         localizationManager.localizedString(key)
-    }
-
-    private var permissionStatusText: String {
-        switch permissionStatus {
-        case .authorized: return "ENABLED"
-        case .denied: return "DENIED"
-        case .provisional: return "PROVISIONAL"
-        case .ephemeral: return "EPHEMERAL"
-        case .notDetermined: return "NOT SET"
-        @unknown default: return "UNKNOWN"
-        }
-    }
-    
-    private var permissionStatusColor: Color {
-        switch permissionStatus {
-        case .authorized: return themeManager.currentTheme.accentColor
-        case .denied: return themeManager.currentTheme.destructiveColor
-        case .provisional: return themeManager.currentTheme.warningColor
-        case .ephemeral: return themeManager.currentTheme.warningColor
-        case .notDetermined: return themeManager.currentTheme.secondaryTextColor
-        @unknown default: return themeManager.currentTheme.secondaryTextColor
-        }
     }
 
     @MainActor
@@ -740,44 +504,7 @@ struct SettingsView: View {
             print("Error cleaning AI context on sign out: \(error)")
         }
     }
-    
-    private func handleNotificationToggle(_ enabled: Bool) {
-        if enabled {
-            Task {
-                let permission = await notificationService.requestNotificationPermission()
-                await MainActor.run {
-                    if permission {
-                        notificationService.updateNotificationSettings(enabled: true, time: notificationService.notificationTime)
-                        updateNotifications()
-                    } else {
-                        showingPermissionAlert = true
-                    }
-                    checkPermissionStatus()
-                }
-            }
-        } else {
-            notificationService.updateNotificationSettings(enabled: false, time: notificationService.notificationTime)
-            notificationService.cancelAllNotifications()
-        }
-    }
-    
-    private func checkPermissionStatus() {
-        Task {
-            let status = await notificationService.checkNotificationPermission()
-            await MainActor.run {
-                permissionStatus = status
-            }
-        }
-    }
-    
-    private func updateNotifications() {
-        guard showActionsTab, notificationService.isNotificationEnabled else {
-            notificationService.cancelAllNotifications()
-            return
-        }
-        notificationService.scheduleNotification(with: actions)
-    }
-    
+
     private func fetchUsageStats() {
         isLoadingStats = true
         Task {
@@ -891,12 +618,6 @@ struct SettingsView: View {
             #endif
         }
     }
-
-    private func openNotificationSettings() {
-        if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-            UIApplication.shared.open(settingsURL)
-        }
-    }
 }
 
 struct StatRow: View {
@@ -917,56 +638,6 @@ struct StatRow: View {
                 .foregroundColor(themeManager.currentTheme.accentColor)
         }
     }
-}
-
-struct TimePickerSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var selectedTime: Date
-    let onTimeSelected: (Date) -> Void
-    
-    var body: some View {
-        NavigationView {
-            VStack {
-                DatePicker(
-                    "Notification Time",
-                    selection: $selectedTime,
-                    displayedComponents: .hourAndMinute
-                )
-                .datePickerStyle(.wheel)
-                .labelsHidden()
-                
-                Spacer()
-            }
-            .padding()
-            .themedBackground()
-            .navigationTitle("Notification Time")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(ThemeManager.shared.currentTheme.destructiveColor)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        onTimeSelected(selectedTime)
-                        dismiss()
-                    }
-                    .foregroundColor(ThemeManager.shared.currentTheme.accentColor)
-                }
-            }
-        }
-    }
-}
-
-extension DateFormatter {
-    static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter
-    }()
 }
 
 struct AboutSheetView: View {

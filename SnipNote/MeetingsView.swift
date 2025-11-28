@@ -160,7 +160,9 @@ struct MeetingsView: View {
                 } else {
                     List {
                         ForEach(filteredMeetings) { meeting in
-                             NavigationLink(value: meeting) {
+                             Button {
+                                 selectedMeeting = meeting
+                             } label: {
                                  VStack(alignment: .leading, spacing: 6) {
                                      HStack {
                                          Text(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
@@ -183,19 +185,10 @@ struct MeetingsView: View {
                                      Text(meeting.dateCreated, style: .date)
                                          .themedCaption()
 
-                                     HStack {
-                                         if !meeting.location.isEmpty {
-                                             Text("📍 \(meeting.location)")
-                                                 .themedCaption()
-                                                 .lineLimit(1)
-                                         }
-
-                                         Spacer()
-
-                                         if meeting.duration > 0 {
-                                             Text("⏱️ \(meeting.durationFormatted)")
-                                                 .themedCaption()
-                                         }
+                                     if !meeting.location.isEmpty {
+                                         Text("📍 \(meeting.location)")
+                                             .themedCaption()
+                                             .lineLimit(1)
                                      }
 
                                      // Show overview/summary preview
@@ -210,6 +203,7 @@ struct MeetingsView: View {
                                              .lineLimit(2)
                                      }
                                  }
+                                 .frame(maxWidth: .infinity, alignment: .leading)
                                  .padding(.vertical, 8)
                                  .padding(.horizontal, 12)
                                  .background(themeManager.currentTheme.secondaryBackgroundColor.opacity(0.5))
@@ -228,6 +222,9 @@ struct MeetingsView: View {
                         .onDelete(perform: deleteMeetings)
                         .listRowBackground(Color.clear)
                     }
+                    .navigationDestination(item: $selectedMeeting) { meeting in
+                        MeetingDetailView(meeting: meeting)
+                    }
                     .listStyle(PlainListStyle())
                     .scrollContentBackground(.hidden)
                     .refreshable {
@@ -236,9 +233,6 @@ struct MeetingsView: View {
                 }
             }
             .themedBackground()
-            .navigationDestination(for: Meeting.self) { meeting in
-                MeetingDetailView(meeting: meeting)
-            }
             .navigationDestination(isPresented: $navigateToCreate) {
                 CreateMeetingView(
                     onMeetingCreated: { meeting in

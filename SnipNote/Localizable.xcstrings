@@ -715,9 +715,6 @@
         }
       }
     },
-    "Lingua della trascrizione" : {
-
-    },
     "Loading subscription options..." : {
 
     },
@@ -1274,12 +1271,6 @@
           }
         }
       }
-    },
-    "Select the audio language for more accurate transcription." : {
-
-    },
-    "Seleziona la lingua dell'audio per una trascrizione più accurata." : {
-
     },
     "Server Transcription" : {
       "localizations" : {
@@ -2488,9 +2479,6 @@
           }
         }
       }
-    },
-    "Transcription Language" : {
-
     },
     "Troubleshooting:" : {
 

@@ -136,6 +136,7 @@ struct CreateMeetingView: View {
     @State private var pendingMeetingDate = Date()
     @State private var isLocationExpanded = false
     @State private var isNotesExpanded = false
+    @State private var isLanguageExpanded = false
 
     // Recording animation state
     @State private var recordingDotScale: CGFloat = 1.0
@@ -337,6 +338,7 @@ struct CreateMeetingView: View {
 
                 optionalLocationInput(theme: theme)
                 optionalNotesInput(theme: theme)
+                optionalLanguageInput(theme: theme)
             }
         }
         .padding(.horizontal)
@@ -380,6 +382,28 @@ struct CreateMeetingView: View {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isNotesExpanded = true
                     focusedField = .notes
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func optionalLanguageInput(theme: AppTheme) -> some View {
+        if isLanguageExpanded {
+            expandedLanguageCard(theme: theme)
+                .transition(.move(edge: .top).combined(with: .opacity))
+        } else {
+            optionalCollapsedCard(
+                theme: theme,
+                title: localizationManager.languageCode == "it" ? "Seleziona Lingua" : "Select Language",
+                subtitle: localizationManager.languageCode == "it"
+                    ? "Opzionale — per una trascrizione più accurata."
+                    : "Optional — for more accurate transcription.",
+                iconSystemName: "globe",
+                summary: selectedLanguageDisplayName
+            ) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isLanguageExpanded = true
                 }
             }
         }
@@ -442,6 +466,62 @@ struct CreateMeetingView: View {
                 }
             }
         }
+    }
+
+    private func expandedLanguageCard(theme: AppTheme) -> some View {
+        MeetingInputCard(title: localizationManager.languageCode == "it" ? "Lingua della Trascrizione" : "Transcription Language",
+                         helper: localizationManager.languageCode == "it"
+                            ? "Seleziona la lingua dell'audio per una trascrizione più accurata."
+                            : "Select the audio language for more accurate transcription.",
+                         iconSystemName: "globe") {
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(transcriptionLanguages, id: \.code) { lang in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                selectedLanguage = lang.code
+                            }
+                        } label: {
+                            HStack {
+                                Text(localizationManager.languageCode == "it" ? lang.labelIT : lang.labelEN)
+                                    .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
+                                    .foregroundColor(theme.textColor)
+                                Spacer()
+                                if selectedLanguage == lang.code {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(.body, weight: .semibold))
+                                        .foregroundColor(theme.accentColor)
+                                }
+                            }
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 4)
+                        }
+                        .buttonStyle(.plain)
+
+                        if lang.code != transcriptionLanguages.last?.code {
+                            Divider()
+                                .background(theme.secondaryTextColor.opacity(0.2))
+                        }
+                    }
+                }
+            }
+            .frame(maxHeight: 220)
+        }
+        .overlay(alignment: .topTrailing) {
+            collapseSectionButton(theme: theme, accessibilityLabel: "Hide language selection") {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isLanguageExpanded = false
+                }
+            }
+        }
+    }
+
+    private var selectedLanguageDisplayName: String {
+        if let code = selectedLanguage,
+           let lang = transcriptionLanguages.first(where: { $0.code == code }) {
+            return localizationManager.languageCode == "it" ? lang.labelIT : lang.labelEN
+        }
+        return localizationManager.languageCode == "it" ? "Rilevamento automatico" : "Auto-detect"
     }
 
     private func collapseSectionButton(theme: AppTheme, accessibilityLabel: String, action: @escaping () -> Void) -> some View {
@@ -718,32 +798,9 @@ struct CreateMeetingView: View {
                 .frame(width: 200, height: 4)
                 .opacity(0.7)
 
-            // Language selector
-            VStack(spacing: 8) {
-                Text(localizationManager.languageCode == "it" ? "Lingua della trascrizione" : "Transcription Language")
-                    .font(.system(.subheadline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
-                    .foregroundColor(theme.secondaryTextColor)
-
-                Picker("", selection: Binding(
-                    get: { selectedLanguage ?? "" },
-                    set: { selectedLanguage = $0.isEmpty ? nil : $0 }
-                )) {
-                    ForEach(transcriptionLanguages, id: \.code) { lang in
-                        Text(localizationManager.languageCode == "it" ? lang.labelIT : lang.labelEN)
-                            .tag(lang.code ?? "")
-                    }
-                }
-                .pickerStyle(.menu)
-                .tint(theme.accentColor)
-
-                Text(localizationManager.languageCode == "it"
-                    ? "Seleziona la lingua dell'audio per una trascrizione più accurata."
-                    : "Select the audio language for more accurate transcription.")
-                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
-                    .foregroundColor(theme.secondaryTextColor.opacity(0.7))
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.vertical, 8)
+            // Language selector - collapsible card
+            optionalLanguageInput(theme: theme)
+                .padding(.horizontal, -20) // Offset to match parent padding
 
             Button("Analyze Meeting") {
                 analyzeImportedAudio()

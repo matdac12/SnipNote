@@ -7,6 +7,12 @@
     "-%@" : {
 
     },
+    "\"...%@...\"" : {
+
+    },
+    "%" : {
+
+    },
     "%@×" : {
 
     },
@@ -246,6 +252,9 @@
         }
       }
     },
+    "ANALYZING" : {
+
+    },
     "API Key Required" : {
 
     },
@@ -353,6 +362,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Chunk %1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "Chunk %lld/%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Chunk %1$lld/%2$lld"
           }
         }
       }
@@ -513,9 +532,6 @@
         }
       }
     },
-    "Extracting actions..." : {
-
-    },
     "Extracting..." : {
       "localizations" : {
         "it" : {
@@ -580,9 +596,6 @@
           }
         }
       }
-    },
-    "Generating meeting insights..." : {
-
     },
     "Get automatic summaries, action item extraction, and smart organization. Focus on the conversation while SnipNote handles the notes." : {
       "extractionState" : "stale",
@@ -928,9 +941,6 @@
     "OpenAI API Key" : {
 
     },
-    "Overview:" : {
-
-    },
     "Password" : {
       "localizations" : {
         "it" : {
@@ -1010,6 +1020,7 @@
 
     },
     "Preparing your meeting for transcription..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1018,9 +1029,6 @@
           }
         }
       }
-    },
-    "Preview:" : {
-
     },
     "Privacy Policy" : {
 
@@ -1070,6 +1078,7 @@
       }
     },
     "Processing meeting..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1273,6 +1282,7 @@
       }
     },
     "Server Transcription" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -2352,9 +2362,6 @@
         }
       }
     },
-    "Summary:" : {
-
-    },
     "tab.meetings" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2480,6 +2487,9 @@
         }
       }
     },
+    "Transcription Failed" : {
+
+    },
     "Troubleshooting:" : {
 
     },
@@ -2506,6 +2516,7 @@
 
     },
     "Uploading to server..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {

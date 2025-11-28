@@ -420,27 +420,63 @@ struct MeetingDetailView: View {
                             }
                         }
                     }
+                } else if meeting.processingState == .failed {
+                    processingErrorCard
                 } else {
-                    HStack {
-                        Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : meeting.shortSummary)
-                            .themedBody()
-                            .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        if meeting.processingState == .failed && meeting.canRetry {
-                            Button("Retry") {
-                                retryTranscription()
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(themeManager.currentTheme.accentColor)
-                            .disabled(isRetrying)
-                        }
-                    }
+                    Text(meeting.shortSummary)
+                        .themedBody()
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
     }
-    
+
+    @ViewBuilder
+    private var processingErrorCard: some View {
+        let theme = themeManager.currentTheme
+
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(theme.warningColor)
+                    .font(.title3)
+
+                Text("Something went wrong")
+                    .font(.system(.headline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                    .foregroundColor(theme.textColor)
+            }
+
+            Text("We couldn't process this meeting. Please try again.")
+                .font(.system(.subheadline, design: theme.useMonospacedFont ? .monospaced : .default))
+                .foregroundColor(theme.secondaryTextColor)
+
+            if meeting.canRetry {
+                Button {
+                    retryTranscription()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.clockwise")
+                        Text("Retry Processing")
+                    }
+                    .font(.system(.subheadline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                    .foregroundColor(theme.backgroundColor)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(theme.accentColor)
+                    .cornerRadius(theme.cornerRadius)
+                }
+                .disabled(isRetrying)
+                .padding(.top, 4)
+            } else {
+                Text("The original audio file is no longer available.")
+                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(theme.secondaryTextColor.opacity(0.7))
+                    .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var summarySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -506,22 +542,12 @@ struct MeetingDetailView: View {
                                     }
                                 }
                             }
+                        } else if meeting.processingState == .failed {
+                            processingErrorCard
                         } else {
-                            HStack {
-                                Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : formatMarkdownText(meeting.aiSummary))
-                                    .themedBody()
-                                    .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                if meeting.processingState == .failed && meeting.canRetry {
-                                    Button("Retry") {
-                                        retryTranscription()
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .tint(themeManager.currentTheme.accentColor)
-                                    .disabled(isRetrying)
-                                }
-                            }
+                            Text(formatMarkdownText(meeting.aiSummary))
+                                .themedBody()
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -533,7 +559,7 @@ struct MeetingDetailView: View {
                         // Show detailed chunk progress when processing
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                Text(meeting.processingState == .transcribing ? "Processing meeting summary..." : "Processing meeting summary...")
+                                Text("Processing meeting summary...")
                                     .themedBody()
                                     .opacity(0.6)
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -565,21 +591,8 @@ struct MeetingDetailView: View {
                             }
                         }
                     } else {
-                        HStack {
-                            Text(meeting.processingState == .failed ? (meeting.processingError ?? "Processing failed") : "Processing meeting summary...")
-                                .themedBody()
-                                .foregroundColor(meeting.processingState == .failed ? themeManager.currentTheme.destructiveColor : themeManager.currentTheme.textColor)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            if meeting.processingState == .failed && meeting.canRetry {
-                                Button("Retry") {
-                                    retryTranscription()
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .tint(themeManager.currentTheme.accentColor)
-                                .disabled(isRetrying)
-                            }
-                        }
+                        // Failed state when collapsed
+                        processingErrorCard
                     }
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))

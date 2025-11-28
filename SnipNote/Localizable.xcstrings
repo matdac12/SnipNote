@@ -1241,6 +1241,9 @@
     "Retry Loading" : {
 
     },
+    "Retry Processing" : {
+
+    },
     "Review" : {
 
     },
@@ -2319,6 +2322,9 @@
     "SnipNote v1.4.6" : {
 
     },
+    "Something went wrong" : {
+
+    },
     "Start Meeting Recording" : {
 
     },
@@ -2411,6 +2417,9 @@
       }
     },
     "Terms of Use (EULA)" : {
+
+    },
+    "The original audio file is no longer available." : {
 
     },
     "This audio requires %lld minutes. You have %lld minutes remaining." : {
@@ -2538,6 +2547,9 @@
       }
     },
     "VERSION" : {
+
+    },
+    "We couldn't process this meeting. Please try again." : {
 
     },
     "Welcome to Eve" : {

@@ -1506,6 +1506,18 @@ struct CreateMeetingView: View {
         // Navigate immediately - MeetingDetailView will detect upload state
         onMeetingCreated?(meeting)
 
+        // Capture values needed for the background upload
+        let audioDuration = cachedAudioDuration
+        let language = selectedLanguage
+
+        // Start a background task to ensure upload continues even if app goes to background
+        let backgroundTaskId = backgroundTaskManager.startBackgroundTask(
+            for: meetingId,
+            meetingName: meetingName
+        )
+
+        // Run upload in a task - note: if user exits view quickly, this task may be cancelled
+        // but the background task identifier ensures iOS gives us time to complete
         Task {
             do {
                 // Check if file needs chunking for upload (>15MB)
@@ -1520,7 +1532,6 @@ struct CreateMeetingView: View {
                     let chunks = try await AudioChunker.createUploadChunks(
                         from: audioURL,
                         progressCallback: { progress in
-                            // Optionally update UI with chunking progress
                             print("📦 Chunk progress: \(progress.currentStage)")
                         }
                     )
@@ -1551,7 +1562,7 @@ struct CreateMeetingView: View {
                     audioPath = try await SupabaseManager.shared.uploadAudioRecording(
                         audioURL: audioURL,
                         meetingId: meetingId,
-                        duration: cachedAudioDuration
+                        duration: audioDuration
                     )
 
                     await MainActor.run {
@@ -1561,29 +1572,26 @@ struct CreateMeetingView: View {
                     print("✅ Audio uploaded: \(audioPath!)")
                 }
 
-                // 3. Get user ID for job creation
+                // Get user ID for job creation
                 guard let session = try? await SupabaseManager.shared.client.auth.session else {
                     throw NSError(domain: "CreateMeeting", code: -1, userInfo: [NSLocalizedDescriptionKey: "No auth session"])
                 }
 
                 let userId = session.user.id
 
-                // 4. Create transcription job (chunked or non-chunked)
+                // Create transcription job
                 print("🔨 Creating transcription job (chunked: \(needsChunking), chunks: \(totalChunks))...")
 
                 let jobResponse: CreateJobResponse
                 if needsChunking {
-                    // For chunked jobs, worker will fetch chunks from database using meeting_id
-                    // Pass placeholder URL since chunks are in database
                     jobResponse = try await transcriptionService.createChunkedJob(
                         userId: userId,
                         meetingId: meetingId,
                         totalChunks: totalChunks,
-                        duration: cachedAudioDuration,
-                        language: selectedLanguage
+                        duration: audioDuration,
+                        language: language
                     )
                 } else {
-                    // For non-chunked jobs, pass direct audio URL
                     let publicAudioURL = "https://bndbnqtvicvynzkyygte.supabase.co/storage/v1/object/public/recordings/\(audioPath!)"
                     print("📍 Public audio URL: \(publicAudioURL)")
 
@@ -1591,13 +1599,13 @@ struct CreateMeetingView: View {
                         userId: userId,
                         meetingId: meetingId,
                         audioURL: publicAudioURL,
-                        language: selectedLanguage
+                        language: language
                     )
                 }
 
                 print("✅ Job created: \(jobResponse.jobId)")
 
-                // 5. Save job ID to meeting
+                // Save job ID to meeting
                 await MainActor.run {
                     meeting.transcriptionJobId = jobResponse.jobId
                     do {
@@ -1610,25 +1618,25 @@ struct CreateMeetingView: View {
 
                 print("✅ Server transcription job initiated - polling will happen in MeetingDetailView")
 
-                // Schedule processing notification
+                // Schedule notifications
                 await NotificationService.shared.scheduleProcessingNotification(
                     for: meetingId,
-                    meetingName: meeting.name
+                    meetingName: meetingName
                 )
 
-                // Schedule estimated completion notification based on audio duration
                 await NotificationService.shared.scheduleEstimatedCompletionNotification(
                     for: meetingId,
-                    meetingName: meeting.name,
-                    audioDuration: cachedAudioDuration
+                    meetingName: meetingName,
+                    audioDuration: audioDuration
                 )
 
-                // Navigation already happened - jobId is now saved
+                // End background task on success
+                backgroundTaskManager.endBackgroundTask(backgroundTaskId)
 
             } catch {
                 await MainActor.run {
                     print("❌ Error in server-side transcription: \(error)")
-                    meeting.setProcessingError("Failed to upload audio or create transcription job: \(error.localizedDescription)")
+                    meeting.setProcessingError("Upload failed. Please try again.")
                     meeting.isProcessing = false
 
                     do {
@@ -1637,6 +1645,9 @@ struct CreateMeetingView: View {
                         print("❌ Error saving meeting after failure: \(error)")
                     }
                 }
+
+                // End background task on failure
+                backgroundTaskManager.endBackgroundTask(backgroundTaskId)
             }
         }
     }

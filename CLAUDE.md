@@ -1,7 +1,7 @@
 ## Workflow Memories
 
 - Remembered workflow: solving problems through careful documentation and systematic approach
-- Use gpt-4.1 as the default model when building new Ai assistants in the app
+- AI Models in use: `gpt-5-nano` (Eve chat), `gpt-5-mini` (summaries/actions), `gpt-4o-transcribe` (transcription)
 - When dealing with software implementation, always carefully review and validate code, especially in index files, to prevent previous errors
 - Importance of maintaining a continuous learning mindset and documenting insights from each coding session
 
@@ -37,8 +37,8 @@
 
 #### 3. Cost Tracking Implementation
 - **AI Models Confirmed**:
-  - Transcription: `whisper-1` at $0.006/minute
-  - AI Features: `gpt-4.1` and `gpt-4.1-mini`
+  - Transcription: `gpt-4o-transcribe` at $0.006/minute
+  - AI Features: `gpt-5-nano` (Eve chat), `gpt-5-mini` (summaries/actions)
 - **Cost Tracking**: Added automatic cost calculation in `user_usage.usage_cost`
 - **Formula**: `(total_meeting_seconds ÷ 60) × $0.006`
 - **Current Costs**: $0.77 total across 4 active users, avg $0.19 per user

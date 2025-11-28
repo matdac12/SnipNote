@@ -37,7 +37,7 @@ struct OnboardingView: View {
                 WelcomeScreen()
                     .tag(0)
 
-                RecordingTutorialScreen()
+                TwoWaysCaptureScreen()
                     .tag(1)
 
                 AIFeaturesScreen()
@@ -129,50 +129,96 @@ struct WelcomeScreen: View {
     }
 }
 
-struct RecordingTutorialScreen: View {
+struct TwoWaysCaptureScreen: View {
     @EnvironmentObject var themeManager: ThemeManager
-    @State private var isAnimating = false
+    @State private var micAnimating = false
+    @State private var shareAnimating = false
 
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 24) {
             Spacer()
 
-            // Animated Recording Visualization
-            ZStack {
-                Circle()
-                    .stroke(themeManager.currentTheme.accentColor.opacity(0.3), lineWidth: 2)
-                    .frame(width: 120, height: 120)
-
-                Circle()
-                    .fill(themeManager.currentTheme.accentColor)
-                    .frame(width: 80, height: 80)
-                    .scaleEffect(isAnimating ? 1.2 : 1.0)
-                    .opacity(isAnimating ? 0.8 : 1.0)
-
-                Image(systemName: "mic.fill")
-                    .font(.system(size: 30))
-                    .foregroundColor(.white)
-            }
-            .onAppear {
-                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                    isAnimating = true
-                }
-            }
+            Text("Two Ways to Capture")
+                .themedTitle()
+                .multilineTextAlignment(.center)
 
             VStack(spacing: 16) {
-                Text("Record Your Meetings")
-                    .themedTitle()
-                    .multilineTextAlignment(.center)
+                // Option 1: Record in App
+                CaptureOptionCard(
+                    icon: "mic.fill",
+                    title: "Record in App",
+                    description: "Perfect for quick meetings and voice notes",
+                    isAnimating: $micAnimating,
+                    animationType: .pulse
+                )
 
-                Text("Tap the record button to capture audio from meetings, calls, or voice notes. SnipNote will automatically transcribe and analyze your content.")
-                    .themedBody()
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 20)
+                // Option 2: Import from Voice Memos
+                CaptureOptionCard(
+                    icon: "square.and.arrow.up.fill",
+                    title: "Import from Voice Memos",
+                    description: "Best for long meetings (1+ hour) - just share!",
+                    isAnimating: $shareAnimating,
+                    animationType: .bounce
+                )
             }
+            .padding(.horizontal, 20)
 
             Spacer()
         }
         .padding(.horizontal, 20)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                micAnimating = true
+            }
+            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true).delay(0.3)) {
+                shareAnimating = true
+            }
+        }
+    }
+}
+
+struct CaptureOptionCard: View {
+    let icon: String
+    let title: String
+    let description: String
+    @Binding var isAnimating: Bool
+    let animationType: AnimationType
+    @EnvironmentObject var themeManager: ThemeManager
+
+    enum AnimationType {
+        case pulse
+        case bounce
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(themeManager.currentTheme.accentColor.opacity(0.15))
+                    .frame(width: 60, height: 60)
+
+                Image(systemName: icon)
+                    .font(.system(size: 24))
+                    .foregroundColor(themeManager.currentTheme.accentColor)
+                    .scaleEffect(animationType == .pulse ? (isAnimating ? 1.1 : 1.0) : 1.0)
+                    .offset(y: animationType == .bounce ? (isAnimating ? -3 : 3) : 0)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .themedBody()
+                    .fontWeight(.semibold)
+
+                Text(description)
+                    .themedCaption()
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+        }
+        .padding()
+        .background(themeManager.currentTheme.secondaryBackgroundColor.opacity(0.3))
+        .cornerRadius(themeManager.currentTheme.cornerRadius)
     }
 }
 
@@ -190,11 +236,11 @@ struct AIFeaturesScreen: View {
                 .symbolEffect(.variableColor.iterative.dimInactiveLayers.nonReversing)
 
             VStack(spacing: 16) {
-                Text("AI-Powered Insights")
+                Text("AI Does the Work")
                     .themedTitle()
                     .multilineTextAlignment(.center)
 
-                Text("Get automatic summaries, action item extraction, and smart organization. Focus on the conversation while SnipNote handles the notes.")
+                Text("Focus on the conversation while SnipNote handles everything else.")
                     .themedBody()
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)

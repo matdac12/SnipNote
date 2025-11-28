@@ -36,12 +36,12 @@ class RenderTranscriptionService: ObservableObject {
 
     // MARK: - Async Job Methods
 
-    func createJob(userId: UUID, meetingId: UUID, audioURL: String) async throws -> CreateJobResponse {
+    func createJob(userId: UUID, meetingId: UUID, audioURL: String, language: String? = nil) async throws -> CreateJobResponse {
         guard let endpoint = URL(string: "\(baseURL)/jobs") else {
             throw TranscriptionError.invalidURL
         }
 
-        print("📤 Creating transcription job for meeting: \(meetingId)")
+        print("📤 Creating transcription job for meeting: \(meetingId)" + (language != nil ? " (language: \(language!))" : " (auto-detect)"))
 
         // Create request
         var request = URLRequest(url: endpoint)
@@ -53,7 +53,8 @@ class RenderTranscriptionService: ObservableObject {
         let jobRequest = CreateJobRequest(
             userId: userId.uuidString,
             meetingId: meetingId.uuidString,
-            audioUrl: audioURL
+            audioUrl: audioURL,
+            language: language
         )
 
         do {
@@ -93,12 +94,12 @@ class RenderTranscriptionService: ObservableObject {
         }
     }
 
-    func createChunkedJob(userId: UUID, meetingId: UUID, totalChunks: Int, duration: TimeInterval) async throws -> CreateJobResponse {
+    func createChunkedJob(userId: UUID, meetingId: UUID, totalChunks: Int, duration: TimeInterval, language: String? = nil) async throws -> CreateJobResponse {
         guard let endpoint = URL(string: "\(baseURL)/jobs") else {
             throw TranscriptionError.invalidURL
         }
 
-        print("📦 Creating chunked transcription job for meeting: \(meetingId) (chunks: \(totalChunks))")
+        print("📦 Creating chunked transcription job for meeting: \(meetingId) (chunks: \(totalChunks))" + (language != nil ? " (language: \(language!))" : " (auto-detect)"))
 
         // Create request
         var request = URLRequest(url: endpoint)
@@ -112,7 +113,8 @@ class RenderTranscriptionService: ObservableObject {
             meetingId: meetingId.uuidString,
             isChunked: true,
             totalChunks: totalChunks,
-            duration: duration
+            duration: duration,
+            language: language
         )
 
         do {
@@ -261,12 +263,12 @@ class RenderTranscriptionService: ObservableObject {
 
     // MARK: - Synchronous Transcription
 
-    func transcribe(audioFileURL: URL) async throws -> TranscriptionResult {
+    func transcribe(audioFileURL: URL, language: String? = nil) async throws -> TranscriptionResult {
         guard let endpoint = URL(string: "\(baseURL)/transcribe") else {
             throw TranscriptionError.invalidURL
         }
 
-        print("📤 Sending audio to Render server: \(endpoint)")
+        print("📤 Sending audio to Render server: \(endpoint)" + (language != nil ? " (language: \(language!))" : " (auto-detect)"))
 
         // Create multipart request
         var request = URLRequest(url: endpoint)
@@ -291,7 +293,16 @@ class RenderTranscriptionService: ObservableObject {
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.m4a\"\r\n".data(using: .utf8)!)
         body.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
         body.append(audioData)
-        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        body.append("\r\n".data(using: .utf8)!)
+
+        // Add language field if specified
+        if let language = language {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(language)\r\n".data(using: .utf8)!)
+        }
+
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         request.httpBody = body
 

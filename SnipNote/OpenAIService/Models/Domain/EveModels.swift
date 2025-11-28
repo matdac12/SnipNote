@@ -15,11 +15,13 @@ struct ChatWithEveResult {
 struct EvePromptVariables {
     let meetingOverview: String
     let meetingSummary: String
+    let meetingTranscription: String
 
     func sanitized() -> EvePromptVariables {
         EvePromptVariables(
             meetingOverview: meetingOverview.isEmpty ? "No overview provided." : meetingOverview,
-            meetingSummary: meetingSummary.isEmpty ? "No summary available." : meetingSummary
+            meetingSummary: meetingSummary.isEmpty ? "No summary available." : meetingSummary,
+            meetingTranscription: meetingTranscription.isEmpty ? "No transcription available." : meetingTranscription
         )
     }
 }

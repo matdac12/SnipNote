@@ -15,8 +15,6 @@ struct MeetingDetailView: View {
 
     @Query private var allActions: [Action]
 
-    @Environment(\.navigateToEve) private var navigateToEve
-
     @State private var isEditingName = false
     @State private var isEditingSummary = false
     @State private var tempName = ""
@@ -967,10 +965,8 @@ struct MeetingDetailView: View {
         if !meeting.isProcessing && !meeting.audioTranscript.isEmpty {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 16) {
-                    // Eve Chat Button
-                    Button(action: {
-                        navigateToEve(meeting.id)
-                    }) {
+                    // Eve Chat Button - navigates to Eve with this meeting pre-selected
+                    NavigationLink(destination: EveView(preSelectedMeetingId: meeting.id)) {
                         Image(systemName: "wand.and.stars")
                             .font(.system(.body))
                             .foregroundColor(themeManager.currentTheme.accentColor)

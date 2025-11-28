@@ -410,7 +410,6 @@ struct SettingsView: View {
         .alert(localized("settings.notifications.logout.title"), isPresented: $showingLogoutConfirmation) {
             Button(localized("settings.notifications.logout.confirm"), role: .destructive) {
                 Task {
-                    await cleanupUserAIContext()
                     try? await authManager.signOut()
                 }
             }
@@ -475,36 +474,6 @@ struct SettingsView: View {
         localizationManager.localizedString(key)
     }
 
-    @MainActor
-    private func cleanupUserAIContext() async {
-        guard let userId = authManager.currentUser?.id else { return }
-
-        do {
-            let descriptor = FetchDescriptor<UserAIContext>(predicate: #Predicate { $0.userId == userId })
-            guard let context = try modelContext.fetch(descriptor).first else { return }
-
-            let states = Array(context.meetingFiles)
-
-            if let storeId = context.vectorStoreId {
-                for state in states where state.isAttached {
-                    do {
-                        try await OpenAIService.shared.detachFileFromVectorStore(fileId: state.fileId, vectorStoreId: storeId)
-                    } catch {
-                        print("Error detaching file during sign out: \(error)")
-                    }
-                }
-            }
-
-            for state in states {
-                modelContext.delete(state)
-            }
-            modelContext.delete(context)
-            try modelContext.save()
-        } catch {
-            print("Error cleaning AI context on sign out: \(error)")
-        }
-    }
-
     private func fetchUsageStats() {
         isLoadingStats = true
         Task {
@@ -567,7 +536,6 @@ struct SettingsView: View {
                let success = json["success"] as? Bool,
                success {
                 // Sign out locally after successful deletion
-                await cleanupUserAIContext()
                 try await authManager.signOut()
             } else {
                 throw DeleteAccountError.deletionFailed

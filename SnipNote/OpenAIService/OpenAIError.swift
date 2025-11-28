@@ -14,5 +14,4 @@ enum OpenAIError: Error {
     case audioProcessingFailed(String)
     case insufficientDiskSpace(required: UInt64, available: UInt64)
     case apiError(String)
-    case vectorStoreUnavailable(String)
 }

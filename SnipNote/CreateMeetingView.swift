@@ -14,12 +14,31 @@ import StoreKit
 import AVFAudio
 #endif
 
+// Language options for transcription (matching website implementation)
+private let transcriptionLanguages: [(code: String?, labelEN: String, labelIT: String)] = [
+    (nil, "Auto-detect", "Rilevamento automatico"),
+    ("en", "English", "Inglese"),
+    ("it", "Italian", "Italiano"),
+    ("es", "Spanish", "Spagnolo"),
+    ("fr", "French", "Francese"),
+    ("de", "German", "Tedesco"),
+    ("pt", "Portuguese", "Portoghese"),
+    ("nl", "Dutch", "Olandese"),
+    ("pl", "Polish", "Polacco"),
+    ("ru", "Russian", "Russo"),
+    ("ja", "Japanese", "Giapponese"),
+    ("zh", "Chinese", "Cinese"),
+    ("ko", "Korean", "Coreano"),
+    ("ar", "Arabic", "Arabo")
+]
+
 struct CreateMeetingView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var localizationManager: LocalizationManager
-    
+    @AppStorage("hasSeenVoiceMemosTip") private var hasSeenVoiceMemosTip = false
+
     var onMeetingCreated: ((Meeting) -> Void)?
     var importedAudioURL: URL? // For shared audio files
     
@@ -73,6 +92,9 @@ struct CreateMeetingView: View {
 
     // Cached audio duration to prevent repeated calculations
     @State private var cachedAudioDuration: TimeInterval = 0
+
+    // Language selection for transcription (nil = auto-detect)
+    @State private var selectedLanguage: String? = nil
 
     // Minutes management
     @State private var showingInsufficientMinutesAlert = false
@@ -649,6 +671,10 @@ struct CreateMeetingView: View {
             } else if showingCountdown {
                 countdownCard(theme: theme)
             } else {
+                // Show tip card above recording button if not dismissed
+                if !hasSeenVoiceMemosTip {
+                    voiceMemosTipCard(theme: theme)
+                }
                 idleRecordingCard(theme: theme)
             }
         }
@@ -691,6 +717,33 @@ struct CreateMeetingView: View {
                 .fill(theme.accentColor)
                 .frame(width: 200, height: 4)
                 .opacity(0.7)
+
+            // Language selector
+            VStack(spacing: 8) {
+                Text(localizationManager.languageCode == "it" ? "Lingua della trascrizione" : "Transcription Language")
+                    .font(.system(.subheadline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                    .foregroundColor(theme.secondaryTextColor)
+
+                Picker("", selection: Binding(
+                    get: { selectedLanguage ?? "" },
+                    set: { selectedLanguage = $0.isEmpty ? nil : $0 }
+                )) {
+                    ForEach(transcriptionLanguages, id: \.code) { lang in
+                        Text(localizationManager.languageCode == "it" ? lang.labelIT : lang.labelEN)
+                            .tag(lang.code ?? "")
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(theme.accentColor)
+
+                Text(localizationManager.languageCode == "it"
+                    ? "Seleziona la lingua dell'audio per una trascrizione più accurata."
+                    : "Select the audio language for more accurate transcription.")
+                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(theme.secondaryTextColor.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.vertical, 8)
 
             Button("Analyze Meeting") {
                 analyzeImportedAudio()
@@ -1245,6 +1298,58 @@ struct CreateMeetingView: View {
     }
 
     @ViewBuilder
+    private func voiceMemosTipCard(theme: AppTheme) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(theme.accentColor)
+                    .font(.title3)
+
+                Text("Pro Tip")
+                    .font(.headline)
+                    .foregroundColor(theme.textColor)
+
+                Spacer()
+
+                Button {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        hasSeenVoiceMemosTip = true
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption)
+                        .foregroundColor(theme.secondaryTextColor)
+                        .padding(8)
+                }
+            }
+
+            Text("For long meetings (1+ hour), record with Voice Memos and share to SnipNote for better results.")
+                .font(.subheadline)
+                .foregroundColor(theme.secondaryTextColor)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                Spacer()
+                Button("Don't show again") {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        hasSeenVoiceMemosTip = true
+                    }
+                }
+                .font(.caption)
+                .foregroundColor(theme.accentColor)
+            }
+        }
+        .padding()
+        .background(theme.secondaryBackgroundColor.opacity(0.3))
+        .overlay(
+            RoundedRectangle(cornerRadius: theme.cornerRadius)
+                .stroke(theme.accentColor.opacity(0.3), lineWidth: 1)
+        )
+        .cornerRadius(theme.cornerRadius)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    @ViewBuilder
     private func idleRecordingCard(theme: AppTheme) -> some View {
         VStack(spacing: 16) {
             Button("Start Meeting Recording") {
@@ -1560,9 +1665,10 @@ struct CreateMeetingView: View {
                         }
                     },
                     meetingName: meetingNameTrimmed.isEmpty ? "Untitled Meeting" : meetingNameTrimmed,
-                    meetingId: createdMeetingId
+                    meetingId: createdMeetingId,
+                    language: selectedLanguage
                 )
-                
+
                 // Debit minutes for transcription
                 let duration = Int(cachedAudioDuration)
                 if let meetingId = createdMeetingId {
@@ -1798,7 +1904,8 @@ struct CreateMeetingView: View {
                         userId: userId,
                         meetingId: meetingId,
                         totalChunks: totalChunks,
-                        duration: cachedAudioDuration
+                        duration: cachedAudioDuration,
+                        language: selectedLanguage
                     )
                 } else {
                     // For non-chunked jobs, pass direct audio URL
@@ -1808,7 +1915,8 @@ struct CreateMeetingView: View {
                     jobResponse = try await transcriptionService.createJob(
                         userId: userId,
                         meetingId: meetingId,
-                        audioURL: publicAudioURL
+                        audioURL: publicAudioURL,
+                        language: selectedLanguage
                     )
                 }
 

@@ -13,11 +13,9 @@ struct ContentView: View {
     @State private var selectedTab: Tab = .meetings
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var localizationManager: LocalizationManager
-    @State private var selectedMeetingForEve: UUID?
 
     private enum Tab: Hashable {
         case meetings
-        case eve
         case settings
     }
 
@@ -30,14 +28,6 @@ struct ContentView: View {
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 }
                 .tag(Tab.meetings)
-
-            EveView(selectedMeetingForEve: $selectedMeetingForEve)
-                .tabItem {
-                    Image(systemName: "wand.and.stars.inverse")
-                    Text(tabTitle(for: "tab.eve"))
-                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                }
-                .tag(Tab.eve)
 
             SettingsView()
                 .tabItem {
@@ -53,26 +43,16 @@ struct ContentView: View {
                 selectedTab = .meetings
             }
         }
-        .onChange(of: selectedMeetingForEve) { _, newMeetingId in
-            if newMeetingId != nil {
-                selectedTab = .eve
-            }
-        }
-        .environment(\.navigateToEve, navigateToEveWith)
     }
 
     private func tabTitle(for key: String) -> String {
         return localizationManager.localizedString(key)
     }
-
-    func navigateToEveWith(meetingId: UUID) {
-        selectedMeetingForEve = meetingId
-    }
 }
 
 #Preview {
     ContentView(deepLinkAudioURL: .constant(nil))
-        .modelContainer(for: [Action.self, Meeting.self, EveMessage.self, ChatConversation.self, UserAIContext.self, MeetingFileState.self], inMemory: true)
+        .modelContainer(for: [Action.self, Meeting.self, EveMessage.self, ChatConversation.self], inMemory: true)
         .environmentObject(ThemeManager.shared)
         .environmentObject(LocalizationManager.shared)
 }

@@ -28,7 +28,13 @@ class AudioRecorder: NSObject, ObservableObject {
     
     private func setupRecordingSession() {
         do {
-            try recordingSession.setCategory(.playAndRecord, mode: .default)
+            // Enable background recording with .mixWithOthers to coexist with other audio apps
+            // .defaultToSpeaker routes audio to speaker for better meeting recording quality
+            try recordingSession.setCategory(
+                .playAndRecord,
+                mode: .default,
+                options: [.mixWithOthers, .defaultToSpeaker]
+            )
             try recordingSession.setActive(true)
             
             AVAudioApplication.requestRecordPermission { allowed in

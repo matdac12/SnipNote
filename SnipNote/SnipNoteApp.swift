@@ -29,8 +29,6 @@ struct SnipNoteApp: App {
             Meeting.self,
             EveMessage.self,
             ChatConversation.self,
-            UserAIContext.self,
-            MeetingFileState.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

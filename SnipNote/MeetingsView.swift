@@ -333,8 +333,6 @@ struct MeetingsView: View {
                     }
                 }
 
-                await cleanupMeetingFromVectorStore(meetingId: meeting.id)
-
                 // Delete from Supabase meetings table
                 do {
                     try await SupabaseManager.shared.deleteMeeting(id: meeting.id)
@@ -353,36 +351,6 @@ struct MeetingsView: View {
             } catch {
                 print("Error deleting meetings: \(error)")
             }
-        }
-    }
-
-    @MainActor
-    private func cleanupMeetingFromVectorStore(meetingId: UUID) async {
-        guard let userId = authManager.currentUser?.id else { return }
-
-        do {
-            let descriptor = FetchDescriptor<UserAIContext>(predicate: #Predicate { $0.userId == userId })
-            guard let context = try modelContext.fetch(descriptor).first,
-                  let state = context.meetingFile(for: meetingId) else { return }
-
-            if let storeId = context.vectorStoreId, state.isAttached {
-                do {
-                    try await OpenAIService.shared.detachFileFromVectorStore(fileId: state.fileId, vectorStoreId: storeId)
-                } catch {
-                    print("Error detaching meeting file from vector store: \(error)")
-                }
-            }
-
-            context.removeMeetingFile(meetingId: meetingId)
-            modelContext.delete(state)
-            context.updatedAt = Date()
-            do {
-                try modelContext.save()
-            } catch {
-                print("Error saving AI context cleanup: \(error)")
-            }
-        } catch {
-            print("Error cleaning meeting from vector store: \(error)")
         }
     }
 

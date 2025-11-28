@@ -162,7 +162,18 @@
         }
       }
     },
+    "AI Does the Work" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'AI Fa il Lavoro"
+          }
+        }
+      }
+    },
     "AI-Powered Insights" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -270,6 +281,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Audio"
+          }
+        }
+      }
+    },
+    "Best for long meetings (1+ hour) - just share!" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ideale per riunioni lunghe (1+ ora) - condividi!"
           }
         }
       }
@@ -394,9 +416,6 @@
     "Current Balance" : {
 
     },
-    "Deselect All" : {
-
-    },
     "DEVELOPER" : {
 
     },
@@ -405,6 +424,16 @@
     },
     "Don't have an account?" : {
 
+    },
+    "Don't show again" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non mostrare più"
+          }
+        }
+      }
     },
     "Done" : {
       "localizations" : {
@@ -519,6 +548,26 @@
         }
       }
     },
+    "Focus on the conversation while SnipNote handles everything else." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concentrati sulla conversazione mentre SnipNote gestisce tutto il resto."
+          }
+        }
+      }
+    },
+    "For long meetings (1+ hour), record with Voice Memos and share to SnipNote for better results." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per riunioni lunghe (1+ ora), registra con Memo Vocali e condividi su SnipNote per risultati migliori."
+          }
+        }
+      }
+    },
     "Free Tier - Minutes-based usage" : {
 
     },
@@ -536,6 +585,7 @@
 
     },
     "Get automatic summaries, action item extraction, and smart organization. Focus on the conversation while SnipNote handles the notes." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -576,6 +626,17 @@
     },
     "If you're experiencing issues or have questions:" : {
 
+    },
+    "Import from Voice Memos" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importa da Memo Vocali"
+          }
+        }
+      }
     },
     "Imported Audio Ready" : {
 
@@ -653,6 +714,9 @@
           }
         }
       }
+    },
+    "Lingua della trascrizione" : {
+
     },
     "Loading subscription options..." : {
 
@@ -918,6 +982,17 @@
     "Perfect for %@" : {
 
     },
+    "Perfect for quick meetings and voice notes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Perfetto per riunioni brevi e note vocali"
+          }
+        }
+      }
+    },
     "Permissions Needed" : {
       "localizations" : {
         "it" : {
@@ -955,6 +1030,16 @@
     },
     "PRO" : {
 
+    },
+    "Pro Tip" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggerimento"
+          }
+        }
+      }
     },
     "Process" : {
       "localizations" : {
@@ -1078,8 +1163,16 @@
         }
       }
     },
-    "Record Your Meetings" : {
-
+    "Record in App" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registra nell'App"
+          }
+        }
+      }
     },
     "Recording Meeting..." : {
       "localizations" : {
@@ -1172,12 +1265,6 @@
     "Select a meeting" : {
 
     },
-    "Select All" : {
-
-    },
-    "Select Context" : {
-
-    },
     "Select meeting date" : {
       "localizations" : {
         "it" : {
@@ -1187,6 +1274,12 @@
           }
         }
       }
+    },
+    "Select the audio language for more accurate transcription." : {
+
+    },
+    "Seleziona la lingua dell'audio per una trascrizione più accurata." : {
+
     },
     "Server Transcription" : {
       "localizations" : {
@@ -2271,23 +2364,6 @@
     "Summary:" : {
 
     },
-    "tab.eve" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eve"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eve"
-          }
-        }
-      }
-    },
     "tab.meetings" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2326,6 +2402,7 @@
 
     },
     "Tap the record button to capture audio from meetings, calls, or voice notes. SnipNote will automatically transcribe and analyze your content." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -2368,6 +2445,17 @@
         }
       }
     },
+    "Tip: Use Voice Memos for long meetings (1+ hour) and share to SnipNote." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggerimento: Usa Memo Vocali per riunioni lunghe (1+ ora) e condividi su SnipNote."
+          }
+        }
+      }
+    },
     "To provide the best experience, SnipNote needs access to your microphone and permission to send notifications." : {
       "localizations" : {
         "it" : {
@@ -2401,11 +2489,24 @@
         }
       }
     },
+    "Transcription Language" : {
+
+    },
     "Troubleshooting:" : {
 
     },
     "Try a different search term" : {
 
+    },
+    "Two Ways to Capture" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Due Modi per Registrare"
+          }
+        }
+      }
     },
     "Unable to load subscription options" : {
 

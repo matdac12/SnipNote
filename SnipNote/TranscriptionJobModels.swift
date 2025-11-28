@@ -27,11 +27,13 @@ struct CreateJobRequest: Codable {
     let userId: String
     let meetingId: String
     let audioUrl: String
+    let language: String?
 
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
         case meetingId = "meeting_id"
         case audioUrl = "audio_url"
+        case language
     }
 }
 
@@ -41,6 +43,7 @@ struct CreateChunkedJobRequest: Codable {
     let isChunked: Bool
     let totalChunks: Int
     let duration: Double
+    let language: String?
 
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
@@ -48,6 +51,7 @@ struct CreateChunkedJobRequest: Codable {
         case isChunked = "is_chunked"
         case totalChunks = "total_chunks"
         case duration
+        case language
     }
 }
 

@@ -362,8 +362,6 @@ class BackgroundTaskManager: ObservableObject {
             Action.self,
             EveMessage.self,
             ChatConversation.self,
-            UserAIContext.self,
-            MeetingFileState.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         return try ModelContainer(for: schema, configurations: [configuration])

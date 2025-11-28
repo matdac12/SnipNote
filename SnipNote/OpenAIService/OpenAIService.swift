@@ -269,7 +269,7 @@ class OpenAIService: ObservableObject {
         return optimizedURL
     }
 
-    func transcribeAudio(audioData: Data) async throws -> String {
+    func transcribeAudio(audioData: Data, language: String? = nil) async throws -> String {
         guard let apiKey = apiKey else {
             throw OpenAIError.noAPIKey
         }
@@ -294,6 +294,14 @@ class OpenAIService: ObservableObject {
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
         body.append("gpt-4o-transcribe\r\n".data(using: .utf8)!)
+
+        // Add language field if specified
+        if let language = language {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(language)\r\n".data(using: .utf8)!)
+        }
+
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
         
         request.httpBody = body
@@ -322,7 +330,8 @@ class OpenAIService: ObservableObject {
         audioURL: URL,
         progressCallback: @escaping (AudioChunkerProgress) -> Void,
         meetingName: String = "",
-        meetingId: UUID? = nil
+        meetingId: UUID? = nil,
+        language: String? = nil
     ) async throws -> String {
         // Validate audio file first
         try AudioChunker.validateAudioFile(url: audioURL)
@@ -352,7 +361,7 @@ class OpenAIService: ObservableObject {
             let audioFile = try AVAudioFile(forReading: audioURL)
             let durationSeconds = Double(audioFile.length) / audioFile.fileFormat.sampleRate
             let audioData = try Data(contentsOf: audioURL)
-            let transcript = try await transcribeAudioWithRetry(audioData: audioData, duration: durationSeconds)
+            let transcript = try await transcribeAudioWithRetry(audioData: audioData, duration: durationSeconds, language: language)
 
             progressCallback(AudioChunkerProgress(
                 currentChunk: 1,
@@ -369,7 +378,8 @@ class OpenAIService: ObservableObject {
                 audioURL: audioURL,
                 progressCallback: progressCallback,
                 meetingName: meetingName,
-                meetingId: meetingId
+                meetingId: meetingId,
+                language: language
             )
         }
     }
@@ -378,7 +388,8 @@ class OpenAIService: ObservableObject {
         audioURL: URL,
         progressCallback: @escaping (AudioChunkerProgress) -> Void,
         meetingName: String = "",
-        meetingId: UUID? = nil
+        meetingId: UUID? = nil,
+        language: String? = nil
     ) async throws -> String {
 
         // Check for cancellation before starting
@@ -422,7 +433,7 @@ class OpenAIService: ObservableObject {
 
             do {
                 // Use new retry logic with exponential backoff
-                let chunkTranscript = try await transcribeChunkWithRetry(chunk: chunk)
+                let chunkTranscript = try await transcribeChunkWithRetry(chunk: chunk, language: language)
                 transcripts.append(chunkTranscript)
 
                 // Calculate progress percentage
@@ -790,8 +801,7 @@ class OpenAIService: ObservableObject {
     func chatWithEve(
         message: String,
         promptVariables: EvePromptVariables,
-        conversationId: String?,
-        vectorStoreId: String?
+        conversationId: String?
     ) async throws -> ChatWithEveResult {
         guard let apiKey = apiKey else {
             throw OpenAIError.noAPIKey
@@ -812,7 +822,8 @@ class OpenAIService: ObservableObject {
                 id: Config.openAIPromptID,
                 variables: ResponsesPromptVariables(
                     meetingOverview: sanitizedVariables.meetingOverview,
-                    meetingSummary: sanitizedVariables.meetingSummary
+                    meetingSummary: sanitizedVariables.meetingSummary,
+                    meetingTranscription: sanitizedVariables.meetingTranscription
                 )
             ),
             input: [],
@@ -821,8 +832,7 @@ class OpenAIService: ObservableObject {
                 format: ResponseTextFormat(type: "text"),
                 verbosity: "medium"
             ),
-            reasoning: ResponseReasoningConfig(effort: "medium"),
-            tools: nil
+            reasoning: ResponseReasoningConfig(effort: "medium")
         )
 
         var contents: [ResponseInputContent] = []
@@ -830,15 +840,6 @@ class OpenAIService: ObservableObject {
 
         let inputItem = ResponseInputItem(role: "user", content: contents)
         requestBody.input = [inputItem]
-
-        if let vectorStoreId {
-            let tool = ResponseTool(
-                type: "file_search",
-                vectorStoreIds: [vectorStoreId],
-                maxNumResults: 20
-            )
-            requestBody.tools = [tool]
-        }
 
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
@@ -899,175 +900,6 @@ class OpenAIService: ObservableObject {
 
         let conversation = try JSONDecoder().decode(OpenAIConversation.self, from: data)
         return conversation.id
-    }
-
-    func uploadTranscriptFile(transcript: String, fileName: String) async throws -> UploadedFileInfo {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-
-        guard let data = transcript.data(using: .utf8) else {
-            throw OpenAIError.apiError("Unable to encode transcript")
-        }
-
-        let url = URL(string: "\(baseURL)/files")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        let boundary = "Boundary-\(UUID().uuidString)"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-
-        let expiresSeconds = 7 * 24 * 60 * 60 // 7 days
-
-        var body = Data()
-
-        func appendField(name: String, value: String) {
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
-            body.append("\(value)\r\n".data(using: .utf8)!)
-        }
-
-        appendField(name: "purpose", value: "user_data")
-        appendField(name: "expires_after[anchor]", value: "created_at")
-        appendField(name: "expires_after[seconds]", value: "\(expiresSeconds)")
-
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: text/plain\r\n\r\n".data(using: .utf8)!)
-        body.append(data)
-        body.append("\r\n".data(using: .utf8)!)
-
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
-        request.httpBody = body
-
-        let (responseData, urlResponse) = try await urlSession.data(for: request)
-
-        if let httpResponse = urlResponse as? HTTPURLResponse,
-           !(200...299).contains(httpResponse.statusCode) {
-            let bodyString = String(data: responseData, encoding: .utf8) ?? "<binary>"
-            throw OpenAIError.apiError("File upload failed: HTTP \(httpResponse.statusCode) - \(bodyString)")
-        }
-
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let fileResponse = try decoder.decode(OpenAIFileUploadResponse.self, from: responseData)
-
-        let expiresDate: Date?
-        if let timestamp = fileResponse.expiresAt {
-            expiresDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
-        } else {
-            expiresDate = Date().addingTimeInterval(TimeInterval(expiresSeconds))
-        }
-
-        return UploadedFileInfo(id: fileResponse.id, expiresAt: expiresDate)
-    }
-
-    func ensureVectorStore(userId: UUID, existingVectorStoreId: String?) async throws -> String {
-        if let existingVectorStoreId {
-            return existingVectorStoreId
-        }
-
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-
-        do {
-            return try await executeWithRetry(operationDescription: "Create vector store") {
-                let url = URL(string: "\(self.baseURL)/vector_stores")!
-                var request = URLRequest(url: url)
-                request.httpMethod = "POST"
-                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-                let createRequest = CreateVectorStoreRequest(
-                    name: "vector_store_\(userId.uuidString.lowercased())",
-                    expiresAfter: VectorStoreExpiresAfter(anchor: "last_active_at", days: 14)
-                )
-
-                let encoder = JSONEncoder()
-                encoder.keyEncodingStrategy = .convertToSnakeCase
-                request.httpBody = try encoder.encode(createRequest)
-
-                let (data, response) = try await self.urlSession.data(for: request)
-
-                if let httpResponse = response as? HTTPURLResponse,
-                   !(200...299).contains(httpResponse.statusCode) {
-                    let body = String(data: data, encoding: .utf8) ?? "<binary>"
-                    throw OpenAIError.apiError("Failed to create vector store. HTTP \(httpResponse.statusCode): \(body)")
-                }
-
-                let decoder = JSONDecoder()
-                decoder.keyDecodingStrategy = .convertFromSnakeCase
-                let vectorStore = try decoder.decode(VectorStoreResponse.self, from: data)
-                return vectorStore.id
-            }
-        } catch let error as OpenAIError {
-            throw error
-        } catch {
-            throw OpenAIError.vectorStoreUnavailable("Create vector store failed: \(error.localizedDescription)")
-        }
-    }
-
-    func attachFileToVectorStore(fileId: String, vectorStoreId: String) async throws {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-
-        do {
-            try await executeWithRetry(operationDescription: "Attach file to vector store") {
-                let url = URL(string: "\(self.baseURL)/vector_stores/\(vectorStoreId)/files")!
-                var request = URLRequest(url: url)
-                request.httpMethod = "POST"
-                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-                let body = VectorStoreFileRequest(fileId: fileId)
-                let encoder = JSONEncoder()
-                encoder.keyEncodingStrategy = .convertToSnakeCase
-                request.httpBody = try encoder.encode(body)
-
-                let (data, response) = try await self.urlSession.data(for: request)
-
-                if let httpResponse = response as? HTTPURLResponse,
-                   !(200...299).contains(httpResponse.statusCode) {
-                    let bodyString = String(data: data, encoding: .utf8) ?? "<binary>"
-                    throw OpenAIError.apiError("Failed to attach file to vector store. HTTP \(httpResponse.statusCode): \(bodyString)")
-                }
-                return ()
-            }
-        } catch let error as OpenAIError {
-            throw error
-        } catch {
-            throw OpenAIError.vectorStoreUnavailable("Attach file failed: \(error.localizedDescription)")
-        }
-    }
-
-    func detachFileFromVectorStore(fileId: String, vectorStoreId: String) async throws {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-
-        do {
-            try await executeWithRetry(operationDescription: "Detach file from vector store") {
-                let url = URL(string: "\(self.baseURL)/vector_stores/\(vectorStoreId)/files/\(fileId)")!
-                var request = URLRequest(url: url)
-                request.httpMethod = "DELETE"
-                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-                let (_, response) = try await self.urlSession.data(for: request)
-
-                if let httpResponse = response as? HTTPURLResponse,
-                   !(200...299).contains(httpResponse.statusCode) {
-                    throw OpenAIError.apiError("Failed to detach file from vector store. HTTP \(httpResponse.statusCode)")
-                }
-                return ()
-            }
-        } catch let error as OpenAIError {
-            throw error
-        } catch {
-            throw OpenAIError.vectorStoreUnavailable("Detach file failed: \(error.localizedDescription)")
-        }
     }
 
     func generateActionsReport(groupedActions: [String: [(action: String, priority: String, isCompleted: Bool)]]) async throws -> String {
@@ -1157,31 +989,6 @@ class OpenAIService: ObservableObject {
     }
 
     // MARK: - Retry Helpers
-
-    private func executeWithRetry<T>(
-        maxAttempts: Int = 3,
-        initialDelay: TimeInterval = 0.4,
-        operationDescription: String,
-        operation: @escaping () async throws -> T
-    ) async throws -> T {
-        var attempt = 0
-        var delay = initialDelay
-
-        while true {
-            do {
-                return try await operation()
-            } catch {
-                attempt += 1
-                if attempt >= maxAttempts || !shouldRetry(error: error) {
-                    throw OpenAIError.vectorStoreUnavailable("\(operationDescription) failed: \(error.localizedDescription)")
-                }
-
-                let nanoseconds = UInt64(delay * 1_000_000_000)
-                try await Task.sleep(nanoseconds: nanoseconds)
-                delay *= 2
-            }
-        }
-    }
 
     private func shouldRetry(error: Error) -> Bool {
         // NEVER retry on cancellation
@@ -1300,17 +1107,17 @@ class OpenAIService: ObservableObject {
 
     // MARK: - Enhanced Retry Logic for Transcription
 
-    func transcribeAudioWithRetry(audioData: Data, duration: TimeInterval? = nil, maxRetries: Int = 3) async throws -> String {
+    func transcribeAudioWithRetry(audioData: Data, duration: TimeInterval? = nil, language: String? = nil, maxRetries: Int = 3) async throws -> String {
         var lastError: Error?
 
         for attempt in 0..<maxRetries {
             do {
-                print("🎵 Transcribing audio data (attempt \(attempt + 1))")
+                print("🎵 Transcribing audio data (attempt \(attempt + 1))" + (language != nil ? " [language: \(language!)]" : ""))
 
                 // Add timeout protection to each transcription attempt (duration-aware)
                 let timeout = timeoutForAudio(duration: duration)
                 let transcript = try await withTimeout(seconds: timeout) {
-                    try await self.transcribeAudio(audioData: audioData)
+                    try await self.transcribeAudio(audioData: audioData, language: language)
                 }
 
                 print("🎵 Audio transcribed successfully (timeout window: \(Int(timeout))s)")
@@ -1338,17 +1145,17 @@ class OpenAIService: ObservableObject {
         throw lastError ?? OpenAIError.transcriptionFailed
     }
 
-    private func transcribeChunkWithRetry(chunk: AudioChunk, maxRetries: Int = 3) async throws -> String {
+    private func transcribeChunkWithRetry(chunk: AudioChunk, language: String? = nil, maxRetries: Int = 3) async throws -> String {
         var lastError: Error?
 
         for attempt in 0..<maxRetries {
             do {
-                print("🎵 Transcribing chunk \(chunk.chunkIndex + 1) (attempt \(attempt + 1))")
+                print("🎵 Transcribing chunk \(chunk.chunkIndex + 1) (attempt \(attempt + 1))" + (language != nil ? " [language: \(language!)]" : ""))
 
                 // Add timeout protection to each chunk based on duration
                 let timeout = timeoutForAudio(duration: chunk.duration)
                 let transcript = try await withTimeout(seconds: timeout) {
-                    try await self.transcribeAudio(audioData: chunk.data)
+                    try await self.transcribeAudio(audioData: chunk.data, language: language)
                 }
 
                 print("🎵 Chunk \(chunk.chunkIndex + 1) transcribed successfully (timeout window: \(Int(timeout))s)")

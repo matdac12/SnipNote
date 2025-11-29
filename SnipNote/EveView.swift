@@ -11,6 +11,7 @@ import StoreKit
 
 struct EveView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var authManager: AuthenticationManager
     @StateObject private var openAIService = OpenAIService.shared
@@ -81,42 +82,46 @@ struct EveView: View {
     // MARK: - Header View
 
     private var headerView: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 0) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Eve")
-                        .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                // Back button
+                Button(action: { dismiss() }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(themeManager.currentTheme.accentColor)
+                }
+                .frame(width: 44)
 
-                    Text("Your AI Assistant")
-                        .themedCaption()
+                Spacer()
+
+                // Centered title and meeting name
+                VStack(spacing: 2) {
+                    Text("Eve")
+                        .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                        .foregroundColor(themeManager.currentTheme.textColor)
+
+                    Text(currentMeetingName)
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        .lineLimit(1)
                 }
 
                 Spacer()
 
-                HStack(spacing: 12) {
-                    // Show current meeting context
-                    HStack(spacing: 4) {
-                        Image(systemName: "doc.text")
-                        Text(currentMeetingName)
-                            .themedCaption()
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(themeManager.currentTheme.materialStyle)
-                    .cornerRadius(themeManager.currentTheme.cornerRadius)
-
-                    Button(action: { showClearChatAlert = true }) {
-                        Image(systemName: "plus.circle")
-                            .font(.system(size: 20))
-                            .foregroundColor(themeManager.currentTheme.accentColor)
-                    }
+                // New chat button
+                Button(action: { showClearChatAlert = true }) {
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundColor(themeManager.currentTheme.accentColor)
                 }
+                .frame(width: 44)
             }
-            .padding()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 12)
 
             Divider()
         }
-        .background(themeManager.currentTheme.materialStyle)
+        .background(themeManager.currentTheme.backgroundColor)
     }
 
     private var currentMeetingName: String {
@@ -155,6 +160,9 @@ struct EveView: View {
                     }
                 }
                 .padding()
+            }
+            .onTapGesture {
+                isInputFocused = false
             }
             .onChange(of: conversation.messages.count) { _, _ in
                 withAnimation {
@@ -199,6 +207,9 @@ struct EveView: View {
             }
             .padding()
         }
+        .onTapGesture {
+            isInputFocused = false
+        }
     }
 
     private func quickActionButton(_ text: String, systemImage: String) -> some View {
@@ -221,33 +232,43 @@ struct EveView: View {
 
     // MARK: - Input View
 
+    private var canSend: Bool {
+        !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isProcessing
+    }
+
     private var inputView: some View {
-        VStack(spacing: 0) {
-            Divider()
-
-            HStack(spacing: 12) {
-                TextField("Ask Eve...", text: $messageText, axis: .vertical)
-                    .textFieldStyle(PlainTextFieldStyle())
-                    .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 16)
-                    .background(themeManager.currentTheme.materialStyle)
-                    .cornerRadius(20)
-                    .lineLimit(1...5)
-                    .focused($isInputFocused)
-                    .onSubmit {
-                        sendMessage()
-                    }
-
-                Button(action: sendMessage) {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(messageText.isEmpty || isProcessing ? themeManager.currentTheme.secondaryTextColor : themeManager.currentTheme.accentColor)
+        HStack(spacing: 8) {
+            // Text input field
+            TextField("Message", text: $messageText, axis: .vertical)
+                .textFieldStyle(PlainTextFieldStyle())
+                .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(themeManager.currentTheme.secondaryBackgroundColor)
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(themeManager.currentTheme.secondaryTextColor.opacity(0.2), lineWidth: 0.5)
+                )
+                .lineLimit(1...5)
+                .focused($isInputFocused)
+                .onSubmit {
+                    sendMessage()
                 }
-                .disabled(messageText.isEmpty || isProcessing)
+
+            // Send button (iMessage style circle)
+            Button(action: sendMessage) {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(canSend ? themeManager.currentTheme.backgroundColor : themeManager.currentTheme.secondaryTextColor)
+                    .frame(width: 30, height: 30)
+                    .background(canSend ? themeManager.currentTheme.accentColor : themeManager.currentTheme.secondaryTextColor.opacity(0.2))
+                    .clipShape(Circle())
             }
-            .padding()
+            .disabled(!canSend)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .background(themeManager.currentTheme.backgroundColor)
     }
 

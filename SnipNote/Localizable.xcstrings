@@ -272,6 +272,7 @@
       }
     },
     "Ask Eve..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -808,6 +809,9 @@
           }
         }
       }
+    },
+    "Message" : {
+
     },
     "Microphone Access Denied" : {
       "localizations" : {
@@ -2597,6 +2601,7 @@
       }
     },
     "Your AI Assistant" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {

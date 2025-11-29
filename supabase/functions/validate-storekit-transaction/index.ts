@@ -20,6 +20,53 @@ interface ValidationRequest {
   transactionData: TransactionData
 }
 
+// Send Telegram notification for new subscriptions
+async function sendTelegramNotification(productId: string, environment: string): Promise<void> {
+  const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')
+  const chatId = Deno.env.get('TELEGRAM_CHAT_ID')
+
+  if (!botToken || !chatId) {
+    console.log('Telegram credentials not configured, skipping notification')
+    return
+  }
+
+  // Map product ID to friendly name
+  const productNames: Record<string, string> = {
+    'snipnote_pro_weekly03': 'Weekly (1.99 EUR)',
+    'snipnote_pro_monthly03': 'Monthly (4.99 EUR)',
+    'snipnote_pro_annual03': 'Annual (39.99 EUR)'
+  }
+
+  const productName = productNames[productId] || productId
+  const envEmoji = environment === 'sandbox' ? '🧪' : '💰'
+  const envLabel = environment === 'sandbox' ? 'SANDBOX' : 'PRODUCTION'
+
+  const message = `${envEmoji} *New SnipNote Subscription!*
+
+📦 *Plan:* ${productName}
+🌍 *Environment:* ${envLabel}`
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'Markdown'
+      })
+    })
+
+    if (!response.ok) {
+      console.error('Failed to send Telegram notification:', await response.text())
+    } else {
+      console.log('✅ Telegram notification sent successfully')
+    }
+  } catch (error) {
+    console.error('Error sending Telegram notification:', error)
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -69,7 +116,9 @@ Deno.serve(async (req) => {
     const { userId, transactionData }: ValidationRequest = await req.json()
 
     // Verify that the user is validating their own transaction
-    if (user.id !== userId) {
+    // Note: Use case-insensitive comparison because Swift's UUID.uuidString returns uppercase
+    // while Supabase auth returns lowercase UUIDs
+    if (user.id.toLowerCase() !== userId.toLowerCase()) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized: Can only validate your own transactions' }),
         {
@@ -134,6 +183,9 @@ Deno.serve(async (req) => {
       }
 
       console.log(`✅ Subscription validated and updated: ${transactionData.productId}, active: ${isActive}`)
+
+      // Send Telegram notification (non-blocking)
+      sendTelegramNotification(transactionData.productId, transactionData.environment)
     }
 
     // For both subscriptions and consumables, we don't need to credit minutes here

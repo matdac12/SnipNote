@@ -52,7 +52,8 @@ struct MeetingsView: View {
 
     var body: some View {
         NavigationSplitView {
-            VStack(spacing: 0) {
+            NavigationStack {
+                VStack(spacing: 0) {
                 
                  HStack(alignment: .center, spacing: 12) {
                      Text("Meetings")
@@ -158,74 +159,24 @@ struct MeetingsView: View {
                         Spacer()
                     }
                 } else {
-                    List {
+                    List(selection: $selectedMeeting) {
                         ForEach(filteredMeetings) { meeting in
-                             Button {
-                                 selectedMeeting = meeting
-                             } label: {
-                                 VStack(alignment: .leading, spacing: 6) {
-                                     HStack {
-                                         Text(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
-                                             .themedBody()
-                                             .fontWeight(.bold)
-                                             .lineLimit(1)
+                            ZStack {
+                                // Hidden NavigationLink - no visible chevron
+                                NavigationLink(value: meeting) {
+                                    EmptyView()
+                                }
+                                .opacity(0)
 
-                                         if meeting.isProcessing {
-                                             Text("Processing...")
-                                                 .themedCaption()
-                                                 .fontWeight(.bold)
-                                                 .foregroundColor(themeManager.currentTheme.warningColor)
-                                                 .padding(.horizontal, 4)
-                                                 .padding(.vertical, 2)
-                                                 .background(themeManager.currentTheme.warningColor.opacity(0.2))
-                                                 .cornerRadius(3)
-                                         }
-                                     }
-
-                                     Text(meeting.dateCreated, style: .date)
-                                         .themedCaption()
-
-                                     if !meeting.location.isEmpty {
-                                         Text("📍 \(meeting.location)")
-                                             .themedCaption()
-                                             .lineLimit(1)
-                                     }
-
-                                     // Show overview/summary preview
-                                     if !meeting.shortSummary.isEmpty {
-                                         Text(meeting.shortSummary)
-                                             .themedCaption()
-                                             .lineLimit(2)
-                                     } else if !meeting.meetingNotes.isEmpty {
-                                         // Fallback to meeting notes if no summary yet
-                                         Text(meeting.meetingNotes.prefix(80) + (meeting.meetingNotes.count > 80 ? "..." : ""))
-                                             .themedCaption()
-                                             .lineLimit(2)
-                                     }
-                                 }
-                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                 .padding(.vertical, 8)
-                                 .padding(.horizontal, 12)
-                                 .background(themeManager.currentTheme.secondaryBackgroundColor.opacity(0.5))
-                                 .cornerRadius(themeManager.currentTheme.cornerRadius)
-                                 .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                                 .opacity(meeting.isProcessing ? 0.6 : 1.0)
-                                 .overlay(
-                                     meeting.isProcessing ?
-                                     RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius)
-                                         .stroke(themeManager.currentTheme.warningColor.opacity(0.5), lineWidth: 1)
-                                     : nil
-                                 )
-                             }
-                             .buttonStyle(PlainButtonStyle())
+                                // Visible content
+                                MeetingRowView(meeting: meeting, themeManager: themeManager)
+                            }
                         }
                         .onDelete(perform: deleteMeetings)
                         .listRowBackground(Color.clear)
                     }
-                    .navigationDestination(item: $selectedMeeting) { meeting in
-                        MeetingDetailView(meeting: meeting)
-                    }
                     .listStyle(PlainListStyle())
+                    .tint(.clear) // Remove orange selection tint on iPad
                     .scrollContentBackground(.hidden)
                     .refreshable {
                         await performSync()
@@ -233,6 +184,9 @@ struct MeetingsView: View {
                 }
             }
             .themedBackground()
+            .navigationDestination(for: Meeting.self) { meeting in
+                MeetingDetailView(meeting: meeting)
+            }
             .navigationDestination(isPresented: $navigateToCreate) {
                 CreateMeetingView(
                     onMeetingCreated: { meeting in
@@ -250,15 +204,22 @@ struct MeetingsView: View {
                     MeetingDetailView(meeting: meeting)
                 }
             }
-        } detail: {
-            VStack {
-                Spacer()
-                Text("Select a meeting")
-                    .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                    .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                Spacer()
             }
-            .themedBackground()
+        } detail: {
+            NavigationStack {
+                if let meeting = selectedMeeting {
+                    MeetingDetailView(meeting: meeting)
+                } else {
+                    VStack {
+                        Spacer()
+                        Text("Select a meeting")
+                            .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        Spacer()
+                    }
+                    .themedBackground()
+                }
+            }
         }
         .onAppear {
             // Handle deep link when view appears
@@ -364,5 +325,68 @@ struct MeetingsView: View {
             // Don't show error to user - sync failures should be silent
             // Local data is still available
         }
+    }
+}
+
+// MARK: - Meeting Row View
+
+struct MeetingRowView: View {
+    let meeting: Meeting
+    let themeManager: ThemeManager
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
+                    .themedBody()
+                    .fontWeight(.bold)
+                    .lineLimit(1)
+
+                if meeting.isProcessing {
+                    Text("Processing...")
+                        .themedCaption()
+                        .fontWeight(.bold)
+                        .foregroundColor(themeManager.currentTheme.warningColor)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(themeManager.currentTheme.warningColor.opacity(0.2))
+                        .cornerRadius(3)
+                }
+            }
+
+            Text(meeting.dateCreated, style: .date)
+                .themedCaption()
+
+            if !meeting.location.isEmpty {
+                Text("📍 \(meeting.location)")
+                    .themedCaption()
+                    .lineLimit(1)
+            }
+
+            // Show overview/summary preview
+            if !meeting.shortSummary.isEmpty {
+                Text(meeting.shortSummary)
+                    .themedCaption()
+                    .lineLimit(2)
+            } else if !meeting.meetingNotes.isEmpty {
+                // Fallback to meeting notes if no summary yet
+                Text(meeting.meetingNotes.prefix(80) + (meeting.meetingNotes.count > 80 ? "..." : ""))
+                    .themedCaption()
+                    .lineLimit(2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(themeManager.currentTheme.secondaryBackgroundColor.opacity(0.5))
+        .cornerRadius(themeManager.currentTheme.cornerRadius)
+        .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+        .opacity(meeting.isProcessing ? 0.6 : 1.0)
+        .overlay(
+            meeting.isProcessing ?
+            RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius)
+                .stroke(themeManager.currentTheme.warningColor.opacity(0.5), lineWidth: 1)
+            : nil
+        )
     }
 }

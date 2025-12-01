@@ -729,7 +729,7 @@ struct AboutSheetView: View {
                             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
 
-                        Text("SnipNote v1.4.6")
+                        Text("SnipNote v1.9")
                             .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
                             .foregroundColor(themeManager.currentTheme.textColor)
                     }

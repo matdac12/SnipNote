@@ -62,9 +62,6 @@ struct MeetingsView: View {
                      Spacer()
 
                      HStack(spacing: 12) {
-                         Text("\(searchText.isEmpty ? meetings.count : filteredMeetings.count) meetings\(searchText.isEmpty ? "" : " found")")
-                             .themedCaption()
-
                          Button(action: checkLimitAndCreate) {
                              Image(systemName: "plus")
                                  .font(.system(size: 16, weight: .semibold))

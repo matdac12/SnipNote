@@ -13,10 +13,14 @@ struct LoginView: View {
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var isSignUp = false
+    @State private var showingForgotPassword = false
+    @State private var forgotPasswordEmail = ""
+    @State private var resetEmailSent = false
     @FocusState private var focusedField: Field?
 
     @ObservedObject var authManager: AuthenticationManager
     @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject var localizationManager: LocalizationManager
 
     enum Field {
         case email
@@ -66,7 +70,7 @@ struct LoginView: View {
                     Text("Password")
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                    
+
                     SecureField("", text: $password)
                         .textFieldStyle(PlainTextFieldStyle())
                         .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
@@ -78,6 +82,21 @@ struct LoginView: View {
                         )
                         .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                         .focused($focusedField, equals: .password)
+                }
+
+                // Forgot password link (only show on sign in, not sign up)
+                if !isSignUp {
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            forgotPasswordEmail = email  // Pre-fill with current email
+                            showingForgotPassword = true
+                        }) {
+                            Text(localizationManager.localizedString("auth.forgotPassword"))
+                                .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                                .foregroundColor(themeManager.currentTheme.accentColor)
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 30)
@@ -149,6 +168,29 @@ struct LoginView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .alert(localizationManager.localizedString("auth.resetPassword.title"), isPresented: $showingForgotPassword) {
+            TextField(localizationManager.localizedString("auth.resetPassword.emailPlaceholder"), text: $forgotPasswordEmail)
+                .textContentType(.emailAddress)
+                .autocapitalization(.none)
+            Button(localizationManager.localizedString("auth.resetPassword.cancel"), role: .cancel) { }
+            Button(localizationManager.localizedString("auth.resetPassword.send")) {
+                Task {
+                    do {
+                        try await authManager.resetPassword(email: forgotPasswordEmail)
+                        resetEmailSent = true
+                    } catch {
+                        errorMessage = error.localizedDescription
+                    }
+                }
+            }
+        } message: {
+            Text(localizationManager.localizedString("auth.resetPassword.description"))
+        }
+        .alert(localizationManager.localizedString("auth.resetPassword.emailSentTitle"), isPresented: $resetEmailSent) {
+            Button(localizationManager.localizedString("auth.resetPassword.ok")) { }
+        } message: {
+            Text(localizationManager.localizedString("auth.resetPassword.emailSent"))
+        }
     }
 
     // MARK: - Animated Logo

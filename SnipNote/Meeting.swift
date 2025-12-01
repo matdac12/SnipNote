@@ -40,7 +40,6 @@ final class Meeting {
     var audioTranscript: String
     var shortSummary: String // One-sentence overview
     var aiSummary: String
-    var isProcessing: Bool
     var startTime: Date?
     var endTime: Date?
     var dateCreated: Date
@@ -64,6 +63,11 @@ final class Meeting {
             processingStateRaw = newValue.rawValue
         }
     }
+
+    // Computed property - true when actively processing
+    var isProcessing: Bool {
+        processingState == .transcribing || processingState == .generatingSummary
+    }
     
     // Computed property for duration
     var duration: TimeInterval {
@@ -78,7 +82,7 @@ final class Meeting {
         return formatter.string(from: duration) ?? "0s"
     }
     
-    init(name: String = "", location: String = "", meetingNotes: String = "", audioTranscript: String = "", shortSummary: String = "", aiSummary: String = "", isProcessing: Bool = false, hasRecording: Bool = false) {
+    init(name: String = "", location: String = "", meetingNotes: String = "", audioTranscript: String = "", shortSummary: String = "", aiSummary: String = "", hasRecording: Bool = false) {
         self.id = UUID()
         self.name = name
         self.location = location
@@ -86,7 +90,6 @@ final class Meeting {
         self.audioTranscript = audioTranscript
         self.shortSummary = shortSummary
         self.aiSummary = aiSummary
-        self.isProcessing = isProcessing
         self.hasRecording = hasRecording
         self.startTime = nil
         self.endTime = nil
@@ -115,15 +118,11 @@ final class Meeting {
     func updateProcessingState(_ state: ProcessingState) {
         processingState = state
         dateModified = Date()
-
-        // Auto-update isProcessing based on state
-        isProcessing = state == .transcribing || state == .generatingSummary
     }
 
     func setProcessingError(_ error: String) {
         processingError = error
         processingState = .failed
-        isProcessing = false
         dateModified = Date()
     }
 
@@ -140,7 +139,6 @@ final class Meeting {
 
     func markCompleted() {
         processingState = .completed
-        isProcessing = false
         processingError = nil
         dateModified = Date()
     }

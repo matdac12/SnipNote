@@ -85,15 +85,32 @@ struct DarkTheme: AppTheme {
 }
 
 enum ThemeType: String, CaseIterable {
+    case system = "System"
     case light = "Light"
     case dark = "Dark"
 
-    var theme: AppTheme {
+    func theme(for systemColorScheme: ColorScheme? = nil) -> AppTheme {
         switch self {
+        case .system:
+            // Use system color scheme if available, default to light
+            let scheme = systemColorScheme ?? .light
+            return scheme == .dark ? DarkTheme() : LightTheme()
         case .light:
             return LightTheme()
         case .dark:
             return DarkTheme()
+        }
+    }
+
+    /// Returns the preferred color scheme override, or nil for system
+    var preferredColorScheme: ColorScheme? {
+        switch self {
+        case .system:
+            return nil  // Let system decide
+        case .light:
+            return .light
+        case .dark:
+            return .dark
         }
     }
 }
@@ -101,28 +118,40 @@ enum ThemeType: String, CaseIterable {
 // Theme Manager
 class ThemeManager: ObservableObject {
     static let shared = ThemeManager()
-    
-    @AppStorage("selectedTheme") private var selectedThemeRaw: String = ThemeType.light.rawValue
-    
+
+    @AppStorage("selectedTheme") private var selectedThemeRaw: String = ThemeType.system.rawValue
+
     @Published var currentTheme: AppTheme
-    
+
     var themeType: ThemeType {
         get {
-            ThemeType(rawValue: selectedThemeRaw) ?? .light
+            ThemeType(rawValue: selectedThemeRaw) ?? .system
         }
         set {
             selectedThemeRaw = newValue.rawValue
-            currentTheme = newValue.theme
+            updateTheme(for: newValue, systemColorScheme: nil)
         }
     }
-    
+
     private init() {
         // Initialize currentTheme with default value first
         self.currentTheme = LightTheme()
-        
+
         // Then update it based on stored preference
         if let storedType = ThemeType(rawValue: selectedThemeRaw) {
-            self.currentTheme = storedType.theme
+            self.currentTheme = storedType.theme()
+        }
+    }
+
+    /// Update theme based on type and optional system color scheme
+    func updateTheme(for type: ThemeType, systemColorScheme: ColorScheme?) {
+        currentTheme = type.theme(for: systemColorScheme)
+    }
+
+    /// Called when system color scheme changes
+    func handleSystemColorSchemeChange(_ colorScheme: ColorScheme) {
+        if themeType == .system {
+            updateTheme(for: .system, systemColorScheme: colorScheme)
         }
     }
 }
@@ -140,10 +169,10 @@ extension View {
 
 struct ThemedViewModifier: ViewModifier {
     @ObservedObject var themeManager = ThemeManager.shared
-    
+
     func body(content: Content) -> some View {
         content
-            .preferredColorScheme(themeManager.currentTheme.colorScheme)
+            .preferredColorScheme(themeManager.themeType.preferredColorScheme)
             .accentColor(themeManager.currentTheme.accentColor)
     }
 }

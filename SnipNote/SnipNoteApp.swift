@@ -11,6 +11,28 @@ import AVFoundation
 import UserNotifications
 import StoreKit
 
+/// Observer that updates ThemeManager when system color scheme changes
+struct SystemColorSchemeObserver<Content: View>: View {
+    @Environment(\.colorScheme) private var systemColorScheme
+    @EnvironmentObject var themeManager: ThemeManager
+    let content: () -> Content
+
+    init(@ViewBuilder content: @escaping () -> Content) {
+        self.content = content
+    }
+
+    var body: some View {
+        content()
+            .onChange(of: systemColorScheme) { _, newScheme in
+                themeManager.handleSystemColorSchemeChange(newScheme)
+            }
+            .onAppear {
+                // Initialize with current system color scheme
+                themeManager.handleSystemColorSchemeChange(systemColorScheme)
+            }
+    }
+}
+
 @main
 struct SnipNoteApp: App {
     @State private var deepLinkAudioURL: URL?
@@ -55,21 +77,23 @@ struct SnipNoteApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AuthenticationView(deepLinkAudioURL: $deepLinkAudioURL)
-                .environmentObject(themeManager)
-                .environmentObject(localizationManager)
-                .themed()
-                .environment(\.locale, localizationManager.locale)
-                .onOpenURL { url in
-                    handleDeepLink(url)
+            SystemColorSchemeObserver {
+                AuthenticationView(deepLinkAudioURL: $deepLinkAudioURL)
+            }
+            .environmentObject(themeManager)
+            .environmentObject(localizationManager)
+            .themed()
+            .environment(\.locale, localizationManager.locale)
+            .onOpenURL { url in
+                handleDeepLink(url)
+            }
+            .onAppear {
+                Task {
+                    // Initialize minutes manager - grant free tier if needed and refresh balance
+                    await MinutesManager.shared.handleAppLaunch()
                 }
-                .onAppear {
-                    Task {
-                        // Initialize minutes manager - grant free tier if needed and refresh balance
-                        await MinutesManager.shared.handleAppLaunch()
-                    }
-                }
-                .alert("Continue Transcription?", isPresented: $showResumeAlert) {
+            }
+            .alert("Continue Transcription?", isPresented: $showResumeAlert) {
                     Button("Yes") {
                         handleResumeTranscription(resume: true)
                     }

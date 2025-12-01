@@ -18,9 +18,7 @@ struct PaywallView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
     @State private var isPurchasing = false
-    @State private var debugInfo: String = ""
-    @State private var isShowingDebug = false
-    
+
     var dismissible: Bool = true
     var onPurchaseComplete: (() -> Void)?
 
@@ -85,7 +83,9 @@ struct PaywallView: View {
                 }
             }
             .onAppear {
+                #if DEBUG
                 print("🧪 [PaywallView] onAppear - isLoading=\(store.isLoadingProducts), products=\(store.products.count), hasSub=\(store.hasActiveSubscription)")
+                #endif
                 Task { await store.loadProducts() }
             }
         }
@@ -163,35 +163,6 @@ struct PaywallView: View {
                     Button("Retry") { Task { await store.loadProducts() } }
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.accentColor)
-
-                    Button(isShowingDebug ? "Hide Debug Info" : "Show Debug Info") {
-                        isShowingDebug.toggle()
-                        if isShowingDebug && debugInfo.isEmpty {
-                            Task { debugInfo = await store.collectDiagnostics() }
-                        }
-                    }
-                    .font(.system(.caption, design: .monospaced, weight: .bold))
-                    .foregroundColor(themeManager.currentTheme.accentColor)
-
-                    if isShowingDebug {
-                        ScrollView {
-                            Text(debugInfo.isEmpty ? "Collecting diagnostics…" : debugInfo)
-                                .font(.system(.caption2, design: .monospaced))
-                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .textSelection(.enabled)
-                        }
-                        .frame(maxHeight: 160)
-                        .padding(6)
-                        .background(Color.black.opacity(0.05))
-                        .cornerRadius(6)
-
-                        Button("Copy Debug Info") {
-                            UIPasteboard.general.string = debugInfo
-                        }
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundColor(themeManager.currentTheme.accentColor)
-                    }
                 }
                 .padding()
                 .frame(maxWidth: .infinity)

@@ -99,4 +99,13 @@ class AuthenticationManager: ObservableObject {
             throw error
         }
     }
+
+    func resetPassword(email: String) async throws {
+        do {
+            try await SupabaseManager.shared.client.auth.resetPasswordForEmail(email)
+        } catch {
+            print("Reset password error: \(error)")
+            throw error
+        }
+    }
 }

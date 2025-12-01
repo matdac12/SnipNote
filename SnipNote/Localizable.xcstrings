@@ -117,6 +117,7 @@
       }
     },
     "ABOUT" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -285,6 +286,159 @@
         }
       }
     },
+    "auth.forgotPassword" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forgot Password?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password dimenticata?"
+          }
+        }
+      }
+    },
+    "auth.resetPassword.cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annulla"
+          }
+        }
+      }
+    },
+    "auth.resetPassword.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter your email to receive password reset instructions."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci la tua email per ricevere le istruzioni di reset."
+          }
+        }
+      }
+    },
+    "auth.resetPassword.emailPlaceholder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        }
+      }
+    },
+    "auth.resetPassword.emailSent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check your inbox for password reset instructions."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla la tua casella per le istruzioni di reset."
+          }
+        }
+      }
+    },
+    "auth.resetPassword.emailSentTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email Sent"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email Inviata"
+          }
+        }
+      }
+    },
+    "auth.resetPassword.ok" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
+    "auth.resetPassword.send" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send Reset Link"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia Link di Reset"
+          }
+        }
+      }
+    },
+    "auth.resetPassword.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Password"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta Password"
+          }
+        }
+      }
+    },
     "Best for long meetings (1+ hour) - just share!" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -408,9 +562,6 @@
 
     },
     "Continue your paused transcription?" : {
-
-    },
-    "Copy Debug Info" : {
 
     },
     "Create Account" : {
@@ -624,9 +775,6 @@
           }
         }
       }
-    },
-    "Hide Debug Info" : {
-
     },
     "If you're experiencing issues or have questions:" : {
 
@@ -1385,6 +1533,23 @@
         }
       }
     },
+    "settings.about.viewTutorial" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Tutorial"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guarda il Tutorial"
+          }
+        }
+      }
+    },
     "settings.account.deleteAccount" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1703,7 +1868,24 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Interfaccia pulita e moderna per l’uso quotidiano"
+            "value" : "Interfaccia pulita e moderna per l'uso quotidiano"
+          }
+        }
+      }
+    },
+    "settings.appearance.systemDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically matches your device appearance"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segue automaticamente l'aspetto del dispositivo"
           }
         }
       }
@@ -2256,9 +2438,6 @@
         }
       }
     },
-    "Show Debug Info" : {
-
-    },
     "Sign in" : {
       "localizations" : {
         "it" : {
@@ -2310,10 +2489,13 @@
         }
       }
     },
+    "SnipNote" : {
+
+    },
     "SNIPNOTE" : {
 
     },
-    "SnipNote v1.4.6" : {
+    "SnipNote v1.9" : {
 
     },
     "Something went wrong" : {

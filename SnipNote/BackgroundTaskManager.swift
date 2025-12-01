@@ -431,7 +431,6 @@ class BackgroundTaskManager: ObservableObject {
 
                 if let meeting = try context.fetch(descriptor).first {
                     meeting.setProcessingError("Transcription cancelled by user")
-                    meeting.isProcessing = false
                     try context.save()
                     print("📝 [BackgroundTask] Marked meeting as cancelled")
                 }

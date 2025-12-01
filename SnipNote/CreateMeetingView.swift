@@ -1194,7 +1194,8 @@ struct CreateMeetingView: View {
         recordingStartTime = Date()
         recordingDuration = 0
         currentRecordingURL = audioRecorder.startRecording()
-        
+        HapticService.shared.light()
+
         // Start timer for duration display
         recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             if let startTime = recordingStartTime {
@@ -1207,10 +1208,12 @@ struct CreateMeetingView: View {
         audioRecorder.pauseRecording()
         recordingTimer?.invalidate()
         recordingTimer = nil
+        HapticService.shared.light()
     }
-    
+
     private func resumeMeetingRecording() {
         audioRecorder.resumeRecording()
+        HapticService.shared.light()
         
         // Restart timer for duration display
         recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
@@ -1238,6 +1241,8 @@ struct CreateMeetingView: View {
             print("❌ No audio URL to analyze")
             return
         }
+
+        HapticService.shared.medium()
 
         // Auto-select transcription method based on audio duration
         let durationMinutes = Int(cachedAudioDuration / 60)
@@ -1637,7 +1642,6 @@ struct CreateMeetingView: View {
                 await MainActor.run {
                     print("❌ Error in server-side transcription: \(error)")
                     meeting.setProcessingError("Upload failed. Please try again.")
-                    meeting.isProcessing = false
 
                     do {
                         try modelContext.save()
@@ -1657,6 +1661,7 @@ struct CreateMeetingView: View {
 
         recordingTimer?.invalidate()
         recordingTimer = nil
+        HapticService.shared.medium()
 
         // Check if user has sufficient minutes for recorded audio
         let requiredMinutes = max(1, Int(ceil(recordingDuration / 60.0)))
@@ -1877,8 +1882,7 @@ struct CreateMeetingView: View {
             meetingNotes: meetingNotes,
             audioTranscript: "Transcribing meeting audio...",
             shortSummary: "Generating overview...",
-            aiSummary: "Generating meeting summary...",
-            isProcessing: true
+            aiSummary: "Generating meeting summary..."
         )
         meeting.dateCreated = meetingDate
 

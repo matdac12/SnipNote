@@ -120,7 +120,6 @@ class MeetingSyncService: ObservableObject {
         meeting.hasRecording = record.hasRecording
         meeting.processingStateRaw = record.processingState
         meeting.processingError = record.processingError
-        meeting.isProcessing = record.isProcessing
         meeting.lastProcessedChunk = record.lastProcessedChunk
         meeting.totalChunks = record.totalChunks
         meeting.transcriptionJobId = record.transcriptionJobId?.uuidString
@@ -147,7 +146,6 @@ class MeetingSyncService: ObservableObject {
             audioTranscript: remoteData.transcript ?? "",
             shortSummary: remoteData.shortSummary ?? "",
             aiSummary: remoteData.aiSummary ?? "",
-            isProcessing: record.isProcessing,
             hasRecording: record.hasRecording
         )
 

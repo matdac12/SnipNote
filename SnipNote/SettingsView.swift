@@ -222,10 +222,10 @@ struct SettingsView: View {
                                      }
                                  }
                                  .pickerStyle(SegmentedPickerStyle())
-                                 .frame(width: 150)
+                                 .frame(width: 200)
                              }
 
-                             Text(themeManager.themeType == .light ? localized("settings.appearance.lightDescription") : localized("settings.appearance.darkDescription"))
+                             Text(themeDescriptionText)
                                  .themedCaption()
                                  .frame(maxWidth: .infinity, alignment: .leading)
                          }
@@ -364,34 +364,54 @@ struct SettingsView: View {
                      )
                      .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
                     
-                     VStack(alignment: .leading, spacing: 16) {
-                         Text("ABOUT")
-                             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-
-                         Button(action: { showingAboutSheet = true }) {
-                             VStack(alignment: .leading, spacing: 8) {
-                                 Text(localized("settings.about.version"))
-                                     .themedBody()
-                                     .fontWeight(.bold)
-                                 Text(localized("settings.about.tagline"))
-                                     .themedCaption()
-                                     .lineLimit(2)
+                     // ABOUT SECTION
+                     Button(action: { showingAboutSheet = true }) {
+                         HStack(spacing: 14) {
+                             // App icon
+                             if let uiImage = UIImage(named: "AppIcon") ?? Bundle.main.icon {
+                                 Image(uiImage: uiImage)
+                                     .resizable()
+                                     .frame(width: 50, height: 50)
+                                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                                     .overlay(
+                                         RoundedRectangle(cornerRadius: 12)
+                                             .stroke(themeManager.currentTheme.secondaryTextColor.opacity(0.2), lineWidth: 0.5)
+                                     )
+                             } else {
+                                 RoundedRectangle(cornerRadius: 12)
+                                     .fill(themeManager.currentTheme.accentColor.gradient)
+                                     .frame(width: 50, height: 50)
+                                     .overlay(
+                                         Image(systemName: "waveform")
+                                             .font(.system(size: 24, weight: .semibold))
+                                             .foregroundColor(.white)
+                                     )
                              }
-                             .padding()
-                             .background(themeManager.currentTheme.materialStyle)
-                             .cornerRadius(themeManager.currentTheme.cornerRadius)
-                             .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+
+                             VStack(alignment: .leading, spacing: 4) {
+                                 Text("SnipNote")
+                                     .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                                     .foregroundColor(themeManager.currentTheme.textColor)
+
+                                 Text(localized("settings.about.subtitle"))
+                                     .font(.system(.subheadline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                                     .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                             }
+
+                             Spacer()
+
+                             Image(systemName: "chevron.right")
+                                 .font(.system(size: 14, weight: .semibold))
+                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor.opacity(0.6))
                          }
-                         .buttonStyle(.plain)
+                         .padding(16)
+                         .background(
+                             RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
+                                 .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
+                         )
+                         .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
                      }
-                     .padding(.horizontal, 10)
-                     .padding(.vertical, 12)
-                     .background(
-                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                     )
-                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
+                     .buttonStyle(.plain)
                 }
                  .padding()
              }
@@ -468,6 +488,17 @@ struct SettingsView: View {
             get: { localizationManager.languageCode },
             set: { localizationManager.setLanguage(code: $0) }
         )
+    }
+
+    private var themeDescriptionText: String {
+        switch themeManager.themeType {
+        case .system:
+            return localized("settings.appearance.systemDescription")
+        case .light:
+            return localized("settings.appearance.lightDescription")
+        case .dark:
+            return localized("settings.appearance.darkDescription")
+        }
     }
 
     private func localized(_ key: String) -> String {
@@ -612,6 +643,7 @@ struct AboutSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var localizationManager: LocalizationManager
+    @State private var showingOnboarding = false
 
     var body: some View {
         NavigationView {
@@ -676,7 +708,7 @@ struct AboutSheetView: View {
                             ContactRow(
                                 icon: "globe",
                                 title: "Website",
-                                value: "www.mattianalytics.com",
+                                value: "www.0xmatti.com",
                                 action: { openWebsite() }
                             )
 
@@ -733,6 +765,24 @@ struct AboutSheetView: View {
                             .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
                             .foregroundColor(themeManager.currentTheme.textColor)
                     }
+
+                    Divider()
+                        .padding(.vertical, 8)
+
+                    // View Tutorial Button
+                    Button(action: { showingOnboarding = true }) {
+                        HStack {
+                            Image(systemName: "play.circle")
+                                .foregroundColor(themeManager.currentTheme.accentColor)
+                            Text(localized("settings.about.viewTutorial"))
+                                .themedBody()
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                .font(.caption)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding()
             }
@@ -746,6 +796,10 @@ struct AboutSheetView: View {
                     }
                     .foregroundColor(themeManager.currentTheme.accentColor)
                 }
+            }
+            .fullScreenCover(isPresented: $showingOnboarding) {
+                OnboardingView()
+                    .environmentObject(themeManager)
             }
         }
         .themed()
@@ -766,7 +820,7 @@ struct AboutSheetView: View {
     }
 
     private func openWebsite() {
-        if let url = URL(string: "http://mattianalytics.com") {
+        if let url = URL(string: "https://www.0xmatti.com") {
             UIApplication.shared.open(url)
         }
     }
@@ -845,4 +899,17 @@ struct SupportGuideline: View {
         .environmentObject(ThemeManager.shared)
         .environmentObject(AuthenticationManager())
         .environmentObject(LocalizationManager.shared)
+}
+
+// MARK: - Bundle Extension for App Icon
+extension Bundle {
+    var icon: UIImage? {
+        if let icons = infoDictionary?["CFBundleIcons"] as? [String: Any],
+           let primaryIcon = icons["CFBundlePrimaryIcon"] as? [String: Any],
+           let iconFiles = primaryIcon["CFBundleIconFiles"] as? [String],
+           let lastIcon = iconFiles.last {
+            return UIImage(named: lastIcon)
+        }
+        return nil
+    }
 }

@@ -98,7 +98,6 @@ struct MeetingDetailView: View {
                     let hasChanged =
                         meeting.lastProcessedChunk != fetchedMeeting.lastProcessedChunk ||
                         meeting.totalChunks != fetchedMeeting.totalChunks ||
-                        meeting.isProcessing != fetchedMeeting.isProcessing ||
                         meeting.processingStateRaw != fetchedMeeting.processingStateRaw ||
                         meeting.audioTranscript != fetchedMeeting.audioTranscript ||
                         meeting.shortSummary != fetchedMeeting.shortSummary ||
@@ -108,7 +107,6 @@ struct MeetingDetailView: View {
 
                     meeting.lastProcessedChunk = fetchedMeeting.lastProcessedChunk
                     meeting.totalChunks = fetchedMeeting.totalChunks
-                    meeting.isProcessing = fetchedMeeting.isProcessing
                     meeting.processingStateRaw = fetchedMeeting.processingStateRaw
                     meeting.audioTranscript = fetchedMeeting.audioTranscript
                     meeting.shortSummary = fetchedMeeting.shortSummary
@@ -131,7 +129,6 @@ struct MeetingDetailView: View {
                         let hasChanged =
                             meeting.lastProcessedChunk != fetchedMeeting.lastProcessedChunk ||
                             meeting.totalChunks != fetchedMeeting.totalChunks ||
-                            meeting.isProcessing != fetchedMeeting.isProcessing ||
                             meeting.processingStateRaw != fetchedMeeting.processingStateRaw ||
                             meeting.audioTranscript != fetchedMeeting.audioTranscript ||
                             meeting.shortSummary != fetchedMeeting.shortSummary ||
@@ -141,7 +138,6 @@ struct MeetingDetailView: View {
 
                         meeting.lastProcessedChunk = fetchedMeeting.lastProcessedChunk
                         meeting.totalChunks = fetchedMeeting.totalChunks
-                        meeting.isProcessing = fetchedMeeting.isProcessing
                         meeting.processingStateRaw = fetchedMeeting.processingStateRaw
                         meeting.audioTranscript = fetchedMeeting.audioTranscript
                         meeting.shortSummary = fetchedMeeting.shortSummary
@@ -1211,6 +1207,7 @@ struct MeetingDetailView: View {
             meeting.markCompleted()
             meeting.transcriptionJobId = nil
             jobId = nil
+            HapticService.shared.success()
 
             if let duration = status.duration {
                 print("✅ [MeetingDetail] Job completed - duration: \(duration)s")
@@ -1420,6 +1417,7 @@ struct MeetingDetailView: View {
             meeting.shortSummary = overview
             meeting.aiSummary = summary
             meeting.markCompleted()
+            HapticService.shared.success()
 
             for actionItem in actionItems {
                 let priority: ActionPriority

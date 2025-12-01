@@ -23,7 +23,7 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             MeetingsView(deepLinkAudioURL: $deepLinkAudioURL)
                 .tabItem {
-                    Image(systemName: "person.3")
+                    Image(systemName: "waveform")
                     Text(tabTitle(for: "tab.meetings"))
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 }

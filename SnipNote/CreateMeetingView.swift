@@ -1492,6 +1492,15 @@ struct CreateMeetingView: View {
     // MARK: - Server-Side Transcription
 
     private func processServerSide(audioURL: URL) {
+        // Check if user has sufficient minutes for server-side transcription
+        let requiredMinutes = max(1, Int(ceil(cachedAudioDuration / 60.0)))
+        if minutesManager.currentBalance < requiredMinutes {
+            print("⚠️ [Server] Insufficient minutes for server-side transcription. Required: \(requiredMinutes), Available: \(minutesManager.currentBalance)")
+            estimatedMinutesNeeded = requiredMinutes
+            showingInsufficientMinutesAlert = true
+            return
+        }
+
         print("☁️ Starting server-side transcription: \(audioURL)")
 
         // Create meeting immediately

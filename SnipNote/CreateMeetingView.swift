@@ -1352,7 +1352,10 @@ struct CreateMeetingView: View {
                 // Debit minutes for transcription
                 let duration = Int(cachedAudioDuration)
                 if let meetingId = createdMeetingId {
-                    _ = await minutesManager.debitMinutes(seconds: duration, meetingID: meetingId.uuidString)
+                    let debitSuccess = await minutesManager.debitMinutes(seconds: duration, meetingID: meetingId.uuidString)
+                    if !debitSuccess {
+                        print("⚠️ [CreateMeeting] Minutes debit failed for imported audio transcription (meeting: \(meetingId))")
+                    }
                 }
 
                 // Track successful transcription
@@ -1754,7 +1757,10 @@ struct CreateMeetingView: View {
                 // Debit minutes for transcription
                 let duration = Int(recordingDuration)
                 if let meetingId = createdMeetingId {
-                    _ = await minutesManager.debitMinutes(seconds: duration, meetingID: meetingId.uuidString)
+                    let debitSuccess = await minutesManager.debitMinutes(seconds: duration, meetingID: meetingId.uuidString)
+                    if !debitSuccess {
+                        print("⚠️ [CreateMeeting] Minutes debit failed for recorded audio transcription (meeting: \(meetingId))")
+                    }
                 }
 
                 // Track successful transcription

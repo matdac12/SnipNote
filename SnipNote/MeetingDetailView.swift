@@ -23,10 +23,6 @@ struct MeetingDetailView: View {
     @State private var showingSummary = true
     @State private var showingFullScreenSummary = false
     @State private var showingFullScreenTranscript = false
-    @State private var isDownloadingAudio = false
-    @State private var downloadProgress: Double = 0
-    @State private var showDownloadAlert = false
-    @StateObject private var audioPlayer = AudioPlayerManager()
 
     // Retry functionality
     @State private var isRetrying = false
@@ -173,31 +169,6 @@ struct MeetingDetailView: View {
         .sheet(isPresented: $showingFullScreenTranscript) {
             fullScreenTranscriptView
         }
-        .overlay {
-            if isDownloadingAudio && showDownloadAlert {
-                ZStack {
-                    Color.black.opacity(0.4)
-                        .ignoresSafeArea()
-
-                    VStack(spacing: 20) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .tint(themeManager.currentTheme.accentColor)
-
-                        Text("Downloading Audio...")
-                            .font(.headline)
-
-                        Text("Please wait while the audio file is being downloaded")
-                            .font(.caption)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                    }
-                    .padding(30)
-                    .background(themeManager.currentTheme.materialStyle)
-                    .cornerRadius(20)
-                }
-            }
-        }
     }
 
     // MARK: - Header View
@@ -231,13 +202,6 @@ struct MeetingDetailView: View {
                         if meeting.duration > 0 {
                             Text("⏱️ \(meeting.durationFormatted)")
                                 .themedCaption()
-                        }
-
-                        if meeting.hasRecording {
-                            MiniAudioPlayer(audioPlayer: audioPlayer, item: meeting) { meeting in
-                                await audioPlayer.loadAndPlayAudio(for: meeting)
-                            }
-                            .allowsHitTesting(true)
                         }
                     }
                 }
@@ -821,19 +785,6 @@ struct MeetingDetailView: View {
                         Button(action: shareEverything) {
                             Label("Everything", systemImage: "doc.text")
                         }
-
-                        if meeting.hasRecording {
-                            Divider()
-
-                            Button(action: shareAudio) {
-                                if isDownloadingAudio {
-                                    Label("Downloading...", systemImage: "arrow.down.circle")
-                                } else {
-                                    Label("Audio", systemImage: "waveform")
-                                }
-                            }
-                            .disabled(isDownloadingAudio)
-                        }
                     } label: {
                         Image(systemName: "square.and.arrow.down")
                             .font(.system(.body))
@@ -1022,85 +973,6 @@ struct MeetingDetailView: View {
             }
         } catch {
             print("Error sharing transcript: \(error)")
-        }
-    }
-    
-    private func shareAudio() {
-        isDownloadingAudio = true
-        downloadProgress = 0
-
-        // Show alert for downloads that might take time
-        if meeting.duration > 60 { // Show alert for recordings longer than 1 minute
-            showDownloadAlert = true
-        }
-        
-        print("🎵 Starting audio download - Duration: \(meeting.duration)s")
-        
-        Task {
-            do {
-                // Get audio URL from Supabase
-                guard let audioURL = try await SupabaseManager.shared.getAudioURL(for: meeting.id) else {
-                    await MainActor.run {
-                        isDownloadingAudio = false
-                        showDownloadAlert = false
-                        print("❌ No audio URL found")
-                    }
-                    return
-                }
-                
-                print("🎵 Got audio URL: \(audioURL)")
-                
-                // Download audio using URLSession
-                let session = URLSession(configuration: .default)
-                let (tempLocalURL, _) = try await session.download(from: audioURL)
-                
-                print("🎵 Download completed to: \(tempLocalURL)")
-                
-                // Create proper filename
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "yyyy-MM-dd"
-                let dateString = dateFormatter.string(from: meeting.dateCreated)
-                let filename = "\(meeting.name.isEmpty ? "Meeting" : meeting.name.replacingOccurrences(of: " ", with: "_"))_\(dateString).m4a"
-                let destinationURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-                
-                // Move file to proper location with correct name
-                try? FileManager.default.removeItem(at: destinationURL) // Remove if exists
-                try FileManager.default.moveItem(at: tempLocalURL, to: destinationURL)
-                
-                await MainActor.run {
-                    isDownloadingAudio = false
-                    showDownloadAlert = false
-                    
-                    print("🎵 Presenting share sheet for: \(destinationURL)")
-                    
-                    // Present share sheet
-                    let activityVC = UIActivityViewController(activityItems: [destinationURL], applicationActivities: nil)
-                    
-                    // Clean up temp file after sharing
-                    activityVC.completionWithItemsHandler = { _, _, _, _ in
-                        print("🎵 Cleaning up temporary file")
-                        try? FileManager.default.removeItem(at: destinationURL)
-                    }
-                    
-                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                       let window = windowScene.windows.first,
-                       let rootVC = window.rootViewController {
-                        activityVC.popoverPresentationController?.sourceView = rootVC.view
-                        activityVC.popoverPresentationController?.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
-                        rootVC.present(activityVC, animated: true)
-                        print("🎵 Share sheet presented")
-                    } else {
-                        print("❌ Could not present share sheet - no root view controller")
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    isDownloadingAudio = false
-                    showDownloadAlert = false
-                    print("❌ Error sharing audio: \(error)")
-                    print("❌ Error details: \(error.localizedDescription)")
-                }
-            }
         }
     }
 

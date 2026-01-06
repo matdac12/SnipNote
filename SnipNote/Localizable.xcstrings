@@ -277,6 +277,7 @@
 
     },
     "Audio" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -605,12 +606,6 @@
           }
         }
       }
-    },
-    "Downloading Audio..." : {
-
-    },
-    "Downloading..." : {
-
     },
     "Duration: %@" : {
 
@@ -1153,9 +1148,6 @@
       }
     },
     "Please enter the name of the meeting" : {
-
-    },
-    "Please wait while the audio file is being downloaded" : {
 
     },
     "Premium Features" : {

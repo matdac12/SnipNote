@@ -478,10 +478,16 @@ struct MeetingDetailView: View {
                             // Show detailed chunk progress when processing
                             VStack(alignment: .leading, spacing: 12) {
                                 HStack {
-                                    Text(meeting.processingState == .transcribing ? "Generating meeting summary..." : formatMarkdownText(meeting.aiSummary))
-                                        .themedBody()
-                                        .opacity(0.6)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    if meeting.processingState == .transcribing {
+                                        Text("Generating meeting summary...")
+                                            .themedBody()
+                                            .opacity(0.6)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    } else {
+                                        markdownSummaryText(meeting.aiSummary)
+                                            .opacity(0.6)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
 
                                     ProgressView()
                                         .scaleEffect(0.8)
@@ -512,8 +518,7 @@ struct MeetingDetailView: View {
                         } else if meeting.processingState == .failed {
                             processingErrorCard
                         } else {
-                            Text(formatMarkdownText(meeting.aiSummary))
-                                .themedBody()
+                            markdownSummaryText(meeting.aiSummary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
@@ -714,9 +719,7 @@ struct MeetingDetailView: View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text(formatMarkdownText(meeting.aiSummary))
-                        .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
-                        .lineSpacing(4)
+                    markdownSummaryText(meeting.aiSummary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding()
@@ -805,14 +808,144 @@ struct MeetingDetailView: View {
     
     // MARK: - Helper Methods
 
-    private func formatMarkdownText(_ text: String) -> String {
-        // Replace bullet points (asterisks at start of line) with proper bullets
-        var processedText = text.replacingOccurrences(of: #"^\* "#, with: "• ", options: .regularExpression)
+    @ViewBuilder
+    private func markdownSummaryText(_ text: String) -> some View {
+        let blocks = summaryBlocks(from: text)
 
-        // Remove bold markdown for now (simple replacement)
-        processedText = processedText.replacingOccurrences(of: "**", with: "")
+        if blocks.isEmpty {
+            Text(text)
+                .themedBody()
+                .lineSpacing(4)
+        } else {
+            VStack(alignment: .leading, spacing: 14) {
+                ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+                    switch block {
+                    case .heading(let content, let level):
+                        markdownInlineText(content)
+                            .font(headingFont(for: level))
+                            .foregroundColor(themeManager.currentTheme.textColor)
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-        return processedText
+                    case .bullet(let content):
+                        HStack(alignment: .top, spacing: 8) {
+                            Text("•")
+                                .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                .foregroundColor(themeManager.currentTheme.accentColor)
+
+                            markdownInlineText(content)
+                                .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                                .foregroundColor(themeManager.currentTheme.textColor)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                    case .paragraph(let content):
+                        markdownInlineText(content)
+                            .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                            .foregroundColor(themeManager.currentTheme.textColor)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+            .lineSpacing(4)
+        }
+    }
+
+    private func markdownInlineText(_ text: String) -> Text {
+        if let markdown = try? AttributedString(
+            markdown: text,
+            options: AttributedString.MarkdownParsingOptions(
+                interpretedSyntax: .inlineOnlyPreservingWhitespace,
+                failurePolicy: .returnPartiallyParsedIfPossible
+            )
+        ) {
+            return Text(markdown)
+        }
+
+        return Text(text)
+    }
+
+    private func headingFont(for level: Int) -> Font {
+        let design: Font.Design = themeManager.currentTheme.useMonospacedFont ? .monospaced : .default
+
+        switch level {
+        case 1:
+            return .system(.title3, design: design, weight: .bold)
+        case 2:
+            return .system(.headline, design: design, weight: .bold)
+        default:
+            return .system(.subheadline, design: design, weight: .semibold)
+        }
+    }
+
+    private func summaryBlocks(from text: String) -> [SummaryBlock] {
+        var blocks: [SummaryBlock] = []
+        var paragraphLines: [String] = []
+
+        func flushParagraph() {
+            let paragraph = paragraphLines
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .joined(separator: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            guard !paragraph.isEmpty else {
+                paragraphLines.removeAll()
+                return
+            }
+
+            blocks.append(.paragraph(paragraph))
+            paragraphLines.removeAll()
+        }
+
+        for rawLine in text.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+
+            if line.isEmpty {
+                flushParagraph()
+                continue
+            }
+
+            if let heading = parseHeading(from: line) {
+                flushParagraph()
+                blocks.append(heading)
+                continue
+            }
+
+            if let bullet = parseBullet(from: line) {
+                flushParagraph()
+                blocks.append(.bullet(bullet))
+                continue
+            }
+
+            paragraphLines.append(line)
+        }
+
+        flushParagraph()
+        return blocks
+    }
+
+    private func parseHeading(from line: String) -> SummaryBlock? {
+        let hashes = line.prefix { $0 == "#" }
+        let level = hashes.count
+
+        guard (1...6).contains(level) else { return nil }
+
+        let content = line.dropFirst(level).trimmingCharacters(in: .whitespaces)
+        guard !content.isEmpty else { return nil }
+
+        return .heading(content, level: level)
+    }
+
+    private func parseBullet(from line: String) -> String? {
+        let prefixes = ["- ", "* ", "• "]
+
+        for prefix in prefixes where line.hasPrefix(prefix) {
+            let content = String(line.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
+            if !content.isEmpty {
+                return content
+            }
+        }
+
+        return nil
     }
 
     private func getMeetingTitle() -> String {
@@ -1410,6 +1543,12 @@ struct MeetingDetailView: View {
         // Reuse existing retry logic which handles on-device processing
         await performRetryTranscription()
     }
+}
+
+private enum SummaryBlock {
+    case heading(String, level: Int)
+    case bullet(String)
+    case paragraph(String)
 }
 
 // MARK: - Reusable Card Component

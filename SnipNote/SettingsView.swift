@@ -33,6 +33,7 @@ struct SettingsView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var minutesManager = MinutesManager.shared
+    @StateObject private var localTranscriptionManager = LocalTranscriptionManager.shared
     @Query private var meetings: [Meeting]
     @State private var showingLogoutConfirmation = false
     @State private var userUsage: UserUsage?
@@ -200,6 +201,82 @@ struct SettingsView: View {
                                  .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
                          )
                          .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
+
+                     VStack(alignment: .leading, spacing: 16) {
+                         Text("LOCAL TRANSCRIPTION")
+                             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+
+                         VStack(spacing: 16) {
+                             HStack {
+                                 VStack(alignment: .leading, spacing: 4) {
+                                     Text("Transcription Backend")
+                                         .themedBody()
+                                         .fontWeight(.bold)
+
+                                     Text(localTranscriptionManager.isLocalModeEnabled ? "Use downloaded Whisper models for transcription testing." : "Use the existing cloud pipeline exactly as it works today.")
+                                         .themedCaption()
+                                 }
+
+                                 Spacer()
+
+                                 Picker("Transcription Backend", selection: Binding(
+                                     get: { localTranscriptionManager.transcriptionMode },
+                                     set: { localTranscriptionManager.setTranscriptionMode($0) }
+                                 )) {
+                                     ForEach(TranscriptionMode.allCases) { mode in
+                                         Text(mode.displayName).tag(mode)
+                                     }
+                                 }
+                                 .pickerStyle(.segmented)
+                                 .frame(width: 150)
+                             }
+
+                             if localTranscriptionManager.isLocalModeEnabled {
+                                 VStack(alignment: .leading, spacing: 10) {
+                                     Text("Downloaded models")
+                                         .themedCaption()
+                                         .fontWeight(.semibold)
+
+                                     ForEach(LocalTranscriptionModel.allCases) { model in
+                                         LocalModelCard(
+                                             model: model,
+                                             isSelected: localTranscriptionManager.selectedModel == model,
+                                             status: localTranscriptionManager.modelStatuses[model] ?? .checking,
+                                             onSelect: {
+                                                 localTranscriptionManager.setSelectedModel(model)
+                                             },
+                                             onDownload: {
+                                                 Task {
+                                                     await localTranscriptionManager.download(model)
+                                                 }
+                                             },
+                                             onDelete: {
+                                                 Task {
+                                                     await localTranscriptionManager.delete(model)
+                                                 }
+                                             }
+                                         )
+                                     }
+
+                                     Text("If local mode is enabled and the selected model is missing, new recordings and transcriptions will stop and ask you to install it here.")
+                                         .themedCaption()
+                                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                                 }
+                             }
+                         }
+                         .padding()
+                         .background(themeManager.currentTheme.materialStyle)
+                         .cornerRadius(themeManager.currentTheme.cornerRadius)
+                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+                     }
+                     .padding(.horizontal, 10)
+                     .padding(.vertical, 12)
+                     .background(
+                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
+                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
+                     )
+                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
 
                      // APPEARANCE SECTION
                      VStack(alignment: .leading, spacing: 16) {
@@ -480,6 +557,7 @@ struct SettingsView: View {
         .onAppear {
             fetchUsageStats()
             Task { await minutesManager.refreshBalance() }
+            Task { await localTranscriptionManager.refreshModelStatuses() }
         }
     }
 
@@ -889,6 +967,118 @@ struct SupportGuideline: View {
                 .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
                 .foregroundColor(themeManager.currentTheme.textColor)
                 .lineSpacing(4)
+        }
+    }
+}
+
+struct LocalModelCard: View {
+    let model: LocalTranscriptionModel
+    let isSelected: Bool
+    let status: LocalModelStatus
+    let onSelect: () -> Void
+    let onDownload: () -> Void
+    let onDelete: () -> Void
+
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(model.displayName)
+                            .themedBody()
+                            .fontWeight(.bold)
+
+                        if isSelected {
+                            Text("Selected")
+                                .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                                .foregroundColor(themeManager.currentTheme.accentColor)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(themeManager.currentTheme.accentColor.opacity(0.14))
+                                .clipShape(Capsule())
+                        }
+                    }
+
+                    Text("\(model.approximateSizeDescription) • \(model.detailText)")
+                        .themedCaption()
+
+                    Text(status.statusText)
+                        .themedCaption()
+                        .foregroundColor(statusColor)
+                }
+
+                Spacer()
+            }
+
+            if case .downloading(let progress) = status {
+                ProgressView(value: progress)
+                    .tint(themeManager.currentTheme.accentColor)
+            }
+
+            HStack(spacing: 10) {
+                Button(isSelected ? "Selected" : "Use This Model") {
+                    onSelect()
+                }
+                .disabled(isSelected)
+                .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(isSelected ? themeManager.currentTheme.secondaryTextColor.opacity(0.45) : themeManager.currentTheme.accentColor)
+                .cornerRadius(themeManager.currentTheme.cornerRadius)
+
+                switch status {
+                case .installed:
+                    Button("Delete") {
+                        onDelete()
+                    }
+                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.destructiveColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(themeManager.currentTheme.destructiveColor.opacity(0.12))
+                    .cornerRadius(themeManager.currentTheme.cornerRadius)
+                case .downloading:
+                    Button("Downloading") { }
+                        .disabled(true)
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(themeManager.currentTheme.secondaryTextColor.opacity(0.12))
+                        .cornerRadius(themeManager.currentTheme.cornerRadius)
+                default:
+                    Button("Download") {
+                        onDownload()
+                    }
+                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                    .foregroundColor(themeManager.currentTheme.accentColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(themeManager.currentTheme.accentColor.opacity(0.12))
+                    .cornerRadius(themeManager.currentTheme.cornerRadius)
+                }
+            }
+        }
+        .padding(14)
+        .background(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.38 : 0.12))
+        .overlay(
+            RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius)
+                .stroke(isSelected ? themeManager.currentTheme.accentColor.opacity(0.55) : Color.clear, lineWidth: 1)
+        )
+        .cornerRadius(themeManager.currentTheme.cornerRadius)
+    }
+
+    private var statusColor: Color {
+        switch status {
+        case .installed:
+            return themeManager.currentTheme.accentColor
+        case .failed:
+            return themeManager.currentTheme.destructiveColor
+        default:
+            return themeManager.currentTheme.secondaryTextColor
         }
     }
 }

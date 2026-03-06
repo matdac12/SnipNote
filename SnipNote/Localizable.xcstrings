@@ -13,6 +13,16 @@
     "%" : {
 
     },
+    "%@ • %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ • %2$@"
+          }
+        }
+      }
+    },
     "%@×" : {
 
     },
@@ -186,26 +196,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Note vocali intelligenti con estrazione automatica di azioni. Trasforma le tue riunioni in insight utilizzabili."
-          }
-        }
-      }
-    },
-    "Keep SnipNote open while uploading." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tieni SnipNote aperta durante il caricamento."
-          }
-        }
-      }
-    },
-    "Upload complete. You can close the app." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Caricamento completato. Puoi chiudere l'app."
           }
         }
       }
@@ -598,6 +588,9 @@
     "Current Balance" : {
 
     },
+    "Delete" : {
+
+    },
     "DEVELOPER" : {
 
     },
@@ -626,6 +619,15 @@
           }
         }
       }
+    },
+    "Download" : {
+
+    },
+    "Downloaded models" : {
+
+    },
+    "Downloading" : {
+
     },
     "Duration: %@" : {
 
@@ -791,6 +793,9 @@
         }
       }
     },
+    "If local mode is enabled and the selected model is missing, new recordings and transcriptions will stop and ask you to install it here." : {
+
+    },
     "If you're experiencing issues or have questions:" : {
 
     },
@@ -813,6 +818,16 @@
     },
     "Jot down talking points, decisions to make, or context for Eve." : {
 
+    },
+    "Keep SnipNote open while uploading." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni SnipNote aperta durante il caricamento."
+          }
+        }
+      }
     },
     "language.option.english" : {
       "extractionState" : "manual",
@@ -883,6 +898,12 @@
       }
     },
     "Loading subscription options..." : {
+
+    },
+    "Local Model Required" : {
+
+    },
+    "LOCAL TRANSCRIPTION" : {
 
     },
     "Making great progress!" : {
@@ -1425,9 +1446,6 @@
     "Search meetings, transcripts..." : {
 
     },
-    "Select a meeting" : {
-
-    },
     "Select meeting date" : {
       "localizations" : {
         "it" : {
@@ -1437,6 +1455,9 @@
           }
         }
       }
+    },
+    "Selected" : {
+
     },
     "Server Transcription" : {
       "extractionState" : "stale",
@@ -2684,6 +2705,9 @@
         }
       }
     },
+    "Transcription Backend" : {
+
+    },
     "Transcription Failed" : {
 
     },
@@ -2712,6 +2736,16 @@
     "Upgrade Now" : {
 
     },
+    "Upload complete. You can close the app." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caricamento completato. Puoi chiudere l'app."
+          }
+        }
+      }
+    },
     "Uploading to server..." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2733,6 +2767,15 @@
           }
         }
       }
+    },
+    "Use downloaded Whisper models for transcription testing." : {
+
+    },
+    "Use the existing cloud pipeline exactly as it works today." : {
+
+    },
+    "Use This Model" : {
+
     },
     "VERSION" : {
 

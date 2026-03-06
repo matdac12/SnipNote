@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		4932D5C42E7867CD00769B1D /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4932D5C32E7867CD00769B1D /* StoreKit.framework */; };
 		4976E7522E240927000394DC /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 4976E7512E240927000394DC /* Supabase */; };
+		49B6A1012FBD100100AA1101 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 49B6A1032FBD100100AA1101 /* WhisperKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,6 +73,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4976E7522E240927000394DC /* Supabase in Frameworks */,
+				49B6A1012FBD100100AA1101 /* WhisperKit in Frameworks */,
 				4932D5C42E7867CD00769B1D /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -143,6 +145,7 @@
 			name = SnipNote;
 			packageProductDependencies = (
 				4976E7512E240927000394DC /* Supabase */,
+				49B6A1032FBD100100AA1101 /* WhisperKit */,
 			);
 			productName = SnipNote;
 			productReference = 4961E7262E0D7A090099EE31 /* SnipNote.app */;
@@ -229,6 +232,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				49EA9B3A2E2407C000DFDFF5 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				49B6A1022FBD100100AA1101 /* XCRemoteSwiftPackageReference "WhisperKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4961E7272E0D7A090099EE31 /* Products */;
@@ -615,6 +619,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		49B6A1022FBD100100AA1101 /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/WhisperKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
 		49EA9B3A2E2407C000DFDFF5 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/supabase/supabase-swift.git";
@@ -626,6 +638,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		49B6A1032FBD100100AA1101 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 49B6A1022FBD100100AA1101 /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = WhisperKit;
+		};
 		4976E7512E240927000394DC /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 49EA9B3A2E2407C000DFDFF5 /* XCRemoteSwiftPackageReference "supabase-swift" */;

@@ -47,6 +47,7 @@ struct CreateMeetingView: View {
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var minutesManager = MinutesManager.shared
     @StateObject private var backgroundTaskManager = BackgroundTaskManager.shared
+    @StateObject private var localTranscriptionManager = LocalTranscriptionManager.shared
     @Query private var allMeetings: [Meeting]
     
     @State private var meetingName = ""
@@ -114,6 +115,8 @@ struct CreateMeetingView: View {
 
     // Cancellation state
     @State private var showingCancelConfirmation = false
+    @State private var showingLocalTranscriptionAlert = false
+    @State private var localTranscriptionAlertMessage = ""
 
     // Server transcription service
     @StateObject private var transcriptionService = RenderTranscriptionService()
@@ -1140,6 +1143,11 @@ struct CreateMeetingView: View {
         } message: {
             Text("Please enter the name of the meeting")
         }
+        .alert("Local Model Required", isPresented: $showingLocalTranscriptionAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(localTranscriptionAlertMessage)
+        }
         .alert("Cancel Transcription?", isPresented: $showingCancelConfirmation) {
             Button("Cancel Transcription", role: .destructive) {
                 cancelTranscription()
@@ -1252,6 +1260,16 @@ struct CreateMeetingView: View {
         let durationMinutes = Int(cachedAudioDuration / 60)
         let durationSeconds = Int(cachedAudioDuration)
 
+        guard validateLocalTranscriptionAvailability() else {
+            return
+        }
+
+        if localTranscriptionManager.isLocalModeEnabled {
+            print("🧠 Local transcription enabled - using downloaded model")
+            processOnDevice(audioURL: audioURL)
+            return
+        }
+
         if cachedAudioDuration <= 300 {
             // 5 minutes or less: use on-device for speed
             print("📱 Auto-selected on-device transcription (duration: \(durationMinutes)m \(durationSeconds % 60)s)")
@@ -1314,7 +1332,7 @@ struct CreateMeetingView: View {
         Task {
             do {
                 // Use the chunked transcription method
-                let transcript = try await openAIService.transcribeAudioFromURL(
+                let transcript = try await TranscriptionRouter.shared.transcribeAudioFromURL(
                     audioURL: audioURL,
                     progressCallback: { progress in
                         Task { @MainActor in
@@ -1730,7 +1748,7 @@ struct CreateMeetingView: View {
         
         Task {
             do {
-                let transcript = try await openAIService.transcribeAudioFromURL(
+                let transcript = try await TranscriptionRouter.shared.transcribeAudioFromURL(
                     audioURL: recordingURL,
                     progressCallback: { progress in
                         Task { @MainActor in
@@ -1755,7 +1773,8 @@ struct CreateMeetingView: View {
                         }
                     },
                     meetingName: meetingNameTrimmed.isEmpty ? "Untitled Meeting" : meetingNameTrimmed,
-                    meetingId: createdMeetingId
+                    meetingId: createdMeetingId,
+                    language: selectedLanguage
                 )
                 
                 // Debit minutes for transcription
@@ -2050,6 +2069,10 @@ struct CreateMeetingView: View {
             return
         }
 
+        guard validateLocalTranscriptionAvailability() else {
+            return
+        }
+
         meetingNameTouched = true
 
         guard !meetingNameTrimmed.isEmpty else {
@@ -2100,6 +2123,20 @@ struct CreateMeetingView: View {
         countdownTimer = nil
         showingCountdown = false
         countdownValue = 3
+    }
+
+    private func validateLocalTranscriptionAvailability() -> Bool {
+        guard localTranscriptionManager.isLocalModeEnabled else {
+            return true
+        }
+
+        guard localTranscriptionManager.isSelectedModelInstalled else {
+            localTranscriptionAlertMessage = "Local transcription is enabled, but the selected model is not installed. Download it in Settings > Local Transcription or switch back to Cloud mode."
+            showingLocalTranscriptionAlert = true
+            return false
+        }
+
+        return true
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {

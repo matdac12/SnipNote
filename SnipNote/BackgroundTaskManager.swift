@@ -233,7 +233,7 @@ class BackgroundTaskManager: ObservableObject {
         }
 
         do {
-            let transcript = try await OpenAIService.shared.transcribeAudioFromURL(
+            let transcript = try await TranscriptionRouter.shared.transcribeAudioFromURL(
                 audioURL: audioURL,
                 progressCallback: { progress in
                     Task { @MainActor in

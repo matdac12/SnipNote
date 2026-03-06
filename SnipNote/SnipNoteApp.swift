@@ -36,14 +36,11 @@ struct SystemColorSchemeObserver<Content: View>: View {
 @main
 struct SnipNoteApp: App {
     @State private var sharedAudioImportRequest: SharedAudioImportRequest?
-    @State private var showResumeAlert = false
-    @State private var pausedMeetingInfo: [String: Any]?
     @Environment(\.scenePhase) private var scenePhase
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var themeManager = ThemeManager.shared
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var localizationManager = LocalizationManager.shared
-    @StateObject private var backgroundTaskManager = BackgroundTaskManager.shared
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -93,26 +90,9 @@ struct SnipNoteApp: App {
                     await MinutesManager.shared.handleAppLaunch()
                 }
             }
-            .alert("Continue Transcription?", isPresented: $showResumeAlert) {
-                    Button("Yes") {
-                        handleResumeTranscription(resume: true)
-                    }
-                    Button("No", role: .cancel) {
-                        handleResumeTranscription(resume: false)
-                    }
-                } message: {
-                    if let info = pausedMeetingInfo,
-                       let meetingName = info["meetingName"] as? String {
-                        Text("Continue transcribing '\(meetingName)'?")
-                    } else {
-                        Text("Continue your paused transcription?")
-                    }
-                }
-                .onChange(of: scenePhase) { oldPhase, newPhase in
-                    if newPhase == .active {
-                        checkForPausedTranscriptions()
-                    }
-                }
+            .onChange(of: scenePhase) { _, newPhase in
+                BackgroundTaskManager.shared.handleScenePhaseChange(newPhase)
+            }
         }
         .modelContainer(sharedModelContainer)
     }
@@ -143,35 +123,6 @@ struct SnipNoteApp: App {
         }
     }
     
-    private func checkForPausedTranscriptions() {
-        if let pauseInfo = backgroundTaskManager.checkForPausedTranscription() {
-            pausedMeetingInfo = pauseInfo
-            showResumeAlert = true
-        }
-    }
-
-    private func handleResumeTranscription(resume: Bool) {
-        guard let info = pausedMeetingInfo,
-              let meetingIdString = info["meetingId"] as? String,
-              let meetingId = UUID(uuidString: meetingIdString) else {
-            print("⚠️ [App] Invalid paused meeting info")
-            return
-        }
-
-        if resume {
-            print("▶️ [App] User chose to resume transcription for meeting \(meetingId)")
-            // Clear pause state - CreateMeetingView will handle the resume
-            _ = backgroundTaskManager.resumePausedTranscription(meetingId: meetingId)
-
-            // Note: The actual resume logic will need to be handled in CreateMeetingView
-            // when it detects the meeting is in a paused state
-        } else {
-            print("🚫 [App] User chose to cancel paused transcription")
-            backgroundTaskManager.cancelPausedTranscription(meetingId: meetingId)
-        }
-
-        pausedMeetingInfo = nil
-    }
 }
 
 extension URL {

@@ -88,7 +88,7 @@ class MeetingSyncService: ObservableObject {
 
         if let existingMeeting = try context.fetch(descriptor).first {
             // Skip if meeting is actively processing locally
-            if existingMeeting.isProcessing {
+            if existingMeeting.isProcessing || existingMeeting.isPausedLocalJob {
                 print("⏭️ [Sync] Skipping '\(existingMeeting.name)' - currently processing")
                 return .skipped
             }
@@ -175,7 +175,7 @@ class MeetingSyncService: ObservableObject {
         for localMeeting in allLocalMeetings {
             if !remoteMeetingIds.contains(localMeeting.id) {
                 // Skip if meeting is actively processing (don't delete work in progress)
-                if localMeeting.isProcessing {
+                if localMeeting.isProcessing || localMeeting.isPausedLocalJob {
                     print("⏭️ [Sync] Not deleting '\(localMeeting.name)' - currently processing")
                     continue
                 }

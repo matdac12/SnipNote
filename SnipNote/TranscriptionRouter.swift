@@ -20,7 +20,10 @@ final class TranscriptionRouter {
         progressCallback: @escaping @Sendable (AudioChunkerProgress) -> Void,
         meetingName: String = "",
         meetingId: UUID? = nil,
-        language: String? = nil
+        language: String? = nil,
+        localModel: LocalTranscriptionModel? = nil,
+        localResumeCompletedChunks: Int = 0,
+        localExistingTranscript: String? = nil
     ) async throws -> String {
         let mode = await MainActor.run { LocalTranscriptionManager.shared.transcriptionMode }
 
@@ -34,11 +37,18 @@ final class TranscriptionRouter {
                 language: language
             )
         case .local:
-            let model = await MainActor.run { LocalTranscriptionManager.shared.selectedModel }
+            let model: LocalTranscriptionModel
+            if let localModel {
+                model = localModel
+            } else {
+                model = await MainActor.run { LocalTranscriptionManager.shared.selectedModel }
+            }
             return try await localService.transcribeAudio(
                 from: audioURL,
                 model: model,
                 language: language,
+                resumeFromCompletedChunks: localResumeCompletedChunks,
+                existingTranscript: localExistingTranscript,
                 progressCallback: progressCallback
             )
         }

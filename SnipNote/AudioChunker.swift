@@ -286,6 +286,7 @@ class AudioChunker {
     /// - Returns: AsyncThrowingStream that yields AudioChunks one at a time
     static func streamChunks(
         from audioURL: URL,
+        startAtChunkIndex: Int = 0,
         progressCallback: @escaping (AudioChunkerProgress) -> Void
     ) -> AsyncThrowingStream<AudioChunk, Error> {
         return AsyncThrowingStream { continuation in
@@ -343,6 +344,7 @@ class AudioChunker {
                     try await streamAudioChunks(
                         from: audioURL,
                         fileSize: fileSize,
+                        startAtChunkIndex: startAtChunkIndex,
                         progressCallback: progressCallback,
                         continuation: continuation
                     )
@@ -360,6 +362,7 @@ class AudioChunker {
     private static func streamAudioChunks(
         from audioURL: URL,
         fileSize: UInt64,
+        startAtChunkIndex: Int,
         progressCallback: @escaping (AudioChunkerProgress) -> Void,
         continuation: AsyncThrowingStream<AudioChunk, Error>.Continuation
     ) async throws {
@@ -372,11 +375,11 @@ class AudioChunker {
         let targetChunkDuration = Double(maxChunkSizeBytes) / avgBytesPerSecond
         let chunkDuration = max(targetChunkDuration, 60.0)
 
-        var currentTime: TimeInterval = 0
-        var chunkIndex = 0
-
         // Estimate total chunks
         let estimatedChunks = Int(ceil(totalDuration / chunkDuration))
+        let safeStartChunkIndex = min(max(0, startAtChunkIndex), max(estimatedChunks - 1, 0))
+        var currentTime: TimeInterval = min(Double(safeStartChunkIndex) * chunkDuration, totalDuration)
+        var chunkIndex = safeStartChunkIndex
 
         while currentTime < totalDuration {
             // Check for cancellation

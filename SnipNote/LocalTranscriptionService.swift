@@ -130,6 +130,8 @@ actor LocalTranscriptionService {
         from audioURL: URL,
         model: LocalTranscriptionModel,
         language: String?,
+        resumeFromCompletedChunks: Int = 0,
+        existingTranscript: String? = nil,
         progressCallback: @escaping @Sendable (AudioChunkerProgress) -> Void
     ) async throws -> String {
         #if canImport(WhisperKit)
@@ -154,7 +156,7 @@ actor LocalTranscriptionService {
             ))
 
             let result = try await whisperKit.transcribe(audioPath: audioURL.path, decodeOptions: decodeOptions)
-            let transcript = sanitizeTranscript(result
+            let transcript = Self.sanitizeTranscript(result
                 .map(\.text)
                 .joined(separator: " ")
                 .trimmingCharacters(in: .whitespacesAndNewlines))
@@ -174,17 +176,34 @@ actor LocalTranscriptionService {
             return transcript
         }
 
-        var chunkNumber = 0
+        let safeCompletedChunks = max(0, resumeFromCompletedChunks)
+        var chunkNumber = safeCompletedChunks
         var totalChunks = 1
         var transcripts: [String] = []
 
+        if let existingTranscript {
+            let sanitizedExisting = Self.sanitizeTranscript(existingTranscript)
+            if !sanitizedExisting.isEmpty {
+                transcripts.append(sanitizedExisting)
+            }
+        }
+
         for try await chunk in AudioChunker.streamChunks(
             from: audioURL,
+            startAtChunkIndex: safeCompletedChunks,
             progressCallback: { progress in
+                let stageDescription: String
+                if safeCompletedChunks > 0,
+                   progress.currentStage.hasPrefix("Creating audio chunk") {
+                    stageDescription = "Resuming from chunk \(progress.currentChunk) of \(progress.totalChunks)"
+                } else {
+                    stageDescription = progress.currentStage
+                }
+
                 progressCallback(AudioChunkerProgress(
                     currentChunk: progress.currentChunk,
                     totalChunks: progress.totalChunks,
-                    currentStage: progress.currentStage,
+                    currentStage: stageDescription,
                     percentComplete: progress.percentComplete * 0.1,
                     partialTranscript: progress.partialTranscript
                 ))
@@ -211,7 +230,7 @@ actor LocalTranscriptionService {
             defer { try? fileManager.removeItem(at: chunkURL) }
 
             let result = try await whisperKit.transcribe(audioPath: chunkURL.path, decodeOptions: decodeOptions)
-            let transcript = sanitizeTranscript(result
+            let transcript = Self.sanitizeTranscript(result
                 .map(\.text)
                 .joined(separator: " ")
                 .trimmingCharacters(in: .whitespacesAndNewlines))
@@ -233,7 +252,7 @@ actor LocalTranscriptionService {
             ))
         }
 
-        let mergedTranscript = sanitizeTranscript(mergeChunkTranscripts(transcripts))
+        let mergedTranscript = Self.sanitizeTranscript(Self.mergeChunkTranscripts(transcripts))
         guard !mergedTranscript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw LocalTranscriptionError.emptyTranscript
         }
@@ -250,6 +269,20 @@ actor LocalTranscriptionService {
         #else
         throw LocalTranscriptionError.whisperKitUnavailable
         #endif
+    }
+
+    nonisolated static func mergePartialTranscript(_ existing: String, with next: String) -> String {
+        let sanitizedExisting = sanitizeTranscript(existing)
+        let sanitizedNext = sanitizeTranscript(next)
+
+        guard !sanitizedExisting.isEmpty else { return sanitizedNext }
+        guard !sanitizedNext.isEmpty else { return sanitizedExisting }
+
+        let deduplicated = trimOverlapBetween(sanitizedExisting, next: sanitizedNext)
+        guard !deduplicated.isEmpty else { return sanitizedExisting }
+
+        let separator = sanitizedExisting.last?.isWhitespace == true ? "" : " "
+        return sanitizeTranscript(sanitizedExisting + separator + deduplicated)
     }
 
     #if canImport(WhisperKit)
@@ -443,7 +476,7 @@ actor LocalTranscriptionService {
     }
     #endif
 
-    private func mergeChunkTranscripts(_ transcripts: [String]) -> String {
+    private static func mergeChunkTranscripts(_ transcripts: [String]) -> String {
         guard let firstNonEmptyIndex = transcripts.firstIndex(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
             return ""
         }
@@ -463,7 +496,7 @@ actor LocalTranscriptionService {
         return merged
     }
 
-    private func sanitizeTranscript(_ transcript: String) -> String {
+    private static func sanitizeTranscript(_ transcript: String) -> String {
         let artifactPatterns = [
             "\\[BLANK_AUDIO\\]",
             "\\[MUSIC\\]",
@@ -485,7 +518,7 @@ actor LocalTranscriptionService {
         return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func trimOverlapBetween(_ previous: String, next: String) -> String {
+    private static func trimOverlapBetween(_ previous: String, next: String) -> String {
         let maxOverlapCharacters = 200
         let minOverlapCharacters = 20
         let sanitizedPrevious = previous.trimmingCharacters(in: .whitespacesAndNewlines)

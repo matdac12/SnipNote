@@ -8,6 +8,49 @@
 import Foundation
 import SwiftData
 
+enum TranscriptionBackend: String, Codable, CaseIterable {
+    case cloud
+    case local
+}
+
+enum MeetingProcessingPhase: String, Codable, CaseIterable {
+    case idle
+    case queued
+    case preparing
+    case transcribing
+    case generatingOverview = "generating_overview"
+    case generatingSummary = "generating_summary"
+    case extractingActions = "extracting_actions"
+    case paused
+    case failed
+    case completed
+
+    var displayName: String {
+        switch self {
+        case .idle:
+            return "Idle"
+        case .queued:
+            return "Queued"
+        case .preparing:
+            return "Preparing"
+        case .transcribing:
+            return "Transcribing"
+        case .generatingOverview:
+            return "Generating Overview"
+        case .generatingSummary:
+            return "Generating Summary"
+        case .extractingActions:
+            return "Extracting Actions"
+        case .paused:
+            return "Paused"
+        case .failed:
+            return "Failed"
+        case .completed:
+            return "Completed"
+        }
+    }
+}
+
 enum ProcessingState: String, Codable, CaseIterable {
     case pending = "pending"
     case transcribing = "transcribing"
@@ -53,6 +96,17 @@ final class Meeting {
     var totalChunks: Int = 0
     var localAudioPath: String? // Path to local audio file for retry
     var transcriptionJobId: String? // Async transcription job ID for server-side processing
+    var transcriptionBackendRaw: String?
+    var localTranscriptionModelRaw: String?
+    var transcriptionLanguage: String?
+    var processingPhaseRaw: String = MeetingProcessingPhase.idle.rawValue
+    var progressPercent: Double = 0
+    var currentStageDescription: String?
+    var pausedAt: Date?
+    var pauseReason: String?
+    var resumePhaseRaw: String?
+    var sourceAudioDurationSeconds: Double = 0
+    var didDebitTranscriptionMinutes: Bool = false
 
     // Computed property for processing state
     var processingState: ProcessingState {
@@ -64,9 +118,57 @@ final class Meeting {
         }
     }
 
+    var transcriptionBackend: TranscriptionBackend? {
+        get {
+            transcriptionBackendRaw.flatMap(TranscriptionBackend.init(rawValue:))
+        }
+        set {
+            transcriptionBackendRaw = newValue?.rawValue
+        }
+    }
+
+    var localTranscriptionModel: LocalTranscriptionModel? {
+        get {
+            localTranscriptionModelRaw.flatMap(LocalTranscriptionModel.init(rawValue:))
+        }
+        set {
+            localTranscriptionModelRaw = newValue?.rawValue
+        }
+    }
+
+    var processingPhase: MeetingProcessingPhase {
+        get {
+            MeetingProcessingPhase(rawValue: processingPhaseRaw) ?? .idle
+        }
+        set {
+            processingPhaseRaw = newValue.rawValue
+        }
+    }
+
+    var resumePhase: MeetingProcessingPhase {
+        get {
+            resumePhaseRaw.flatMap(MeetingProcessingPhase.init(rawValue:)) ?? .transcribing
+        }
+        set {
+            resumePhaseRaw = newValue.rawValue
+        }
+    }
+
     // Computed property - true when actively processing
     var isProcessing: Bool {
         processingState == .transcribing || processingState == .generatingSummary
+    }
+
+    var isLocalJob: Bool {
+        transcriptionBackend == .local
+    }
+
+    var isPausedLocalJob: Bool {
+        isLocalJob && processingPhase == .paused
+    }
+
+    var canResumeLocalJob: Bool {
+        isPausedLocalJob && localAudioPath != nil
     }
     
     // Computed property for duration
@@ -103,6 +205,17 @@ final class Meeting {
         self.totalChunks = 0
         self.localAudioPath = nil
         self.transcriptionJobId = nil
+        self.transcriptionBackendRaw = nil
+        self.localTranscriptionModelRaw = nil
+        self.transcriptionLanguage = nil
+        self.processingPhaseRaw = MeetingProcessingPhase.idle.rawValue
+        self.progressPercent = 0
+        self.currentStageDescription = nil
+        self.pausedAt = nil
+        self.pauseReason = nil
+        self.resumePhaseRaw = nil
+        self.sourceAudioDurationSeconds = 0
+        self.didDebitTranscriptionMinutes = false
     }
     
     func startRecording() {
@@ -143,9 +256,114 @@ final class Meeting {
         dateModified = Date()
     }
 
+    func configureTranscriptionJob(
+        backend: TranscriptionBackend,
+        model: LocalTranscriptionModel? = nil,
+        language: String?,
+        sourceAudioDuration: TimeInterval
+    ) {
+        transcriptionBackend = backend
+        localTranscriptionModel = model
+        transcriptionLanguage = language
+        sourceAudioDurationSeconds = sourceAudioDuration
+        didDebitTranscriptionMinutes = false
+        pausedAt = nil
+        pauseReason = nil
+        resumePhaseRaw = nil
+        dateModified = Date()
+    }
+
+    func updateProcessingPhase(
+        _ phase: MeetingProcessingPhase,
+        stage: String? = nil,
+        progressPercent: Double? = nil
+    ) {
+        processingPhase = phase
+        currentStageDescription = stage
+        if let progressPercent {
+            self.progressPercent = progressPercent
+        }
+        if phase != .paused {
+            pausedAt = nil
+            pauseReason = nil
+            resumePhaseRaw = nil
+        }
+        dateModified = Date()
+    }
+
+    func updateDetailedProgress(
+        completed: Int,
+        total: Int,
+        percent: Double,
+        stage: String?
+    ) {
+        lastProcessedChunk = completed
+        totalChunks = total
+        progressPercent = percent
+        currentStageDescription = stage
+        processingPhase = .transcribing
+        processingState = .transcribing
+        pausedAt = nil
+        pauseReason = nil
+        resumePhaseRaw = nil
+        dateModified = Date()
+    }
+
+    func markLocalJobPaused(reason: String, stage: String? = nil) {
+        processingError = reason
+        processingState = .failed
+        resumePhase = processingPhase
+        processingPhase = .paused
+        currentStageDescription = stage ?? reason
+        pauseReason = reason
+        pausedAt = Date()
+        dateModified = Date()
+    }
+
+    func markLocalJobFailed(_ error: String, stage: String? = nil) {
+        processingError = error
+        processingState = .failed
+        processingPhase = .failed
+        currentStageDescription = stage ?? error
+        pausedAt = nil
+        pauseReason = nil
+        resumePhaseRaw = nil
+        dateModified = Date()
+    }
+
+    func markLocalJobCompleted(stage: String = "Completed") {
+        processingPhase = .completed
+        currentStageDescription = stage
+        progressPercent = 100
+        pausedAt = nil
+        pauseReason = nil
+        resumePhaseRaw = nil
+        markCompleted()
+    }
+
     var progressPercentage: Double {
         guard totalChunks > 0 else { return 0 }
         return Double(lastProcessedChunk) / Double(totalChunks) * 100.0
+    }
+
+    var displayedProgressPercent: Double {
+        progressPercent > 0 ? progressPercent : progressPercentage
+    }
+
+    var billingDuration: TimeInterval {
+        sourceAudioDurationSeconds > 0 ? sourceAudioDurationSeconds : duration
+    }
+
+    var effectiveStageDescription: String {
+        if let currentStageDescription, !currentStageDescription.isEmpty {
+            return currentStageDescription
+        }
+
+        if isPausedLocalJob, let pauseReason, !pauseReason.isEmpty {
+            return pauseReason
+        }
+
+        return processingPhase.displayName
     }
 
     var hasTranscriptContent: Bool {
@@ -161,10 +379,18 @@ final class Meeting {
     }
 
     var canRetryAnalysis: Bool {
-        processingState == .failed && hasTranscriptContent && localAudioPath != nil
+        let overviewPending = shortSummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || shortSummary == "Generating overview..."
+            || shortSummary == "AI overview unavailable"
+        let summaryPending = aiSummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || aiSummary == "Generating meeting summary..."
+        return processingState == .failed
+            && hasTranscriptContent
+            && localAudioPath != nil
+            && (overviewPending || summaryPending)
     }
 
     var canRetry: Bool {
-        return processingState == .failed && localAudioPath != nil
+        return (processingState == .failed || isPausedLocalJob) && localAudioPath != nil
     }
 }

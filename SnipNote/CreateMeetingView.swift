@@ -1335,6 +1335,30 @@ struct CreateMeetingView: View {
             return
         }
 
+        if localTranscriptionManager.isLocalModeEnabled {
+            print("🧠 Starting persistent local transcription job: \(audioURL)")
+            createProcessingMeeting(sourceAudioDuration: cachedAudioDuration, transcriptionBackend: .local)
+
+            Task {
+                let duration = Int(cachedAudioDuration)
+                await UsageTracker.shared.trackMeetingCreated(transcribed: false, meetingSeconds: duration)
+            }
+
+            if let meeting = createdMeeting, let meetingId = createdMeetingId {
+                onMeetingCreated?(meeting)
+
+                Task {
+                    await LocalTranscriptionJobManager.shared.startJob(
+                        meetingId: meetingId,
+                        audioURL: audioURL,
+                        language: selectedLanguage,
+                        sourceAudioDuration: cachedAudioDuration
+                    )
+                }
+            }
+            return
+        }
+
         print("🎵 Starting on-device analysis: \(audioURL)")
         isProcessingAudio = true
         currentProcessingPhase = .transcribing
@@ -1351,7 +1375,7 @@ struct CreateMeetingView: View {
         liveSummary = ""
 
         // Create meeting immediately with form data
-        createProcessingMeeting()
+        createProcessingMeeting(sourceAudioDuration: cachedAudioDuration, transcriptionBackend: .cloud)
 
         // FIXED: Start background task AFTER meeting is created (so meetingId is available)
         if let meetingId = createdMeetingId {
@@ -1592,7 +1616,7 @@ struct CreateMeetingView: View {
         print("☁️ Starting server-side transcription: \(audioURL)")
 
         // Create meeting immediately
-        createProcessingMeeting()
+        createProcessingMeeting(sourceAudioDuration: cachedAudioDuration, transcriptionBackend: .cloud)
 
         guard let meeting = createdMeeting, let meetingId = createdMeetingId else {
             print("❌ Failed to create meeting for server transcription")
@@ -1776,7 +1800,10 @@ struct CreateMeetingView: View {
         hasFinishedRecording = true
 
         // Create meeting immediately with form data
-        createProcessingMeeting()
+        createProcessingMeeting(
+            sourceAudioDuration: recordingDuration,
+            transcriptionBackend: localTranscriptionManager.isLocalModeEnabled ? .local : .cloud
+        )
 
         // FIXED: Store recording path immediately for retry capability
         if let meeting = createdMeeting {
@@ -1786,6 +1813,27 @@ struct CreateMeetingView: View {
             } catch {
                 print("Error saving meeting with audio path: \(error)")
             }
+        }
+
+        if localTranscriptionManager.isLocalModeEnabled {
+            Task {
+                let duration = Int(recordingDuration)
+                await UsageTracker.shared.trackMeetingCreated(transcribed: false, meetingSeconds: duration)
+            }
+
+            if let meeting = createdMeeting, let meetingId = createdMeetingId {
+                onMeetingCreated?(meeting)
+
+                Task {
+                    await LocalTranscriptionJobManager.shared.startJob(
+                        meetingId: meetingId,
+                        audioURL: recordingURL,
+                        language: selectedLanguage,
+                        sourceAudioDuration: recordingDuration
+                    )
+                }
+            }
+            return
         }
 
         // Start background task for recorded audio transcription
@@ -1996,7 +2044,10 @@ struct CreateMeetingView: View {
         print("🚫 [CreateMeeting] Dismissed view")
     }
 
-    private func createProcessingMeeting() {
+    private func createProcessingMeeting(
+        sourceAudioDuration: TimeInterval,
+        transcriptionBackend: TranscriptionBackend
+    ) {
         let meeting = Meeting(
             name: meetingNameTrimmed.isEmpty ? "Untitled Meeting" : meetingNameTrimmed,
             location: meetingLocation,
@@ -2009,6 +2060,10 @@ struct CreateMeetingView: View {
 
         // Initialize processing state for new error handling
         meeting.updateProcessingState(.transcribing)
+        meeting.transcriptionBackend = transcriptionBackend
+        meeting.transcriptionLanguage = selectedLanguage
+        meeting.sourceAudioDurationSeconds = sourceAudioDuration
+        meeting.updateProcessingPhase(.queued, stage: "Starting transcription...", progressPercent: 0)
         meeting.clearProcessingError()
 
         // Set local audio path for imported audio

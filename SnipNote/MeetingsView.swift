@@ -381,8 +381,12 @@ struct MeetingRowView: View {
                         .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
                         .foregroundColor(theme.secondaryTextColor)
 
-                    if meeting.isProcessing {
-                        Text("Processing")
+                    if meeting.isPausedLocalJob {
+                        Text("Paused")
+                            .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                            .foregroundColor(theme.warningColor)
+                    } else if meeting.isProcessing {
+                        Text(meeting.isLocalJob ? "\(Int(meeting.displayedProgressPercent))%" : "Processing")
                             .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                             .foregroundColor(theme.warningColor)
                     }
@@ -391,6 +395,11 @@ struct MeetingRowView: View {
 
             if let preview = summaryPreview(maxLength: 92) {
                 Text(preview)
+                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(theme.secondaryTextColor)
+                    .lineLimit(1)
+            } else if meeting.isLocalJob && (meeting.isProcessing || meeting.isPausedLocalJob) {
+                Text(meeting.effectiveStageDescription)
                     .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
                     .foregroundColor(theme.secondaryTextColor)
                     .lineLimit(1)
@@ -415,7 +424,10 @@ struct MeetingRowView: View {
 
     private func summaryPreview(maxLength: Int) -> String? {
         let source: String
-        if !meeting.shortSummary.isEmpty {
+        if !meeting.shortSummary.isEmpty,
+           meeting.shortSummary != "Generating overview...",
+           meeting.shortSummary != "Processing failed",
+           meeting.shortSummary != "AI overview unavailable" {
             source = meeting.shortSummary
         } else if !meeting.meetingNotes.isEmpty {
             source = meeting.meetingNotes

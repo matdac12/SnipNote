@@ -10,6 +10,7 @@ import SwiftData
 
 struct MeetingDetailView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @Bindable var meeting: Meeting
     @EnvironmentObject var themeManager: ThemeManager
 
@@ -28,7 +29,6 @@ struct MeetingDetailView: View {
     // Retry functionality
     @State private var isRetrying = false
     @StateObject private var openAIService = OpenAIService.shared
-    @StateObject private var backgroundTaskManager = BackgroundTaskManager.shared
     @StateObject private var minutesManager = MinutesManager.shared
 
     // Force refresh for processing updates
@@ -56,7 +56,7 @@ struct MeetingDetailView: View {
             meetingHeaderView
 
             ScrollView {
-                if meeting.isProcessing || isRetrying {
+                if meeting.isProcessing || isRetrying || meeting.isPausedLocalJob {
                     processingStatusSection
                         .padding()
                 } else {
@@ -99,6 +99,12 @@ struct MeetingDetailView: View {
                         meeting.lastProcessedChunk != fetchedMeeting.lastProcessedChunk ||
                         meeting.totalChunks != fetchedMeeting.totalChunks ||
                         meeting.processingStateRaw != fetchedMeeting.processingStateRaw ||
+                        meeting.processingPhaseRaw != fetchedMeeting.processingPhaseRaw ||
+                        meeting.progressPercent != fetchedMeeting.progressPercent ||
+                        meeting.currentStageDescription != fetchedMeeting.currentStageDescription ||
+                        meeting.processingError != fetchedMeeting.processingError ||
+                        meeting.pauseReason != fetchedMeeting.pauseReason ||
+                        meeting.pausedAt != fetchedMeeting.pausedAt ||
                         meeting.audioTranscript != fetchedMeeting.audioTranscript ||
                         meeting.shortSummary != fetchedMeeting.shortSummary ||
                         meeting.aiSummary != fetchedMeeting.aiSummary
@@ -108,6 +114,13 @@ struct MeetingDetailView: View {
                     meeting.lastProcessedChunk = fetchedMeeting.lastProcessedChunk
                     meeting.totalChunks = fetchedMeeting.totalChunks
                     meeting.processingStateRaw = fetchedMeeting.processingStateRaw
+                    meeting.processingPhaseRaw = fetchedMeeting.processingPhaseRaw
+                    meeting.progressPercent = fetchedMeeting.progressPercent
+                    meeting.currentStageDescription = fetchedMeeting.currentStageDescription
+                    meeting.processingError = fetchedMeeting.processingError
+                    meeting.pauseReason = fetchedMeeting.pauseReason
+                    meeting.pausedAt = fetchedMeeting.pausedAt
+                    meeting.resumePhaseRaw = fetchedMeeting.resumePhaseRaw
                     meeting.audioTranscript = fetchedMeeting.audioTranscript
                     meeting.shortSummary = fetchedMeeting.shortSummary
                     meeting.aiSummary = fetchedMeeting.aiSummary
@@ -130,6 +143,12 @@ struct MeetingDetailView: View {
                             meeting.lastProcessedChunk != fetchedMeeting.lastProcessedChunk ||
                             meeting.totalChunks != fetchedMeeting.totalChunks ||
                             meeting.processingStateRaw != fetchedMeeting.processingStateRaw ||
+                            meeting.processingPhaseRaw != fetchedMeeting.processingPhaseRaw ||
+                            meeting.progressPercent != fetchedMeeting.progressPercent ||
+                            meeting.currentStageDescription != fetchedMeeting.currentStageDescription ||
+                            meeting.processingError != fetchedMeeting.processingError ||
+                            meeting.pauseReason != fetchedMeeting.pauseReason ||
+                            meeting.pausedAt != fetchedMeeting.pausedAt ||
                             meeting.audioTranscript != fetchedMeeting.audioTranscript ||
                             meeting.shortSummary != fetchedMeeting.shortSummary ||
                             meeting.aiSummary != fetchedMeeting.aiSummary
@@ -139,6 +158,13 @@ struct MeetingDetailView: View {
                         meeting.lastProcessedChunk = fetchedMeeting.lastProcessedChunk
                         meeting.totalChunks = fetchedMeeting.totalChunks
                         meeting.processingStateRaw = fetchedMeeting.processingStateRaw
+                        meeting.processingPhaseRaw = fetchedMeeting.processingPhaseRaw
+                        meeting.progressPercent = fetchedMeeting.progressPercent
+                        meeting.currentStageDescription = fetchedMeeting.currentStageDescription
+                        meeting.processingError = fetchedMeeting.processingError
+                        meeting.pauseReason = fetchedMeeting.pauseReason
+                        meeting.pausedAt = fetchedMeeting.pausedAt
+                        meeting.resumePhaseRaw = fetchedMeeting.resumePhaseRaw
                         meeting.audioTranscript = fetchedMeeting.audioTranscript
                         meeting.shortSummary = fetchedMeeting.shortSummary
                         meeting.aiSummary = fetchedMeeting.aiSummary
@@ -241,8 +267,22 @@ struct MeetingDetailView: View {
     
     private var processingStatusSection: some View {
         VStack(spacing: 24) {
-            // Show async job status if available (server-side processing)
-            if let _ = meeting.transcriptionJobId, let status = jobStatus {
+            if meeting.isLocalJob {
+                MinimalistProcessingView(
+                    phase: localMinimalistPhase,
+                    progress: meeting.displayedProgressPercent,
+                    stageDescription: meeting.effectiveStageDescription,
+                    showPercentage: true,
+                    infoMessage: meeting.isPausedLocalJob ? "Resume from this meeting when you're ready." : "Local processing continues while SnipNote stays open.",
+                    estimatedTimeRemaining: meeting.displayedProgressPercent >= 25 && !meeting.isPausedLocalJob ? localEstimatedTimeRemaining() : nil,
+                    currentChunk: meeting.totalChunks > 1 ? meeting.lastProcessedChunk : nil,
+                    totalChunks: meeting.totalChunks > 1 ? meeting.totalChunks : nil,
+                    partialTranscript: nil
+                )
+
+                localProcessingActions
+            } else if let _ = meeting.transcriptionJobId, let status = jobStatus {
+                // Show async job status if available (server-side processing)
                 if status.isInProgress {
                     let isUploading = status == .pending
                     // Server-side: use minimalist processing view
@@ -292,6 +332,15 @@ struct MeetingDetailView: View {
         }
     }
 
+    private var localMinimalistPhase: MinimalistPhase {
+        switch meeting.processingPhase {
+        case .generatingOverview, .generatingSummary, .extractingActions:
+            return .analyzing
+        default:
+            return .transcribing
+        }
+    }
+
     // Helper for on-device processing state description
     private func stageDescriptionForProcessingState() -> String {
         switch meeting.processingState {
@@ -301,6 +350,17 @@ struct MeetingDetailView: View {
             return "Generating insights..."
         default:
             return "Processing..."
+        }
+    }
+
+    private func localEstimatedTimeRemaining() -> String {
+        let progress = meeting.displayedProgressPercent
+        if progress < 30 {
+            return "Several minutes remaining"
+        } else if progress < 70 {
+            return "Making progress"
+        } else {
+            return "Almost done"
         }
     }
 
@@ -372,7 +432,9 @@ struct MeetingDetailView: View {
     private var processingErrorCard: some View {
         let theme = themeManager.currentTheme
         let showsAnalysisRetry = meeting.canRetryAnalysis
-        let primaryRetryTitle = showsAnalysisRetry ? "Retry AI Analysis" : "Retry Processing"
+        let primaryRetryTitle = showsAnalysisRetry
+            ? "Retry AI Analysis"
+            : (meeting.canResumeLocalJob ? "Resume Processing" : "Retry Processing")
         let subtitle = meeting.processingError ?? "We couldn't process this meeting. Please try again."
 
         VStack(alignment: .leading, spacing: 12) {
@@ -394,12 +456,14 @@ struct MeetingDetailView: View {
                 Button {
                     if showsAnalysisRetry {
                         retryAIAnalysis()
+                    } else if meeting.canResumeLocalJob {
+                        resumeLocalJob()
                     } else {
                         retryTranscription()
                     }
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "arrow.clockwise")
+                        Image(systemName: meeting.canResumeLocalJob ? "play.fill" : "arrow.clockwise")
                         Text(primaryRetryTitle)
                     }
                     .font(.system(.subheadline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
@@ -419,6 +483,27 @@ struct MeetingDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var localProcessingActions: some View {
+        if meeting.isPausedLocalJob || meeting.isProcessing {
+            HStack(spacing: 12) {
+                if meeting.canResumeLocalJob {
+                    Button("Resume") {
+                        resumeLocalJob()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(theme.accentColor)
+                    .foregroundStyle(theme.backgroundColor)
+                }
+
+                Button(meeting.isPausedLocalJob ? "Cancel Job" : "Stop Job", role: .destructive) {
+                    cancelLocalJob()
+                }
+                .buttonStyle(.bordered)
+            }
+        }
     }
 
     private var summarySection: some View {
@@ -1192,6 +1277,37 @@ struct MeetingDetailView: View {
         }
     }
 
+    private func resumeLocalJob() {
+        Task {
+            isRetrying = true
+            meeting.clearProcessingError()
+            meeting.updateProcessingState(meeting.resumePhase == .transcribing ? .transcribing : .generatingSummary)
+            meeting.updateProcessingPhase(
+                meeting.resumePhase,
+                stage: meeting.effectiveStageDescription,
+                progressPercent: meeting.displayedProgressPercent
+            )
+            try? modelContext.save()
+            await LocalTranscriptionJobManager.shared.resumeJob(meetingId: meeting.id)
+            isRetrying = false
+        }
+    }
+
+    private func cancelLocalJob() {
+        Task {
+            isRetrying = true
+            let meetingID = meeting.id
+            await MainActor.run {
+                dismiss()
+            }
+            await LocalTranscriptionJobManager.shared.cancelJob(
+                meetingId: meetingID,
+                deleteMeeting: true
+            )
+            isRetrying = false
+        }
+    }
+
     @MainActor
     private func performRetryTranscription() async {
         await minutesManager.refreshBalance()
@@ -1209,14 +1325,44 @@ struct MeetingDetailView: View {
             return
         }
 
-        let requiredMinutes = max(1, Int(ceil(meeting.duration / 60.0)))
+        let requiredMinutes = max(1, Int(ceil(meeting.billingDuration / 60.0)))
         if minutesManager.currentBalance < requiredMinutes {
             print("⚠️ Cannot retry: insufficient minutes. Required: \(requiredMinutes), Available: \(minutesManager.currentBalance)")
             meeting.setProcessingError("Insufficient minutes for retry. Required: \(requiredMinutes) minutes.")
             return
         }
 
+        let shouldUsePersistentLocalRetry: Bool
+        if let backend = meeting.transcriptionBackend {
+            shouldUsePersistentLocalRetry = backend == .local
+        } else {
+            shouldUsePersistentLocalRetry = LocalTranscriptionManager.shared.isLocalModeEnabled
+        }
+
         isRetrying = true
+        defer {
+            isRetrying = false
+        }
+
+        if shouldUsePersistentLocalRetry {
+            meeting.clearProcessingError()
+            meeting.audioTranscript = "Transcribing meeting audio..."
+            meeting.shortSummary = "Generating overview..."
+            meeting.aiSummary = "Generating meeting summary..."
+            meeting.updateProcessingState(.transcribing)
+            meeting.updateProcessingPhase(.queued, stage: "Starting transcription...", progressPercent: 0)
+            meeting.didDebitTranscriptionMinutes = false
+            try? modelContext.save()
+
+            await LocalTranscriptionJobManager.shared.startJob(
+                meetingId: meeting.id,
+                audioURL: audioURL,
+                language: meeting.transcriptionLanguage,
+                sourceAudioDuration: meeting.billingDuration
+            )
+            return
+        }
+
         meeting.clearProcessingError()
         meeting.updateProcessingState(.transcribing)
         meeting.audioTranscript = "Transcribing meeting audio..."
@@ -1229,10 +1375,9 @@ struct MeetingDetailView: View {
             print("Error saving retry preparation state: \(error)")
         }
 
-        let backgroundTaskId = backgroundTaskManager.startBackgroundTask(for: meeting.id)
+        let backgroundTaskId = BackgroundTaskManager.shared.startBackgroundTask(for: meeting.id)
         defer {
-            backgroundTaskManager.endBackgroundTask(backgroundTaskId)
-            isRetrying = false
+            BackgroundTaskManager.shared.endBackgroundTask(backgroundTaskId)
         }
 
         do {
@@ -1247,14 +1392,15 @@ struct MeetingDetailView: View {
                     }
                 },
                 meetingName: meeting.name,
-                meetingId: meeting.id
+                meetingId: meeting.id,
+                language: meeting.transcriptionLanguage
             )
 
             meeting.audioTranscript = transcript
             meeting.updateProcessingState(.generatingSummary)
             try? modelContext.save()
 
-            let durationSeconds = Int(meeting.duration)
+            let durationSeconds = Int(meeting.billingDuration)
             var debitSucceeded = true
             if durationSeconds > 0 {
                 let debitSuccess = await minutesManager.debitMinutes(
@@ -1271,9 +1417,7 @@ struct MeetingDetailView: View {
                 )
             }
 
-            let shouldUploadAudio = await MainActor.run {
-                !LocalTranscriptionManager.shared.isLocalModeEnabled
-            }
+            let shouldUploadAudio = !LocalTranscriptionManager.shared.isLocalModeEnabled
             var uploadedAudioPath: String?
 
             if shouldUploadAudio, let latestLocalPath = meeting.localAudioPath {
@@ -1282,7 +1426,7 @@ struct MeetingDetailView: View {
                     uploadedAudioPath = try await SupabaseManager.shared.uploadAudioRecording(
                         audioURL: latestURL,
                         meetingId: meeting.id,
-                        duration: meeting.duration
+                        duration: meeting.billingDuration
                     )
                     meeting.hasRecording = true
                 } catch {
@@ -1290,15 +1434,9 @@ struct MeetingDetailView: View {
                 }
             }
 
-            print("🧠 [MeetingDetail][Retry] Starting overview generation (transcript chars: \(transcript.count))")
             let overview = try await openAIService.generateMeetingOverview(transcript)
-            print("✅ [MeetingDetail][Retry] Overview generated (chars: \(overview.count))")
-            print("🧠 [MeetingDetail][Retry] Starting summary generation")
             let summary = try await openAIService.summarizeMeeting(transcript)
-            print("✅ [MeetingDetail][Retry] Summary generated (chars: \(summary.count))")
-            print("🧠 [MeetingDetail][Retry] Starting action extraction")
             let actionItems = try await openAIService.extractActions(transcript)
-            print("✅ [MeetingDetail][Retry] Extracted \(actionItems.count) action items")
 
             meeting.shortSummary = overview
             meeting.aiSummary = summary
@@ -1343,7 +1481,6 @@ struct MeetingDetailView: View {
             do {
                 try modelContext.save()
 
-                // Sync updated meeting to Supabase
                 Task {
                     do {
                         try await SupabaseManager.shared.saveMeeting(meeting)
@@ -1351,7 +1488,7 @@ struct MeetingDetailView: View {
                         try await SupabaseManager.shared.saveCompletedTranscriptionJob(
                             meetingId: meeting.id,
                             audioStoragePath: uploadedAudioPath,
-                            duration: meeting.duration,
+                            duration: meeting.billingDuration,
                             transcript: meeting.audioTranscript,
                             overview: overview,
                             summary: summary,
@@ -1365,7 +1502,6 @@ struct MeetingDetailView: View {
                 print("Error saving retry results: \(error)")
             }
 
-            // Cancel estimated notification before sending completion (retry succeeded)
             NotificationService.shared.cancelEstimatedCompletionNotification(for: meeting.id)
 
             await NotificationService.shared.sendProcessingCompleteNotification(
@@ -1459,7 +1595,7 @@ struct MeetingDetailView: View {
                         try await SupabaseManager.shared.saveCompletedTranscriptionJob(
                             meetingId: meeting.id,
                             audioStoragePath: nil,
-                            duration: meeting.duration,
+                            duration: meeting.billingDuration,
                             transcript: meeting.audioTranscript,
                             overview: overview,
                             summary: summary,
@@ -1507,7 +1643,7 @@ struct MeetingDetailView: View {
 
         // Check if user has sufficient minutes
         await minutesManager.refreshBalance()
-        let requiredMinutes = max(1, Int(ceil(meeting.duration / 60.0)))
+        let requiredMinutes = max(1, Int(ceil(meeting.billingDuration / 60.0)))
 
         if minutesManager.currentBalance < requiredMinutes {
             print("❌ [MeetingDetail] Insufficient minutes for on-device fallback. Required: \(requiredMinutes), Available: \(minutesManager.currentBalance)")

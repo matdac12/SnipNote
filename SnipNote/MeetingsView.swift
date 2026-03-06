@@ -170,26 +170,26 @@ struct MeetingsView: View {
                     }
                 }
             }
-        }
-        .themedBackground()
-        .navigationDestination(for: Meeting.self) { meeting in
-            MeetingDetailView(meeting: meeting)
-        }
-        .navigationDestination(isPresented: $navigateToCreate) {
-            CreateMeetingView(
-                onMeetingCreated: { meeting in
-                    createdMeeting = meeting
-                    navigateToCreate = false
-                    navigateToCreatedMeeting = true
-                    // Clear deep link after meeting is created
-                    deepLinkAudioURL = nil
-                },
-                importedAudioURL: deepLinkAudioURL
-            )
-        }
-        .navigationDestination(isPresented: $navigateToCreatedMeeting) {
-            if let meeting = createdMeeting {
+            .themedBackground()
+            .navigationDestination(for: Meeting.self) { meeting in
                 MeetingDetailView(meeting: meeting)
+            }
+            .navigationDestination(isPresented: $navigateToCreate) {
+                CreateMeetingView(
+                    onMeetingCreated: { meeting in
+                        createdMeeting = meeting
+                        navigateToCreate = false
+                        navigateToCreatedMeeting = true
+                        // Clear deep link after meeting is created
+                        deepLinkAudioURL = nil
+                    },
+                    importedAudioURL: deepLinkAudioURL
+                )
+            }
+            .navigationDestination(isPresented: $navigateToCreatedMeeting) {
+                if let meeting = createdMeeting {
+                    MeetingDetailView(meeting: meeting)
+                }
             }
         }
         .onAppear {

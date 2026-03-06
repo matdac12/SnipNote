@@ -29,6 +29,8 @@ struct MinimalistProcessingView: View {
     let phase: MinimalistPhase
     let progress: Double  // 0-100
     let stageDescription: String
+    let showPercentage: Bool
+    let infoMessage: LocalizedStringKey?
     let estimatedTimeRemaining: String?
     let currentChunk: Int?
     let totalChunks: Int?
@@ -52,15 +54,19 @@ struct MinimalistProcessingView: View {
             Spacer().frame(height: 24)
 
             // Hero percentage
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text("\(Int(progress))")
-                    .font(.system(size: 72, weight: .bold, design: .rounded))
-                    .foregroundColor(theme.accentColor)
-                    .contentTransition(.numericText())
-                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: Int(progress))
-                Text("%")
-                    .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default))
-                    .foregroundColor(theme.secondaryTextColor)
+            if showPercentage {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text("\(Int(progress))")
+                        .font(.system(size: 72, weight: .bold, design: .rounded))
+                        .foregroundColor(theme.accentColor)
+                        .contentTransition(.numericText())
+                        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: Int(progress))
+                    Text("%")
+                        .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default))
+                        .foregroundColor(theme.secondaryTextColor)
+                }
+            } else {
+                Color.clear.frame(height: 80)
             }
 
             Spacer().frame(height: 32)
@@ -77,6 +83,15 @@ struct MinimalistProcessingView: View {
                 .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
                 .foregroundColor(theme.secondaryTextColor)
                 .multilineTextAlignment(.center)
+
+            if let infoMessage {
+                Spacer().frame(height: 12)
+                Text(infoMessage)
+                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(theme.secondaryTextColor.opacity(0.6))
+                    .multilineTextAlignment(.center)
+                    .transition(.opacity)
+            }
 
             // Progressive info (appears after 25%)
             if progress >= 25 {
@@ -133,6 +148,8 @@ struct MinimalistProcessingView: View {
         phase: .transcribing,
         progress: 47,
         stageDescription: "Processing audio...",
+        showPercentage: true,
+        infoMessage: "Upload complete. You can close the app.",
         estimatedTimeRemaining: "~2m remaining",
         currentChunk: 3,
         totalChunks: 7,

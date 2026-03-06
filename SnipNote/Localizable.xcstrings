@@ -190,6 +190,26 @@
         }
       }
     },
+    "Keep SnipNote open while uploading." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tieni SnipNote aperta durante il caricamento."
+          }
+        }
+      }
+    },
+    "Upload complete. You can close the app." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caricamento completato. Puoi chiudere l'app."
+          }
+        }
+      }
+    },
     "Allow" : {
       "extractionState" : "stale",
       "localizations" : {

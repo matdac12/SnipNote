@@ -240,11 +240,14 @@ struct MeetingDetailView: View {
             // Show async job status if available (server-side processing)
             if let _ = meeting.transcriptionJobId, let status = jobStatus {
                 if status.isInProgress {
+                    let isUploading = status == .pending
                     // Server-side: use minimalist processing view
                     MinimalistProcessingView(
                         phase: jobProgress == 0 && status == .pending ? .uploading : .transcribing,
                         progress: Double(jobProgress),
                         stageDescription: jobStage.isEmpty ? (status == .pending ? "Preparing transcription..." : "Processing on server...") : jobStage,
+                        showPercentage: !isUploading,
+                        infoMessage: isUploading ? "Keep SnipNote open while uploading." : "Upload complete. You can close the app.",
                         estimatedTimeRemaining: jobProgress >= 25 ? serverEstimatedTimeRemaining() : nil,
                         currentChunk: nil,
                         totalChunks: nil,
@@ -261,6 +264,8 @@ struct MeetingDetailView: View {
                     phase: .uploading,
                     progress: 0,
                     stageDescription: "Uploading to server...",
+                    showPercentage: false,
+                    infoMessage: "Keep SnipNote open while uploading.",
                     estimatedTimeRemaining: nil,
                     currentChunk: nil,
                     totalChunks: nil,
@@ -272,6 +277,8 @@ struct MeetingDetailView: View {
                     phase: meeting.processingState == .transcribing ? .transcribing : .analyzing,
                     progress: meeting.progressPercentage,
                     stageDescription: stageDescriptionForProcessingState(),
+                    showPercentage: true,
+                    infoMessage: nil,
                     estimatedTimeRemaining: nil,
                     currentChunk: meeting.totalChunks > 1 ? meeting.lastProcessedChunk : nil,
                     totalChunks: meeting.totalChunks > 1 ? meeting.totalChunks : nil,

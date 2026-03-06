@@ -11,14 +11,14 @@ import StoreKit
 struct AuthenticationView: View {
     @StateObject private var authManager = AuthenticationManager()
     @EnvironmentObject var themeManager: ThemeManager
-    @Binding var deepLinkAudioURL: URL?
+    @Binding var sharedAudioImportRequest: SharedAudioImportRequest?
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var showingOnboarding = false
 
     var body: some View {
         Group {
             if authManager.isAuthenticated {
-                ContentView(deepLinkAudioURL: $deepLinkAudioURL)
+                ContentView(sharedAudioImportRequest: $sharedAudioImportRequest)
                     .environmentObject(authManager)
                     .environmentObject(themeManager)
                     .task {
@@ -44,4 +44,3 @@ struct AuthenticationView: View {
         .animation(.easeInOut, value: authManager.isAuthenticated)
     }
 }
-

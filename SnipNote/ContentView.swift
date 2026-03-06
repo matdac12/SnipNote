@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Binding var deepLinkAudioURL: URL?
+    @Binding var sharedAudioImportRequest: SharedAudioImportRequest?
     @State private var selectedTab: Tab = .meetings
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var localizationManager: LocalizationManager
@@ -21,7 +21,7 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            MeetingsView(deepLinkAudioURL: $deepLinkAudioURL)
+            MeetingsView(sharedAudioImportRequest: $sharedAudioImportRequest)
                 .tabItem {
                     Image(systemName: "waveform")
                     Text(tabTitle(for: "tab.meetings"))
@@ -37,7 +37,7 @@ struct ContentView: View {
                 }
                 .tag(Tab.settings)
         }
-        .onChange(of: deepLinkAudioURL) { _, newValue in
+        .onChange(of: sharedAudioImportRequest?.id) { _, newValue in
             if newValue != nil {
                 // Switch to Meetings tab when audio is shared
                 selectedTab = .meetings
@@ -51,7 +51,7 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView(deepLinkAudioURL: .constant(nil))
+    ContentView(sharedAudioImportRequest: .constant(nil))
         .modelContainer(for: [Action.self, Meeting.self, EveMessage.self, ChatConversation.self], inMemory: true)
         .environmentObject(ThemeManager.shared)
         .environmentObject(LocalizationManager.shared)

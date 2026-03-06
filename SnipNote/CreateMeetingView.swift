@@ -40,7 +40,8 @@ struct CreateMeetingView: View {
     @AppStorage("hasSeenVoiceMemosTip") private var hasSeenVoiceMemosTip = false
 
     var onMeetingCreated: ((Meeting) -> Void)?
-    var importedAudioURL: URL? // For shared audio files
+    var importedAudioRequest: SharedAudioImportRequest?
+    var onActivityStateChanged: ((CreateMeetingActivityState) -> Void)?
     
     @StateObject private var audioRecorder = AudioRecorder()
     @StateObject private var openAIService = OpenAIService.shared
@@ -93,6 +94,7 @@ struct CreateMeetingView: View {
 
     // Cached audio duration to prevent repeated calculations
     @State private var cachedAudioDuration: TimeInterval = 0
+    @State private var appliedImportedAudioRequestID: UUID?
 
     // Language selection for transcription (nil = auto-detect)
     @State private var selectedLanguage: String? = nil
@@ -163,6 +165,10 @@ struct CreateMeetingView: View {
     @State private var showingNameRequiredAlert = false
     
     // Computed properties for imported audio mode
+    private var importedAudioURL: URL? {
+        importedAudioRequest?.url
+    }
+
     private var hasImportedAudio: Bool {
         return importedAudioURL != nil
     }
@@ -182,6 +188,39 @@ struct CreateMeetingView: View {
             print("❌ Failed to read audio file: \(error)")
             cachedAudioDuration = 0
         }
+    }
+
+    private var currentActivityState: CreateMeetingActivityState {
+        if isProcessingAudio {
+            return .processing
+        }
+
+        if audioRecorder.isRecording || hasFinishedRecording {
+            return .recording
+        }
+
+        return .idle
+    }
+
+    private func applyImportedAudioIfNeeded() {
+        guard let request = importedAudioRequest else {
+            return
+        }
+
+        guard appliedImportedAudioRequestID != request.id else {
+            return
+        }
+
+        appliedImportedAudioRequestID = request.id
+
+        print("🎵 Applying imported audio request: \(request.url)")
+        print("🎵 File exists: \(FileManager.default.fileExists(atPath: request.url.path))")
+
+        calculateAudioDuration()
+
+        let fileName = request.url.deletingPathExtension().lastPathComponent
+        meetingName = fileName
+        print("🎵 Set default meeting name: \(meetingName)")
     }
 
     private var meetingNameTrimmed: String {
@@ -1168,24 +1207,26 @@ struct CreateMeetingView: View {
             // Check microphone permission (iOS 17+ compatible)
             microphonePermissionStatus = getCurrentPermissionStatus()
 
-            if let url = importedAudioURL {
-                print("🎵 File exists: \(FileManager.default.fileExists(atPath: url.path))")
-
-                // Calculate audio duration once
-                calculateAudioDuration()
-
-                // Use filename as default meeting name if it's empty
-                if meetingName.isEmpty {
-                    let fileName = url.lastPathComponent
-                    // Remove file extension and clean up the name
-                    let nameWithoutExtension = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
-                    meetingName = nameWithoutExtension
-                    print("🎵 Set default meeting name: \(meetingName)")
-                }
-            }
+            applyImportedAudioIfNeeded()
+            onActivityStateChanged?(currentActivityState)
 
             isLocationExpanded = !meetingLocationTrimmed.isEmpty
             isNotesExpanded = !meetingNotesTrimmed.isEmpty
+        }
+        .onChange(of: importedAudioRequest?.id) { _, _ in
+            applyImportedAudioIfNeeded()
+        }
+        .onChange(of: isProcessingAudio) { _, _ in
+            onActivityStateChanged?(currentActivityState)
+        }
+        .onChange(of: audioRecorder.isRecording) { _, _ in
+            onActivityStateChanged?(currentActivityState)
+        }
+        .onChange(of: hasFinishedRecording) { _, _ in
+            onActivityStateChanged?(currentActivityState)
+        }
+        .onDisappear {
+            onActivityStateChanged?(.idle)
         }
     }
     

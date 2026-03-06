@@ -35,7 +35,7 @@ struct SystemColorSchemeObserver<Content: View>: View {
 
 @main
 struct SnipNoteApp: App {
-    @State private var deepLinkAudioURL: URL?
+    @State private var sharedAudioImportRequest: SharedAudioImportRequest?
     @State private var showResumeAlert = false
     @State private var pausedMeetingInfo: [String: Any]?
     @Environment(\.scenePhase) private var scenePhase
@@ -78,7 +78,7 @@ struct SnipNoteApp: App {
     var body: some Scene {
         WindowGroup {
             SystemColorSchemeObserver {
-                AuthenticationView(deepLinkAudioURL: $deepLinkAudioURL)
+                AuthenticationView(sharedAudioImportRequest: $sharedAudioImportRequest)
             }
             .environmentObject(themeManager)
             .environmentObject(localizationManager)
@@ -125,8 +125,10 @@ struct SnipNoteApp: App {
                 if let audioURLString = url.queryParameters["audioURL"],
                    let audioURL = URL(string: audioURLString) {
                     print("🎵 Audio URL extracted: \(audioURL)")
-                    // Store the audio URL for the ContentView to handle
-                    deepLinkAudioURL = audioURL
+                    sharedAudioImportRequest = SharedAudioImportRequest(
+                        url: audioURL,
+                        source: .deepLink
+                    )
                 } else {
                     print("❌ Failed to extract audio URL from: \(url)")
                 }
@@ -134,7 +136,10 @@ struct SnipNoteApp: App {
         } else if url.isFileURL {
             // Handle direct file sharing (iOS share sheet)
             print("📁 Direct file URL: \(url)")
-            deepLinkAudioURL = url
+            sharedAudioImportRequest = SharedAudioImportRequest(
+                url: url,
+                source: .fileShare
+            )
         }
     }
     

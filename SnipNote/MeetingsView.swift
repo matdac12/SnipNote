@@ -10,7 +10,7 @@ import SwiftData
 import StoreKit
 
 struct MeetingsView: View {
-    @Binding var deepLinkAudioURL: URL?
+    @Binding var sharedAudioImportRequest: SharedAudioImportRequest?
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Meeting.dateCreated, order: .reverse) private var meetings: [Meeting]
     @EnvironmentObject var themeManager: ThemeManager
@@ -18,12 +18,14 @@ struct MeetingsView: View {
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var syncService = MeetingSyncService.shared
 
-    @State private var showingCreateMeeting = false
     @State private var hasSyncedOnLaunch = false
-    @State private var navigateToCreate = false
+    @State private var createRoute: CreateMeetingRoute?
+    @State private var queuedImportRequest: SharedAudioImportRequest?
+    @State private var createMeetingActivityState: CreateMeetingActivityState = .idle
     @State private var createdMeeting: Meeting?
     @State private var navigateToCreatedMeeting = false
     @State private var showingPaywall = false
+    @State private var showingQueuedImportAlert = false
     @State private var searchText = ""
     @State private var isSearching = false
     @State private var isBouncingEmpty = false
@@ -176,17 +178,20 @@ struct MeetingsView: View {
             .navigationDestination(for: Meeting.self) { meeting in
                 MeetingDetailView(meeting: meeting)
             }
-            .navigationDestination(isPresented: $navigateToCreate) {
+            .navigationDestination(item: $createRoute) { route in
                 CreateMeetingView(
                     onMeetingCreated: { meeting in
                         createdMeeting = meeting
-                        navigateToCreate = false
                         navigateToCreatedMeeting = true
-                        // Clear deep link after meeting is created
-                        deepLinkAudioURL = nil
+                        createRoute = nil
+                        createMeetingActivityState = .idle
                     },
-                    importedAudioURL: deepLinkAudioURL
+                    importedAudioRequest: route.importRequest,
+                    onActivityStateChanged: { activityState in
+                        createMeetingActivityState = activityState
+                    }
                 )
+                .id(route.id)
             }
             .navigationDestination(isPresented: $navigateToCreatedMeeting) {
                 if let meeting = createdMeeting {
@@ -195,14 +200,7 @@ struct MeetingsView: View {
             }
         }
         .onAppear {
-            // Handle deep link when view appears
-            if deepLinkAudioURL != nil {
-                print("🎵 MeetingsView appeared with audio URL: \(deepLinkAudioURL!)")
-                // Use a small delay to ensure view is fully loaded
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    navigateToCreate = true
-                }
-            }
+            handlePendingImportOnAppear()
         }
         .task {
             // Auto-sync from Supabase on app launch (only once per session)
@@ -211,29 +209,33 @@ struct MeetingsView: View {
                 await performSync()
             }
 
-            // Also handle deep link in task (runs after view is fully loaded)
-            if deepLinkAudioURL != nil && !navigateToCreate {
-                print("🎵 MeetingsView task with audio URL: \(deepLinkAudioURL!)")
-                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-                await MainActor.run {
-                    navigateToCreate = true
+            handlePendingImportOnAppear()
+        }
+        .onChange(of: sharedAudioImportRequest?.id) { _, _ in
+            if let request = sharedAudioImportRequest {
+                print("🎵 Shared audio request changed in MeetingsView: \(request.url)")
+                routeIncomingImport(request)
+                sharedAudioImportRequest = nil
+            }
+        }
+        .onChange(of: createRoute) { _, newValue in
+            if newValue == nil {
+                createMeetingActivityState = .idle
+
+                if !navigateToCreatedMeeting {
+                    presentQueuedImportIfPossible()
                 }
             }
         }
-        .onChange(of: deepLinkAudioURL) { _, newValue in
-            // Handle deep link changes
-            if let audioURL = newValue {
-                print("🎵 Audio URL changed in MeetingsView: \(audioURL)")
-                navigateToCreate = true
+        .onChange(of: navigateToCreatedMeeting) { _, isNavigating in
+            if !isNavigating {
+                presentQueuedImportIfPossible()
             }
         }
-        .onChange(of: navigateToCreate) { _, isNavigating in
-            print("🎵 navigateToCreate changed: \(isNavigating), audioURL: \(deepLinkAudioURL?.absoluteString ?? "nil")")
-            // Clear deep link when navigating away from CreateMeetingView (back button or cancel)
-            if !isNavigating && deepLinkAudioURL != nil {
-                print("🎵 Clearing deep link audio URL on navigation away")
-                deepLinkAudioURL = nil
-            }
+        .alert("Audio Import Queued", isPresented: $showingQueuedImportAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Finish or cancel the current recording or processing before opening the shared audio.")
         }
         .sheet(isPresented: $showingPaywall) {
             PaywallView()
@@ -243,7 +245,64 @@ struct MeetingsView: View {
     private func checkLimitAndCreate() {
         // With minutes-based system, CreateMeetingView will handle minutes validation
         // No need to check meeting count limits anymore
-        navigateToCreate = true
+        createdMeeting = nil
+        createMeetingActivityState = .idle
+        createRoute = .blankDraft()
+    }
+
+    private func handlePendingImportOnAppear() {
+        guard let request = sharedAudioImportRequest else {
+            return
+        }
+
+        print("🎵 MeetingsView handling pending shared audio on appear: \(request.url)")
+        routeIncomingImport(request)
+        sharedAudioImportRequest = nil
+    }
+
+    private func routeIncomingImport(_ request: SharedAudioImportRequest) {
+        let decision = SharedAudioImportRouter.decision(
+            activeRoute: createRoute,
+            activityState: createMeetingActivityState,
+            incomingRequest: request
+        )
+
+        switch decision {
+        case .present(let route):
+            createdMeeting = nil
+            createRoute = route
+        case .replace(let route):
+            createdMeeting = nil
+            replaceCreateRoute(with: route)
+        case .queue(let queuedRequest):
+            queuedImportRequest = queuedRequest
+            showingQueuedImportAlert = true
+        }
+    }
+
+    private func replaceCreateRoute(with route: CreateMeetingRoute) {
+        createRoute = nil
+        createMeetingActivityState = .idle
+
+        DispatchQueue.main.async {
+            createRoute = route
+        }
+    }
+
+    private func presentQueuedImportIfPossible() {
+        guard let nextRoute = SharedAudioImportRouter.nextQueuedRoute(
+            activeRoute: createRoute,
+            queuedRequest: queuedImportRequest
+        ) else {
+            return
+        }
+
+        queuedImportRequest = nil
+        createdMeeting = nil
+
+        DispatchQueue.main.async {
+            createRoute = nextRoute
+        }
     }
 
     private func deleteMeetings(offsets: IndexSet) {

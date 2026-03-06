@@ -159,7 +159,9 @@ struct MeetingsView: View {
                             NavigationLink(value: meeting) {
                                 MeetingRowView(meeting: meeting, themeManager: themeManager)
                             }
+                            .listRowInsets(EdgeInsets(top: 1, leading: 16, bottom: 1, trailing: 16))
                             .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                         }
                         .onDelete(perform: deleteMeetings)
                     }
@@ -299,65 +301,76 @@ struct MeetingsView: View {
     }
 }
 
-// MARK: - Meeting Row View
-
 struct MeetingRowView: View {
     let meeting: Meeting
     let themeManager: ThemeManager
 
+    private var theme: AppTheme { themeManager.currentTheme }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
-                    .themedBody()
-                    .fontWeight(.bold)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(displayTitle)
+                    .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                    .foregroundColor(theme.textColor)
                     .lineLimit(1)
 
-                if meeting.isProcessing {
-                    Text("Processing...")
-                        .themedCaption()
-                        .fontWeight(.bold)
-                        .foregroundColor(themeManager.currentTheme.warningColor)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(themeManager.currentTheme.warningColor.opacity(0.2))
-                        .cornerRadius(3)
+                Spacer(minLength: 8)
+
+                HStack(spacing: 8) {
+                    Text(shortDate)
+                        .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
+                        .foregroundColor(theme.secondaryTextColor)
+
+                    if meeting.isProcessing {
+                        Text("Processing")
+                            .font(.system(.caption2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                            .foregroundColor(theme.warningColor)
+                    }
                 }
             }
 
-            Text(meeting.dateCreated, style: .date)
-                .themedCaption()
-
-            if !meeting.location.isEmpty {
-                Text("📍 \(meeting.location)")
-                    .themedCaption()
+            if let preview = summaryPreview(maxLength: 92) {
+                Text(preview)
+                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(theme.secondaryTextColor)
                     .lineLimit(1)
-            }
-
-            // Show overview/summary preview
-            if !meeting.shortSummary.isEmpty {
-                Text(meeting.shortSummary)
-                    .themedCaption()
-                    .lineLimit(2)
-            } else if !meeting.meetingNotes.isEmpty {
-                // Fallback to meeting notes if no summary yet
-                Text(meeting.meetingNotes.prefix(80) + (meeting.meetingNotes.count > 80 ? "..." : ""))
-                    .themedCaption()
-                    .lineLimit(2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
-        .background(themeManager.currentTheme.secondaryBackgroundColor.opacity(0.5))
-        .cornerRadius(themeManager.currentTheme.cornerRadius)
-        .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-        .opacity(meeting.isProcessing ? 0.6 : 1.0)
-        .overlay(
-            meeting.isProcessing ?
-            RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius)
-                .stroke(themeManager.currentTheme.warningColor.opacity(0.5), lineWidth: 1)
-            : nil
-        )
+        .padding(.vertical, 5)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(theme.secondaryBackgroundColor)
+                .frame(height: 1)
+        }
+    }
+
+    private var displayTitle: String {
+        meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
+    }
+
+    private var shortDate: String {
+        meeting.dateCreated.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    private func summaryPreview(maxLength: Int) -> String? {
+        let source: String
+        if !meeting.shortSummary.isEmpty {
+            source = meeting.shortSummary
+        } else if !meeting.meetingNotes.isEmpty {
+            source = meeting.meetingNotes
+        } else {
+            return nil
+        }
+
+        let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        if trimmed.count <= maxLength {
+            return trimmed
+        }
+
+        return String(trimmed.prefix(maxLength)).trimmingCharacters(in: .whitespacesAndNewlines) + "..."
     }
 }

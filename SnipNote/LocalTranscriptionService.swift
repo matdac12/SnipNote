@@ -65,50 +65,55 @@ actor LocalTranscriptionService {
         statusHandler: @escaping @Sendable (LocalModelStatus) -> Void
     ) async throws {
         #if canImport(WhisperKit)
-        try ensureModelDirectories()
-        try cleanupLegacyModelDirectory(for: model)
-        try cleanupStagingDirectory(for: model)
-
-        let whisperKit = try await WhisperKit(
-            verbose: true,
-            logLevel: .error,
-            prewarm: false,
-            load: false,
-            download: false
-        )
-
-        statusHandler(.downloading(0))
-
-        let downloadedModelFolder = try await WhisperKit.download(
-            variant: model.whisperVariant,
-            downloadBase: stagingDownloadBaseDirectory(),
-            from: repoName
-        ) { progress in
-            statusHandler(.downloading(progress.fractionCompleted))
-        }
-
-        statusHandler(.verifying)
-
-        let installedModelFolder = installedModelDirectory(for: model)
-
         do {
-            try excludeFromBackup(localModelRootDirectory())
-            try excludeFromBackup(stagingRootDirectory())
-            try validateDownloadedModel(at: downloadedModelFolder)
+            try ensureModelDirectories()
+            try cleanupLegacyModelDirectory(for: model)
+            try cleanupStagingDirectory(for: model)
 
-            if fileManager.fileExists(atPath: installedModelFolder.path) {
-                try fileManager.removeItem(at: installedModelFolder)
+            let whisperKit = try await WhisperKit(
+                verbose: true,
+                logLevel: .error,
+                prewarm: false,
+                load: false,
+                download: false
+            )
+
+            statusHandler(.downloading(0))
+
+            let downloadedModelFolder = try await WhisperKit.download(
+                variant: model.whisperVariant,
+                downloadBase: stagingDownloadBaseDirectory(),
+                from: repoName
+            ) { progress in
+                statusHandler(.downloading(progress.fractionCompleted))
             }
 
-            try fileManager.moveItem(at: downloadedModelFolder, to: installedModelFolder)
-            try excludeFromBackup(installedModelFolder)
-            try writeInstalledMarker(for: model, in: installedModelFolder)
+            statusHandler(.verifying)
 
-            defaults.set(installedModelFolder.path, forKey: storageKey(for: model))
-            whisperKit.modelFolder = installedModelFolder
+            let installedModelFolder = installedModelDirectory(for: model)
+
+            do {
+                try excludeFromBackup(localModelRootDirectory())
+                try excludeFromBackup(stagingRootDirectory())
+                try validateDownloadedModel(at: downloadedModelFolder)
+
+                if fileManager.fileExists(atPath: installedModelFolder.path) {
+                    try fileManager.removeItem(at: installedModelFolder)
+                }
+
+                try fileManager.moveItem(at: downloadedModelFolder, to: installedModelFolder)
+                try excludeFromBackup(installedModelFolder)
+                try writeInstalledMarker(for: model, in: installedModelFolder)
+
+                defaults.set(installedModelFolder.path, forKey: storageKey(for: model))
+                whisperKit.modelFolder = installedModelFolder
+            } catch {
+                try? cleanupInstalledArtifacts(for: model)
+                throw error is LocalTranscriptionError ? error : LocalTranscriptionError.downloadIncomplete
+            }
         } catch {
-            try? cleanupInstalledArtifacts(for: model)
-            throw error is LocalTranscriptionError ? error : LocalTranscriptionError.downloadIncomplete
+            try? cleanupStagingDirectory(for: model)
+            throw error
         }
         #else
         throw LocalTranscriptionError.whisperKitUnavailable

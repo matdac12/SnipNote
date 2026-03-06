@@ -244,6 +244,7 @@ struct SettingsView: View {
                                          LocalModelCard(
                                              model: model,
                                              isSelected: localTranscriptionManager.selectedModel == model,
+                                             isBusy: localTranscriptionManager.isBusy(model),
                                              status: localTranscriptionManager.modelStatuses[model] ?? .checking,
                                              onSelect: {
                                                  localTranscriptionManager.setSelectedModel(model)
@@ -976,6 +977,7 @@ struct SupportGuideline: View {
 struct LocalModelCard: View {
     let model: LocalTranscriptionModel
     let isSelected: Bool
+    let isBusy: Bool
     let status: LocalModelStatus
     let onSelect: () -> Void
     let onDownload: () -> Void
@@ -1034,19 +1036,8 @@ struct LocalModelCard: View {
                 .background(isSelected ? themeManager.currentTheme.secondaryTextColor.opacity(0.45) : themeManager.currentTheme.accentColor)
                 .cornerRadius(themeManager.currentTheme.cornerRadius)
 
-                switch status {
-                case .installed:
-                    Button(localized("settings.localTranscription.model.deleteButton")) {
-                        onDelete()
-                    }
-                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                    .foregroundColor(themeManager.currentTheme.destructiveColor)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(themeManager.currentTheme.destructiveColor.opacity(0.12))
-                    .cornerRadius(themeManager.currentTheme.cornerRadius)
-                case .downloading:
-                    Button(localized("settings.localTranscription.model.downloadingButton")) { }
+                if isBusy {
+                    Button(busyActionTitle) { }
                         .disabled(true)
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
@@ -1054,25 +1045,47 @@ struct LocalModelCard: View {
                         .padding(.vertical, 8)
                         .background(themeManager.currentTheme.secondaryTextColor.opacity(0.12))
                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                case .verifying:
-                    Button(localized("settings.localTranscription.model.verifyingButton")) { }
-                        .disabled(true)
+                } else {
+                    switch status {
+                    case .installed:
+                        Button(localized("settings.localTranscription.model.deleteButton")) {
+                            onDelete()
+                        }
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        .foregroundColor(themeManager.currentTheme.destructiveColor)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(themeManager.currentTheme.secondaryTextColor.opacity(0.12))
+                        .background(themeManager.currentTheme.destructiveColor.opacity(0.12))
                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                default:
-                    Button(localized("settings.localTranscription.model.downloadButton")) {
-                        onDownload()
+                    case .downloading:
+                        Button(localized("settings.localTranscription.model.downloadingButton")) { }
+                            .disabled(true)
+                            .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(themeManager.currentTheme.secondaryTextColor.opacity(0.12))
+                            .cornerRadius(themeManager.currentTheme.cornerRadius)
+                    case .verifying:
+                        Button(localized("settings.localTranscription.model.verifyingButton")) { }
+                            .disabled(true)
+                            .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(themeManager.currentTheme.secondaryTextColor.opacity(0.12))
+                            .cornerRadius(themeManager.currentTheme.cornerRadius)
+                    default:
+                        Button(localized("settings.localTranscription.model.downloadButton")) {
+                            onDownload()
+                        }
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.accentColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(themeManager.currentTheme.accentColor.opacity(0.12))
+                        .cornerRadius(themeManager.currentTheme.cornerRadius)
                     }
-                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                    .foregroundColor(themeManager.currentTheme.accentColor)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(themeManager.currentTheme.accentColor.opacity(0.12))
-                    .cornerRadius(themeManager.currentTheme.cornerRadius)
                 }
             }
         }
@@ -1094,6 +1107,14 @@ struct LocalModelCard: View {
         default:
             return themeManager.currentTheme.secondaryTextColor
         }
+    }
+
+    private var busyActionTitle: String {
+        if case .verifying = status {
+            return localized("settings.localTranscription.model.verifyingButton")
+        }
+
+        return localized("settings.localTranscription.model.downloadingButton")
     }
 
     private func localized(_ key: String) -> String {

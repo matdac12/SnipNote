@@ -32,6 +32,9 @@
     "%lld Minutes" : {
 
     },
+    "%lld%%" : {
+
+    },
     "%lld%% Complete" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -170,6 +173,9 @@
         }
       }
     },
+    "AI analysis failed" : {
+
+    },
     "AI Does the Work" : {
       "localizations" : {
         "it" : {
@@ -260,6 +266,12 @@
     "API Key Required" : {
 
     },
+    "Apple" : {
+
+    },
+    "Apple Test" : {
+
+    },
     "Are you sure you want to cancel? All progress will be lost." : {
 
     },
@@ -297,6 +309,9 @@
           }
         }
       }
+    },
+    "Audio Import Queued" : {
+
     },
     "auth.forgotPassword" : {
       "extractionState" : "manual",
@@ -501,6 +516,9 @@
     "Cancel anytime from Settings" : {
 
     },
+    "Cancel Job" : {
+
+    },
     "Cancel Transcription" : {
 
     },
@@ -556,15 +574,6 @@
           }
         }
       }
-    },
-    "Continue transcribing '%@'?" : {
-
-    },
-    "Continue Transcription?" : {
-
-    },
-    "Continue your paused transcription?" : {
-
     },
     "Create Account" : {
       "localizations" : {
@@ -739,6 +748,9 @@
         }
       }
     },
+    "Finish or cancel the current recording or processing before opening the shared audio." : {
+
+    },
     "Focus on the conversation while SnipNote handles everything else." : {
       "localizations" : {
         "it" : {
@@ -912,6 +924,9 @@
       }
     },
     "Loading subscription options..." : {
+
+    },
+    "Local processing continues while SnipNote stays open." : {
 
     },
     "Making great progress!" : {
@@ -1102,9 +1117,6 @@
         }
       }
     },
-    "No" : {
-
-    },
     "No action items found in this meeting" : {
 
     },
@@ -1131,6 +1143,9 @@
 
     },
     "OpenAI API Key" : {
+
+    },
+    "Output" : {
 
     },
     "Password" : {
@@ -1174,6 +1189,9 @@
           }
         }
       }
+    },
+    "Paused" : {
+
     },
     "Payment will be charged to your iTunes account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. Manage or cancel your subscription in Account Settings." : {
 
@@ -1428,13 +1446,13 @@
         }
       }
     },
+    "Resume from this meeting when you're ready." : {
+
+    },
     "Retry" : {
 
     },
     "Retry Loading" : {
-
-    },
-    "Retry Processing" : {
 
     },
     "Review" : {
@@ -2781,6 +2799,9 @@
         }
       }
     },
+    "Stop Job" : {
+
+    },
     "Stop Meeting" : {
 
     },
@@ -2941,6 +2962,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Download incompleto. Riprova."
+          }
+        }
+      }
+    },
+    "transcription.local.error.downloadInterrupted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download was interrupted. Please retry."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il download è stato interrotto. Riprova."
           }
         }
       }
@@ -3345,9 +3383,6 @@
     "VERSION" : {
 
     },
-    "We couldn't process this meeting. Please try again." : {
-
-    },
     "Welcome to Eve" : {
       "localizations" : {
         "it" : {
@@ -3367,9 +3402,6 @@
           }
         }
       }
-    },
-    "Yes" : {
-
     },
     "You don't have enough minutes to start recording. Purchase minute packs to continue." : {
       "localizations" : {

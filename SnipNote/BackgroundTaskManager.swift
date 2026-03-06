@@ -297,9 +297,15 @@ class BackgroundTaskManager: ObservableObject {
                 }
             }
 
+            print("🧠 [BackgroundTask] Starting overview generation for resumed meeting \(meetingId) (transcript chars: \(transcript.count))")
             let overview = try await OpenAIService.shared.generateMeetingOverview(transcript)
+            print("✅ [BackgroundTask] Overview generated for resumed meeting \(meetingId) (chars: \(overview.count))")
+            print("🧠 [BackgroundTask] Starting summary generation for resumed meeting \(meetingId)")
             let summary = try await OpenAIService.shared.summarizeMeeting(transcript)
+            print("✅ [BackgroundTask] Summary generated for resumed meeting \(meetingId) (chars: \(summary.count))")
+            print("🧠 [BackgroundTask] Starting action extraction for resumed meeting \(meetingId)")
             let actionItems = try await OpenAIService.shared.extractActions(transcript)
+            print("✅ [BackgroundTask] Extracted \(actionItems.count) action items for resumed meeting \(meetingId)")
 
             if let meetingToFinalize = try? context.fetch(descriptor).first {
                 meetingToFinalize.shortSummary = overview
@@ -346,17 +352,15 @@ class BackgroundTaskManager: ObservableObject {
                     do {
                         try await SupabaseManager.shared.saveMeeting(meetingToFinalize)
 
-                        if let uploadedAudioPath {
-                            try await SupabaseManager.shared.saveCompletedTranscriptionJob(
-                                meetingId: meetingId,
-                                audioStoragePath: uploadedAudioPath,
-                                duration: Double(durationSeconds),
-                                transcript: transcript,
-                                overview: overview,
-                                summary: summary,
-                                actions: actionItems
-                            )
-                        }
+                        try await SupabaseManager.shared.saveCompletedTranscriptionJob(
+                            meetingId: meetingId,
+                            audioStoragePath: uploadedAudioPath,
+                            duration: Double(durationSeconds),
+                            transcript: transcript,
+                            overview: overview,
+                            summary: summary,
+                            actions: actionItems
+                        )
                     } catch {
                         print("⚠️ [BackgroundTask] Failed to sync resumed transcription to Supabase: \(error)")
                     }
@@ -379,7 +383,11 @@ class BackgroundTaskManager: ObservableObject {
         } catch {
             print("🔄 Error resuming transcription for meeting \(meetingId): \(error)")
             if let meetingWithError = try? context.fetch(descriptor).first {
-                meetingWithError.setProcessingError("Transcription failed during background processing.")
+                if meetingWithError.hasTranscriptContent {
+                    meetingWithError.setProcessingError("Transcript saved, but AI analysis failed during background processing.")
+                } else {
+                    meetingWithError.setProcessingError("Transcription failed during background processing.")
+                }
                 try? context.save()
             }
         }

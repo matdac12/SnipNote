@@ -243,6 +243,7 @@ class SupabaseManager {
     }
 
     /// Save completed transcript and AI output for non-server transcription flows.
+    /// Local-mode transcriptions may pass a nil audioStoragePath to sync text-only results.
     func saveCompletedTranscriptionJob(
         meetingId: UUID,
         audioStoragePath: String?,
@@ -871,7 +872,7 @@ private struct ExistingTranscriptionJob: Codable {
     let id: UUID
 }
 
-private struct CompletedTranscriptionJobPayload: Codable {
+struct CompletedTranscriptionJobPayload: Codable {
     let userId: UUID
     let meetingId: UUID
     let audioURL: String?
@@ -900,5 +901,26 @@ private struct CompletedTranscriptionJobPayload: Codable {
         case actions
         case progressPercentage = "progress_percentage"
         case currentStage = "current_stage"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(userId, forKey: .userId)
+        try container.encode(meetingId, forKey: .meetingId)
+        if let audioURL {
+            try container.encode(audioURL, forKey: .audioURL)
+        } else {
+            try container.encodeNil(forKey: .audioURL)
+        }
+        try container.encode(status, forKey: .status)
+        try container.encode(transcript, forKey: .transcript)
+        try container.encode(duration, forKey: .duration)
+        try container.encodeIfPresent(errorMessage, forKey: .errorMessage)
+        try container.encode(completedAt, forKey: .completedAt)
+        try container.encode(overview, forKey: .overview)
+        try container.encode(summary, forKey: .summary)
+        try container.encode(actions, forKey: .actions)
+        try container.encode(progressPercentage, forKey: .progressPercentage)
+        try container.encode(currentStage, forKey: .currentStage)
     }
 }

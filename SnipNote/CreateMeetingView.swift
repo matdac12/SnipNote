@@ -1414,19 +1414,25 @@ struct CreateMeetingView: View {
                     currentProcessingPhase = .generatingOverview
                 }
 
+                print("🧠 [CreateMeeting][Imported] Starting overview generation (transcript chars: \(transcript.count))")
                 let overview = try await openAIService.generateMeetingOverview(transcript)
+                print("✅ [CreateMeeting][Imported] Overview generated (chars: \(overview.count))")
                 await MainActor.run {
                     liveOverview = overview
                     currentProcessingPhase = .generatingSummary
                 }
 
+                print("🧠 [CreateMeeting][Imported] Starting summary generation")
                 let summary = try await openAIService.summarizeMeeting(transcript)
+                print("✅ [CreateMeeting][Imported] Summary generated (chars: \(summary.count))")
                 await MainActor.run {
                     liveSummary = summary
                     currentProcessingPhase = .extractingActions
                 }
 
+                print("🧠 [CreateMeeting][Imported] Starting action extraction")
                 let actionItems = try await openAIService.extractActions(transcript)
+                print("✅ [CreateMeeting][Imported] Extracted \(actionItems.count) action items")
                 await MainActor.run {
                     currentProcessingPhase = .complete
                 }
@@ -1499,12 +1505,18 @@ struct CreateMeetingView: View {
                         currentBackgroundTaskId = .invalid
                     }
 
-                    // FIXED: Properly handle meeting error state
+                    // Preserve a completed transcript if only the later AI analysis failed.
                     if let meeting = createdMeeting {
-                        meeting.setProcessingError("Transcription failed. Please try again.")
-                        meeting.audioTranscript = "Transcription failed"
-                        meeting.shortSummary = "Processing failed"
-                        meeting.aiSummary = "This meeting could not be processed. You can try again using the retry button."
+                        if meeting.hasTranscriptContent {
+                            meeting.setProcessingError("Transcript saved, but AI analysis failed. Check your connection and retry.")
+                            meeting.shortSummary = "AI overview unavailable"
+                            meeting.aiSummary = "The transcript was saved, but the AI summary could not be generated. You can retry the AI analysis."
+                        } else {
+                            meeting.setProcessingError("Transcription failed. Please try again.")
+                            meeting.audioTranscript = "Transcription failed"
+                            meeting.shortSummary = "Processing failed"
+                            meeting.aiSummary = "This meeting could not be processed. You can try again using the retry button."
+                        }
 
                         // Save the audio file path for retry
                         if let audioURL = importedAudioURL {
@@ -1827,9 +1839,15 @@ struct CreateMeetingView: View {
                 // Deletion will happen in updateMeetingWithAI after everything succeeds
 
                 // Process AI in background after navigation
+                print("🧠 [CreateMeeting][Recorded] Starting overview generation (transcript chars: \(transcript.count))")
                 let overview = try await openAIService.generateMeetingOverview(transcript)
+                print("✅ [CreateMeeting][Recorded] Overview generated (chars: \(overview.count))")
+                print("🧠 [CreateMeeting][Recorded] Starting summary generation")
                 let summary = try await openAIService.summarizeMeeting(transcript)
+                print("✅ [CreateMeeting][Recorded] Summary generated (chars: \(summary.count))")
+                print("🧠 [CreateMeeting][Recorded] Starting action extraction")
                 let actionItems = try await openAIService.extractActions(transcript)
+                print("✅ [CreateMeeting][Recorded] Extracted \(actionItems.count) action items")
                 
                 // Track AI usage
                 await UsageTracker.shared.trackAIUsage(
@@ -1868,12 +1886,18 @@ struct CreateMeetingView: View {
                         currentBackgroundTaskId = .invalid
                     }
 
-                    // FIXED: Properly handle meeting error state
+                    // Preserve a completed transcript if only the later AI analysis failed.
                     if let meeting = createdMeeting {
-                        meeting.setProcessingError("Transcription failed. Please try again.")
-                        meeting.audioTranscript = "Transcription failed"
-                        meeting.shortSummary = "Processing failed"
-                        meeting.aiSummary = "This meeting could not be processed. You can try again using the retry button."
+                        if meeting.hasTranscriptContent {
+                            meeting.setProcessingError("Transcript saved, but AI analysis failed. Check your connection and retry.")
+                            meeting.shortSummary = "AI overview unavailable"
+                            meeting.aiSummary = "The transcript was saved, but the AI summary could not be generated. You can retry the AI analysis."
+                        } else {
+                            meeting.setProcessingError("Transcription failed. Please try again.")
+                            meeting.audioTranscript = "Transcription failed"
+                            meeting.shortSummary = "Processing failed"
+                            meeting.aiSummary = "This meeting could not be processed. You can try again using the retry button."
+                        }
 
                         // Save the recorded audio file path for retry
                         meeting.localAudioPath = recordingURL.path
@@ -2073,17 +2097,15 @@ struct CreateMeetingView: View {
                 do {
                     try await SupabaseManager.shared.saveMeeting(meeting)
 
-                    if let audioStoragePath {
-                        try await SupabaseManager.shared.saveCompletedTranscriptionJob(
-                            meetingId: meeting.id,
-                            audioStoragePath: audioStoragePath,
-                            duration: duration,
-                            transcript: meeting.audioTranscript,
-                            overview: overview,
-                            summary: summary,
-                            actions: actionItems
-                        )
-                    }
+                    try await SupabaseManager.shared.saveCompletedTranscriptionJob(
+                        meetingId: meeting.id,
+                        audioStoragePath: audioStoragePath,
+                        duration: duration,
+                        transcript: meeting.audioTranscript,
+                        overview: overview,
+                        summary: summary,
+                        actions: actionItems
+                    )
                 } catch {
                     print("⚠️ Failed to sync updated meeting to Supabase: \(error)")
                 }

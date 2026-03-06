@@ -102,7 +102,8 @@ final class SmartTranscriptionTests: XCTestCase {
         let request = CreateJobRequest(
             userId: userId,
             meetingId: meetingId,
-            audioUrl: audioUrl
+            audioUrl: audioUrl,
+            language: nil
         )
 
         let encoded = try JSONEncoder().encode(request)
@@ -423,7 +424,8 @@ final class SmartTranscriptionTests: XCTestCase {
         let request = CreateJobRequest(
             userId: UUID().uuidString,
             meetingId: UUID().uuidString,
-            audioUrl: "https://example.com/audio.m4a"
+            audioUrl: "https://example.com/audio.m4a",
+            language: nil
         )
 
         measure {

@@ -148,6 +148,22 @@ final class Meeting {
         return Double(lastProcessedChunk) / Double(totalChunks) * 100.0
     }
 
+    var hasTranscriptContent: Bool {
+        let trimmed = audioTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+
+        let placeholders = [
+            "Transcribing meeting audio...",
+            "Transcription failed"
+        ]
+
+        return !placeholders.contains(trimmed)
+    }
+
+    var canRetryAnalysis: Bool {
+        processingState == .failed && hasTranscriptContent && localAudioPath != nil
+    }
+
     var canRetry: Bool {
         return processingState == .failed && localAudioPath != nil
     }

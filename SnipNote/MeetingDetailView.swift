@@ -371,6 +371,9 @@ struct MeetingDetailView: View {
     @ViewBuilder
     private var processingErrorCard: some View {
         let theme = themeManager.currentTheme
+        let showsAnalysisRetry = meeting.canRetryAnalysis
+        let primaryRetryTitle = showsAnalysisRetry ? "Retry AI Analysis" : "Retry Processing"
+        let subtitle = meeting.processingError ?? "We couldn't process this meeting. Please try again."
 
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
@@ -378,22 +381,26 @@ struct MeetingDetailView: View {
                     .foregroundColor(theme.warningColor)
                     .font(.title3)
 
-                Text("Something went wrong")
+                Text(showsAnalysisRetry ? "AI analysis failed" : "Something went wrong")
                     .font(.system(.headline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(theme.textColor)
             }
 
-            Text("We couldn't process this meeting. Please try again.")
+            Text(subtitle)
                 .font(.system(.subheadline, design: theme.useMonospacedFont ? .monospaced : .default))
                 .foregroundColor(theme.secondaryTextColor)
 
-            if meeting.canRetry {
+            if meeting.canRetryAnalysis || meeting.canRetry {
                 Button {
-                    retryTranscription()
+                    if showsAnalysisRetry {
+                        retryAIAnalysis()
+                    } else {
+                        retryTranscription()
+                    }
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.clockwise")
-                        Text("Retry Processing")
+                        Text(primaryRetryTitle)
                     }
                     .font(.system(.subheadline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(theme.backgroundColor)
@@ -1179,6 +1186,12 @@ struct MeetingDetailView: View {
         }
     }
 
+    private func retryAIAnalysis() {
+        Task {
+            await performRetryAIAnalysis()
+        }
+    }
+
     @MainActor
     private func performRetryTranscription() async {
         await minutesManager.refreshBalance()
@@ -1277,9 +1290,15 @@ struct MeetingDetailView: View {
                 }
             }
 
+            print("🧠 [MeetingDetail][Retry] Starting overview generation (transcript chars: \(transcript.count))")
             let overview = try await openAIService.generateMeetingOverview(transcript)
+            print("✅ [MeetingDetail][Retry] Overview generated (chars: \(overview.count))")
+            print("🧠 [MeetingDetail][Retry] Starting summary generation")
             let summary = try await openAIService.summarizeMeeting(transcript)
+            print("✅ [MeetingDetail][Retry] Summary generated (chars: \(summary.count))")
+            print("🧠 [MeetingDetail][Retry] Starting action extraction")
             let actionItems = try await openAIService.extractActions(transcript)
+            print("✅ [MeetingDetail][Retry] Extracted \(actionItems.count) action items")
 
             meeting.shortSummary = overview
             meeting.aiSummary = summary
@@ -1329,17 +1348,15 @@ struct MeetingDetailView: View {
                     do {
                         try await SupabaseManager.shared.saveMeeting(meeting)
 
-                        if let uploadedAudioPath {
-                            try await SupabaseManager.shared.saveCompletedTranscriptionJob(
-                                meetingId: meeting.id,
-                                audioStoragePath: uploadedAudioPath,
-                                duration: meeting.duration,
-                                transcript: meeting.audioTranscript,
-                                overview: overview,
-                                summary: summary,
-                                actions: actionItems
-                            )
-                        }
+                        try await SupabaseManager.shared.saveCompletedTranscriptionJob(
+                            meetingId: meeting.id,
+                            audioStoragePath: uploadedAudioPath,
+                            duration: meeting.duration,
+                            transcript: meeting.audioTranscript,
+                            overview: overview,
+                            summary: summary,
+                            actions: actionItems
+                        )
                     } catch {
                         print("⚠️ Failed to sync retry results to Supabase: \(error)")
                     }
@@ -1358,7 +1375,107 @@ struct MeetingDetailView: View {
 
         } catch {
             print("Error during retry: \(error)")
-            meeting.setProcessingError("Transcription failed again. Please try later.")
+            if meeting.hasTranscriptContent {
+                meeting.setProcessingError("Transcript saved, but AI analysis failed again. Check your connection and retry.")
+            } else {
+                meeting.setProcessingError("Transcription failed again. Please try later.")
+            }
+            try? modelContext.save()
+        }
+    }
+
+    @MainActor
+    private func performRetryAIAnalysis() async {
+        guard meeting.canRetryAnalysis else {
+            print("⚠️ Cannot retry AI analysis: transcript is unavailable")
+            return
+        }
+
+        isRetrying = true
+        meeting.clearProcessingError()
+        meeting.updateProcessingState(.generatingSummary)
+        meeting.shortSummary = "Generating overview..."
+        meeting.aiSummary = "Generating meeting summary..."
+
+        do {
+            try modelContext.save()
+        } catch {
+            print("Error saving AI retry preparation state: \(error)")
+        }
+
+        defer {
+            isRetrying = false
+        }
+
+        let transcript = meeting.audioTranscript
+
+        do {
+            print("🧠 [MeetingDetail][AI Retry] Starting overview generation (transcript chars: \(transcript.count))")
+            let overview = try await openAIService.generateMeetingOverview(transcript)
+            print("✅ [MeetingDetail][AI Retry] Overview generated (chars: \(overview.count))")
+            print("🧠 [MeetingDetail][AI Retry] Starting summary generation")
+            let summary = try await openAIService.summarizeMeeting(transcript)
+            print("✅ [MeetingDetail][AI Retry] Summary generated (chars: \(summary.count))")
+            print("🧠 [MeetingDetail][AI Retry] Starting action extraction")
+            let actionItems = try await openAIService.extractActions(transcript)
+            print("✅ [MeetingDetail][AI Retry] Extracted \(actionItems.count) action items")
+
+            meeting.shortSummary = overview
+            meeting.aiSummary = summary
+            meeting.markCompleted()
+
+            for action in relatedActions {
+                modelContext.delete(action)
+            }
+
+            for actionItem in actionItems {
+                let priority: ActionPriority
+                switch actionItem.priority.uppercased() {
+                case "HIGH":
+                    priority = .high
+                case "MED", "MEDIUM":
+                    priority = .medium
+                case "LOW":
+                    priority = .low
+                default:
+                    priority = .medium
+                }
+
+                modelContext.insert(
+                    Action(
+                        title: actionItem.action,
+                        priority: priority,
+                        sourceNoteId: meeting.id
+                    )
+                )
+            }
+
+            do {
+                try modelContext.save()
+
+                Task {
+                    do {
+                        try await SupabaseManager.shared.saveMeeting(meeting)
+                        try await SupabaseManager.shared.saveCompletedTranscriptionJob(
+                            meetingId: meeting.id,
+                            audioStoragePath: nil,
+                            duration: meeting.duration,
+                            transcript: meeting.audioTranscript,
+                            overview: overview,
+                            summary: summary,
+                            actions: actionItems
+                        )
+                    } catch {
+                        print("⚠️ Failed to sync AI retry results to Supabase: \(error)")
+                    }
+                }
+            } catch {
+                print("Error saving AI retry results: \(error)")
+            }
+        } catch {
+            print("Error during AI retry: \(error)")
+            meeting.setProcessingError("Transcript saved, but AI analysis failed again. Check your connection and retry.")
+            try? modelContext.save()
         }
     }
 

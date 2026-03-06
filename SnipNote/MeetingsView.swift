@@ -20,7 +20,6 @@ struct MeetingsView: View {
 
     @State private var showingCreateMeeting = false
     @State private var hasSyncedOnLaunch = false
-    @State private var selectedMeeting: Meeting?
     @State private var navigateToCreate = false
     @State private var createdMeeting: Meeting?
     @State private var navigateToCreatedMeeting = false
@@ -51,9 +50,8 @@ struct MeetingsView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
-            NavigationStack {
-                VStack(spacing: 0) {
+        NavigationStack {
+            VStack(spacing: 0) {
                 
                  HStack(alignment: .center, spacing: 12) {
                      Text("Meetings")
@@ -156,66 +154,42 @@ struct MeetingsView: View {
                         Spacer()
                     }
                 } else {
-                    List(selection: $selectedMeeting) {
+                    List {
                         ForEach(filteredMeetings) { meeting in
-                            ZStack {
-                                // Hidden NavigationLink - no visible chevron
-                                NavigationLink(value: meeting) {
-                                    EmptyView()
-                                }
-                                .opacity(0)
-
-                                // Visible content
+                            NavigationLink(value: meeting) {
                                 MeetingRowView(meeting: meeting, themeManager: themeManager)
                             }
+                            .listRowBackground(Color.clear)
                         }
                         .onDelete(perform: deleteMeetings)
-                        .listRowBackground(Color.clear)
                     }
                     .listStyle(PlainListStyle())
-                    .tint(.clear) // Remove orange selection tint on iPad
                     .scrollContentBackground(.hidden)
                     .refreshable {
                         await performSync()
                     }
                 }
             }
-            .themedBackground()
-            .navigationDestination(for: Meeting.self) { meeting in
+        }
+        .themedBackground()
+        .navigationDestination(for: Meeting.self) { meeting in
+            MeetingDetailView(meeting: meeting)
+        }
+        .navigationDestination(isPresented: $navigateToCreate) {
+            CreateMeetingView(
+                onMeetingCreated: { meeting in
+                    createdMeeting = meeting
+                    navigateToCreate = false
+                    navigateToCreatedMeeting = true
+                    // Clear deep link after meeting is created
+                    deepLinkAudioURL = nil
+                },
+                importedAudioURL: deepLinkAudioURL
+            )
+        }
+        .navigationDestination(isPresented: $navigateToCreatedMeeting) {
+            if let meeting = createdMeeting {
                 MeetingDetailView(meeting: meeting)
-            }
-            .navigationDestination(isPresented: $navigateToCreate) {
-                CreateMeetingView(
-                    onMeetingCreated: { meeting in
-                        createdMeeting = meeting
-                        navigateToCreate = false
-                        navigateToCreatedMeeting = true
-                        // Clear deep link after meeting is created
-                        deepLinkAudioURL = nil
-                    },
-                    importedAudioURL: deepLinkAudioURL
-                )
-            }
-            .navigationDestination(isPresented: $navigateToCreatedMeeting) {
-                if let meeting = createdMeeting {
-                    MeetingDetailView(meeting: meeting)
-                }
-            }
-            }
-        } detail: {
-            NavigationStack {
-                if let meeting = selectedMeeting {
-                    MeetingDetailView(meeting: meeting)
-                } else {
-                    VStack {
-                        Spacer()
-                        Text("Select a meeting")
-                            .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                        Spacer()
-                    }
-                    .themedBackground()
-                }
             }
         }
         .onAppear {

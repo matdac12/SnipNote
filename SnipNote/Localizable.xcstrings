@@ -450,6 +450,9 @@
         }
       }
     },
+    "Available models" : {
+
+    },
     "Best for long meetings (1+ hour) - just share!" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -507,6 +510,9 @@
 
     },
     "Chat with Eve about this meeting" : {
+
+    },
+    "Choose a local model to balance speed, quality, and storage." : {
 
     },
     "Choose Your Pack" : {
@@ -621,9 +627,6 @@
       }
     },
     "Download" : {
-
-    },
-    "Downloaded models" : {
 
     },
     "Downloading" : {
@@ -755,6 +758,9 @@
           }
         }
       }
+    },
+    "Generating meeting summary..." : {
+
     },
     "Get automatic summaries, action item extraction, and smart organization. Focus on the conversation while SnipNote handles the notes." : {
       "extractionState" : "stale",
@@ -2768,13 +2774,13 @@
         }
       }
     },
-    "Use downloaded Whisper models for transcription testing." : {
-
-    },
     "Use the existing cloud pipeline exactly as it works today." : {
 
     },
     "Use This Model" : {
+
+    },
+    "Verifying" : {
 
     },
     "VERSION" : {

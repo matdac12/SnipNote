@@ -25,35 +25,42 @@ enum TranscriptionMode: String, CaseIterable, Identifiable {
 }
 
 enum LocalTranscriptionModel: String, CaseIterable, Identifiable {
-    case tiny
     case base
+    case small
+    case distilLargeV3Turbo = "distil-large-v3_turbo"
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .tiny:
-            return "Fast"
         case .base:
-            return "Balanced"
+            return "Base"
+        case .small:
+            return "Small"
+        case .distilLargeV3Turbo:
+            return "Distilled Large V3 Turbo"
         }
     }
 
     var detailText: String {
         switch self {
-        case .tiny:
-            return "Smallest download, quickest testing."
         case .base:
-            return "Better accuracy with a larger download."
+            return "Best for fast local transcription with modest storage use."
+        case .small:
+            return "Better transcript quality with a larger download."
+        case .distilLargeV3Turbo:
+            return "Highest-quality local option with the biggest download."
         }
     }
 
     var approximateSizeDescription: String {
         switch self {
-        case .tiny:
-            return "~75 MB"
         case .base:
             return "~142 MB"
+        case .small:
+            return "~466 MB"
+        case .distilLargeV3Turbo:
+            return "~600 MB"
         }
     }
 
@@ -66,6 +73,7 @@ enum LocalModelStatus: Equatable {
     case checking
     case notInstalled
     case downloading(Double)
+    case verifying
     case installed
     case failed(String)
 
@@ -85,6 +93,8 @@ enum LocalModelStatus: Equatable {
             return "Not downloaded"
         case .downloading(let progress):
             return "Downloading \(Int(progress * 100))%"
+        case .verifying:
+            return "Verifying model..."
         case .installed:
             return "Installed"
         case .failed(let message):
@@ -161,12 +171,10 @@ final class LocalTranscriptionManager: ObservableObject {
     }
 
     func download(_ model: LocalTranscriptionModel) async {
-        modelStatuses[model] = .downloading(0)
-
         do {
-            try await service.downloadModel(model) { [weak self] progress in
+            try await service.downloadModel(model) { [weak self] status in
                 Task { @MainActor in
-                    self?.modelStatuses[model] = .downloading(progress)
+                    self?.modelStatuses[model] = status
                 }
             }
 

@@ -15,6 +15,7 @@ enum LocalTranscriptionError: LocalizedError {
     case whisperKitUnavailable
     case modelNotInstalled(LocalTranscriptionModel)
     case failedToLoadModel
+    case downloadIncomplete
     case emptyTranscript
 
     var errorDescription: String? {
@@ -25,6 +26,8 @@ enum LocalTranscriptionError: LocalizedError {
             return "\(model.displayName) is not downloaded. Install it in Settings > Local Transcription."
         case .failedToLoadModel:
             return "The local model could not be loaded."
+        case .downloadIncomplete:
+            return "Download incomplete. Please retry."
         case .emptyTranscript:
             return "The local transcription returned no text."
         }
@@ -44,7 +47,11 @@ actor LocalTranscriptionService {
 
     func status(for model: LocalTranscriptionModel) -> LocalModelStatus {
         #if canImport(WhisperKit)
-        return resolvedModelDirectory(for: model) != nil ? .installed : .notInstalled
+        let status: LocalModelStatus = resolvedModelDirectory(for: model) != nil ? .installed : .notInstalled
+        if case .notInstalled = status {
+            defaults.removeObject(forKey: storageKey(for: model))
+        }
+        return status
         #else
         return .failed(LocalTranscriptionError.whisperKitUnavailable.localizedDescription)
         #endif
@@ -52,10 +59,12 @@ actor LocalTranscriptionService {
 
     func downloadModel(
         _ model: LocalTranscriptionModel,
-        progressHandler: @escaping @Sendable (Double) -> Void
+        statusHandler: @escaping @Sendable (LocalModelStatus) -> Void
     ) async throws {
         #if canImport(WhisperKit)
-        try ensureModelRootDirectory()
+        try ensureModelDirectories()
+        try cleanupLegacyModelDirectory(for: model)
+        try cleanupStagingDirectory(for: model)
 
         let whisperKit = try await WhisperKit(
             verbose: true,
@@ -65,19 +74,43 @@ actor LocalTranscriptionService {
             download: false
         )
 
-        let modelFolder = try await WhisperKit.download(
+        statusHandler(.downloading(0))
+
+        let downloadedModelFolder = try await WhisperKit.download(
             variant: model.whisperVariant,
+            downloadBase: stagingDownloadBaseDirectory(),
             from: repoName
         ) { progress in
-            progressHandler(progress.fractionCompleted)
+            statusHandler(.downloading(progress.fractionCompleted))
         }
 
-        defaults.set(modelFolder.path, forKey: storageKey(for: model))
-        whisperKit.modelFolder = modelFolder
-        try await whisperKit.prewarmModels()
-        try await whisperKit.loadModels()
-        loadedModels[model] = whisperKit
-        progressHandler(1.0)
+        statusHandler(.verifying)
+
+        let installedModelFolder = installedModelDirectory(for: model)
+
+        do {
+            try excludeFromBackup(localModelRootDirectory())
+            try excludeFromBackup(stagingRootDirectory())
+            try validateDownloadedModel(at: downloadedModelFolder)
+
+            if fileManager.fileExists(atPath: installedModelFolder.path) {
+                try fileManager.removeItem(at: installedModelFolder)
+            }
+
+            try fileManager.moveItem(at: downloadedModelFolder, to: installedModelFolder)
+            try excludeFromBackup(installedModelFolder)
+
+            whisperKit.modelFolder = installedModelFolder
+            try await whisperKit.prewarmModels()
+            try await whisperKit.loadModels()
+            try writeInstalledMarker(for: model, in: installedModelFolder)
+
+            defaults.set(installedModelFolder.path, forKey: storageKey(for: model))
+            loadedModels[model] = whisperKit
+        } catch {
+            try? cleanupInstalledArtifacts(for: model)
+            throw error is LocalTranscriptionError ? error : LocalTranscriptionError.downloadIncomplete
+        }
         #else
         throw LocalTranscriptionError.whisperKitUnavailable
         #endif
@@ -86,10 +119,8 @@ actor LocalTranscriptionService {
     func deleteModel(_ model: LocalTranscriptionModel) throws {
         #if canImport(WhisperKit)
         loadedModels[model] = nil
-        let modelDirectory = resolvedModelDirectory(for: model) ?? expectedModelDirectory(for: model)
-        if fileManager.fileExists(atPath: modelDirectory.path) {
-            try fileManager.removeItem(at: modelDirectory)
-        }
+        try cleanupInstalledArtifacts(for: model)
+        try cleanupLegacyModelDirectory(for: model)
         defaults.removeObject(forKey: storageKey(for: model))
         #else
         throw LocalTranscriptionError.whisperKitUnavailable
@@ -224,32 +255,68 @@ actor LocalTranscriptionService {
         guard let modelDirectory = resolvedModelDirectory(for: model) else {
             throw LocalTranscriptionError.modelNotInstalled(model)
         }
-        guard fileManager.fileExists(atPath: modelDirectory.path) else {
+
+        guard fileManager.fileExists(atPath: modelDirectory.path),
+              hasInstalledMarker(for: model, in: modelDirectory) else {
+            defaults.removeObject(forKey: storageKey(for: model))
             throw LocalTranscriptionError.modelNotInstalled(model)
         }
 
-        let whisperKit = try await WhisperKit(
-            verbose: true,
-            logLevel: .error,
-            prewarm: false,
-            load: false,
-            download: false
-        )
-        whisperKit.modelFolder = modelDirectory
-        try await whisperKit.prewarmModels()
-        try await whisperKit.loadModels()
-        loadedModels[model] = whisperKit
-        return whisperKit
-    }
-
-    private func ensureModelRootDirectory() throws {
-        let modelRoot = expectedModelRootDirectory()
-        if !fileManager.fileExists(atPath: modelRoot.path) {
-            try fileManager.createDirectory(at: modelRoot, withIntermediateDirectories: true, attributes: nil)
+        do {
+            let whisperKit = try await WhisperKit(
+                verbose: true,
+                logLevel: .error,
+                prewarm: false,
+                load: false,
+                download: false
+            )
+            whisperKit.modelFolder = modelDirectory
+            try await whisperKit.prewarmModels()
+            try await whisperKit.loadModels()
+            loadedModels[model] = whisperKit
+            return whisperKit
+        } catch {
+            try? cleanupInstalledArtifacts(for: model)
+            defaults.removeObject(forKey: storageKey(for: model))
+            throw LocalTranscriptionError.failedToLoadModel
         }
     }
 
-    private func expectedModelRootDirectory() -> URL {
+    private func ensureModelDirectories() throws {
+        for directory in [localModelRootDirectory(), installedRootDirectory(), stagingRootDirectory()] {
+            if !fileManager.fileExists(atPath: directory.path) {
+                try fileManager.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
+            }
+            try excludeFromBackup(directory)
+        }
+    }
+
+    private func localModelRootDirectory() -> URL {
+        let baseDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? fileManager.temporaryDirectory
+        return baseDirectory
+            .appendingPathComponent("SnipNote", isDirectory: true)
+            .appendingPathComponent("LocalModels", isDirectory: true)
+    }
+
+    private func installedRootDirectory() -> URL {
+        localModelRootDirectory().appendingPathComponent("Installed", isDirectory: true)
+    }
+
+    private func stagingRootDirectory() -> URL {
+        localModelRootDirectory().appendingPathComponent("Staging", isDirectory: true)
+    }
+
+    private func stagingDownloadBaseDirectory() -> URL {
+        stagingRootDirectory()
+    }
+
+    private func installedModelDirectory(for model: LocalTranscriptionModel) -> URL {
+        installedRootDirectory()
+            .appendingPathComponent("openai_whisper-\(model.whisperVariant)", isDirectory: true)
+    }
+
+    private func legacyModelDirectory(for model: LocalTranscriptionModel) -> URL {
         let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first
             ?? fileManager.temporaryDirectory
         return documentsDirectory
@@ -257,22 +324,22 @@ actor LocalTranscriptionService {
             .appendingPathComponent("models", isDirectory: true)
             .appendingPathComponent("argmaxinc", isDirectory: true)
             .appendingPathComponent("whisperkit-coreml", isDirectory: true)
-    }
-
-    private func expectedModelDirectory(for model: LocalTranscriptionModel) -> URL {
-        expectedModelRootDirectory()
             .appendingPathComponent("openai_whisper-\(model.whisperVariant)", isDirectory: true)
     }
 
     private func resolvedModelDirectory(for model: LocalTranscriptionModel) -> URL? {
         if let storedPath = defaults.string(forKey: storageKey(for: model)),
            fileManager.fileExists(atPath: storedPath) {
-            return URL(fileURLWithPath: storedPath, isDirectory: true)
+            let storedURL = URL(fileURLWithPath: storedPath, isDirectory: true)
+            if hasInstalledMarker(for: model, in: storedURL) {
+                return storedURL
+            }
         }
 
-        let expectedDirectory = expectedModelDirectory(for: model)
-        if fileManager.fileExists(atPath: expectedDirectory.path) {
-            return expectedDirectory
+        let installedDirectory = installedModelDirectory(for: model)
+        if fileManager.fileExists(atPath: installedDirectory.path),
+           hasInstalledMarker(for: model, in: installedDirectory) {
+            return installedDirectory
         }
 
         return nil
@@ -280,6 +347,83 @@ actor LocalTranscriptionService {
 
     private func storageKey(for model: LocalTranscriptionModel) -> String {
         "localTranscription.modelPath.\(model.rawValue)"
+    }
+
+    private func installedMarkerURL(for model: LocalTranscriptionModel, in directory: URL) -> URL {
+        directory.appendingPathComponent(".snipnote-\(model.rawValue)-installed")
+    }
+
+    private func hasInstalledMarker(for model: LocalTranscriptionModel, in directory: URL) -> Bool {
+        fileManager.fileExists(atPath: installedMarkerURL(for: model, in: directory).path)
+    }
+
+    private func writeInstalledMarker(for model: LocalTranscriptionModel, in directory: URL) throws {
+        let markerURL = installedMarkerURL(for: model, in: directory)
+        try Data("ok".utf8).write(to: markerURL, options: .atomic)
+        try excludeFromBackup(directory)
+    }
+
+    private func cleanupInstalledArtifacts(for model: LocalTranscriptionModel) throws {
+        let installedDirectory = installedModelDirectory(for: model)
+        if fileManager.fileExists(atPath: installedDirectory.path) {
+            try fileManager.removeItem(at: installedDirectory)
+        }
+
+        let stagingDirectory = stagingModelDirectory(for: model)
+        if fileManager.fileExists(atPath: stagingDirectory.path) {
+            try fileManager.removeItem(at: stagingDirectory)
+        }
+    }
+
+    private func cleanupLegacyModelDirectory(for model: LocalTranscriptionModel) throws {
+        let legacyDirectory = legacyModelDirectory(for: model)
+        if fileManager.fileExists(atPath: legacyDirectory.path) {
+            try fileManager.removeItem(at: legacyDirectory)
+        }
+    }
+
+    private func cleanupStagingDirectory(for model: LocalTranscriptionModel) throws {
+        let stagingDirectory = stagingModelDirectory(for: model)
+        if fileManager.fileExists(atPath: stagingDirectory.path) {
+            try fileManager.removeItem(at: stagingDirectory)
+        }
+    }
+
+    private func stagingModelDirectory(for model: LocalTranscriptionModel) -> URL {
+        let variantPath = "huggingface/models/argmaxinc/whisperkit-coreml/openai_whisper-\(model.whisperVariant)"
+        return stagingRootDirectory().appendingPathComponent(variantPath, isDirectory: true)
+    }
+
+    private func excludeFromBackup(_ url: URL) throws {
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        var mutableURL = url
+        try mutableURL.setResourceValues(values)
+    }
+
+    private func validateDownloadedModel(at directory: URL) throws {
+        let requiredNames = ["MelSpectrogram", "AudioEncoder", "TextDecoder"]
+
+        for name in requiredNames {
+            let modelBundle = directory.appendingPathComponent("\(name).mlmodelc", isDirectory: true)
+            guard fileManager.fileExists(atPath: modelBundle.path) else {
+                throw LocalTranscriptionError.downloadIncomplete
+            }
+
+            let modelMIL = modelBundle.appendingPathComponent("model.mil")
+            guard fileManager.fileExists(atPath: modelMIL.path) else {
+                throw LocalTranscriptionError.downloadIncomplete
+            }
+        }
+
+        let encoderWeights = directory
+            .appendingPathComponent("AudioEncoder.mlmodelc", isDirectory: true)
+            .appendingPathComponent("weights", isDirectory: true)
+            .appendingPathComponent("weight.bin")
+
+        guard fileManager.fileExists(atPath: encoderWeights.path) else {
+            throw LocalTranscriptionError.downloadIncomplete
+        }
     }
 
     private func writeTemporaryChunk(_ chunk: AudioChunk) throws -> URL {

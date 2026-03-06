@@ -214,7 +214,7 @@ struct SettingsView: View {
                                          .themedBody()
                                          .fontWeight(.bold)
 
-                                     Text(localTranscriptionManager.isLocalModeEnabled ? "Use downloaded Whisper models for transcription testing." : "Use the existing cloud pipeline exactly as it works today.")
+                                     Text(localTranscriptionManager.isLocalModeEnabled ? "Choose a local model to balance speed, quality, and storage." : "Use the existing cloud pipeline exactly as it works today.")
                                          .themedCaption()
                                  }
 
@@ -234,7 +234,7 @@ struct SettingsView: View {
 
                              if localTranscriptionManager.isLocalModeEnabled {
                                  VStack(alignment: .leading, spacing: 10) {
-                                     Text("Downloaded models")
+                                     Text("Available models")
                                          .themedCaption()
                                          .fontWeight(.semibold)
 
@@ -1042,6 +1042,15 @@ struct LocalModelCard: View {
                     .cornerRadius(themeManager.currentTheme.cornerRadius)
                 case .downloading:
                     Button("Downloading") { }
+                        .disabled(true)
+                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(themeManager.currentTheme.secondaryTextColor.opacity(0.12))
+                        .cornerRadius(themeManager.currentTheme.cornerRadius)
+                case .verifying:
+                    Button("Verifying") { }
                         .disabled(true)
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)

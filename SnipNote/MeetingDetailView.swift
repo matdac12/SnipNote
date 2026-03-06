@@ -16,11 +16,12 @@ struct MeetingDetailView: View {
     @Query private var allActions: [Action]
 
     @State private var isEditingName = false
-    @State private var isEditingSummary = false
     @State private var tempName = ""
-    @State private var tempSummary = ""
+    @State private var showingNotes = true
+    @State private var showingOverview = true
     @State private var showingTranscript = false
     @State private var showingSummary = true
+    @State private var showingActions = true
     @State private var showingFullScreenSummary = false
     @State private var showingFullScreenTranscript = false
 
@@ -44,6 +45,10 @@ struct MeetingDetailView: View {
 
     private var relatedActions: [Action] {
         allActions.filter { $0.sourceNoteId == meeting.id }
+    }
+
+    private var theme: AppTheme {
+        themeManager.currentTheme
     }
     
     var body: some View {
@@ -81,7 +86,6 @@ struct MeetingDetailView: View {
         }
         .onAppear {
             tempName = meeting.name
-            tempSummary = meeting.aiSummary
         }
         .task {
             // Continuously refresh meeting data - start immediately to catch stale data
@@ -336,64 +340,30 @@ struct MeetingDetailView: View {
     }
 
     private var meetingNotesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader(title: "MEETING NOTES:", alternateTitle: "Meeting Notes:")
-
-            MeetingDetailCard {
-                Text(meeting.meetingNotes)
-                    .themedBody()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+        editorialSection(title: "Meeting Notes", isExpanded: $showingNotes) {
+            Text(meeting.meetingNotes)
+                .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
+                .foregroundColor(theme.textColor)
+                .lineSpacing(3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
     
     private var overviewSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionHeader(title: "OVERVIEW:", alternateTitle: "Overview:")
-
-            MeetingDetailCard {
-                if meeting.isProcessing || isRetrying {
-                    // Show detailed chunk progress when processing
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text(meeting.processingState == .transcribing ? "Processing meeting..." : meeting.shortSummary)
-                                .themedBody()
-                                .opacity(0.6)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        }
-
-                        // Show chunk progress if available
-                        if meeting.totalChunks > 0 {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("\(Int(meeting.progressPercentage))% Complete")
-                                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
-                                    .foregroundColor(themeManager.currentTheme.accentColor)
-
-                                ProgressView(value: meeting.progressPercentage, total: 100)
-                                    .progressViewStyle(LinearProgressViewStyle(tint: themeManager.currentTheme.accentColor))
-                                    .frame(height: 4)
-
-                                HStack(spacing: 4) {
-                                    Image(systemName: "waveform")
-                                        .font(.caption2)
-                                        .foregroundColor(themeManager.currentTheme.accentColor)
-                                    Text("Chunk \(meeting.lastProcessedChunk) of \(meeting.totalChunks)")
-                                        .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .medium))
-                                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                                }
-                            }
-                        }
-                    }
-                } else if meeting.processingState == .failed {
-                    processingErrorCard
-                } else {
-                    Text(meeting.shortSummary)
-                        .themedBody()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+        editorialSection(
+            title: "Overview",
+            isExpanded: $showingOverview,
+            transition: .opacity.combined(with: .scale(scale: 0.98, anchor: .top))
+        ) {
+            if meeting.processingState == .failed {
+                processingErrorCard
+            } else {
+                Text(meeting.shortSummary)
+                    .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default, weight: .medium))
+                    .foregroundColor(theme.textColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -445,273 +415,165 @@ struct MeetingDetailView: View {
     }
 
     private var summarySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                sectionHeader(title: "MEETING SUMMARY:", alternateTitle: "Meeting Summary:")
+        editorialSection(
+            title: "Summary",
+            isExpanded: $showingSummary,
+            transition: .opacity.combined(with: .scale(scale: 0.98, anchor: .top))
+        ) {
+            if meeting.processingState == .failed {
+                processingErrorCard
+            } else {
+                Button {
+                    showingFullScreenSummary = true
+                } label: {
+                    VStack(alignment: .leading, spacing: 10) {
+                        markdownSummaryText(meeting.aiSummary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer()
+                        if !meeting.aiSummary.isEmpty {
+                            HStack(spacing: 6) {
+                                Text("Open full summary")
+                                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                                    .foregroundColor(theme.accentColor)
 
-                HStack(spacing: 12) {
-                    Button(showingSummary ? "Hide" : "Show") {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showingSummary.toggle()
-                        }
-                    }
-                    .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                    .foregroundColor(themeManager.currentTheme.accentColor)
-
-                    if !meeting.isProcessing && showingSummary {
-                        editButton
-                    }
-                }
-            }
-
-            if showingSummary {
-                if isEditingSummary {
-                    summaryEditor
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                } else {
-                    MeetingDetailCard(action: meeting.isProcessing || isRetrying ? nil : {
-                        showingFullScreenSummary = true
-                    }) {
-                        if meeting.isProcessing || isRetrying {
-                            // Show detailed chunk progress when processing
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    if meeting.processingState == .transcribing {
-                                        Text("Generating meeting summary...")
-                                            .themedBody()
-                                            .opacity(0.6)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    } else {
-                                        markdownSummaryText(meeting.aiSummary)
-                                            .opacity(0.6)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                }
-
-                                // Show chunk progress if available
-                                if meeting.totalChunks > 0 {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("\(Int(meeting.progressPercentage))% Complete")
-                                            .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
-                                            .foregroundColor(themeManager.currentTheme.accentColor)
-
-                                        ProgressView(value: meeting.progressPercentage, total: 100)
-                                            .progressViewStyle(LinearProgressViewStyle(tint: themeManager.currentTheme.accentColor))
-                                            .frame(height: 4)
-
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "waveform")
-                                                .font(.caption2)
-                                                .foregroundColor(themeManager.currentTheme.accentColor)
-                                            Text("Chunk \(meeting.lastProcessedChunk) of \(meeting.totalChunks)")
-                                                .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .medium))
-                                                .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                                        }
-                                    }
-                                }
-                            }
-                        } else if meeting.processingState == .failed {
-                            processingErrorCard
-                        } else {
-                            markdownSummaryText(meeting.aiSummary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            } else if meeting.isProcessing || isRetrying || meeting.processingState == .failed {
-                // Show processing or error state even when collapsed
-                MeetingDetailCard {
-                    if meeting.isProcessing || isRetrying {
-                        // Show detailed chunk progress when processing
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text("Processing meeting summary...")
-                                    .themedBody()
-                                    .opacity(0.6)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            }
-
-                            // Show chunk progress if available
-                            if meeting.totalChunks > 0 {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("\(Int(meeting.progressPercentage))% Complete")
-                                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
-                                        .foregroundColor(themeManager.currentTheme.accentColor)
-
-                                    ProgressView(value: meeting.progressPercentage, total: 100)
-                                        .progressViewStyle(LinearProgressViewStyle(tint: themeManager.currentTheme.accentColor))
-                                        .frame(height: 4)
-
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "waveform")
-                                            .font(.caption2)
-                                            .foregroundColor(themeManager.currentTheme.accentColor)
-                                        Text("Chunk \(meeting.lastProcessedChunk) of \(meeting.totalChunks)")
-                                            .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .medium))
-                                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                                    }
-                                }
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(theme.accentColor)
                             }
                         }
-                    } else {
-                        // Failed state when collapsed
-                        processingErrorCard
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .buttonStyle(.plain)
             }
         }
     }
     
     private var transcriptSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                sectionHeader(title: "FULL TRANSCRIPT:", alternateTitle: "Full Transcript:")
+        editorialSection(title: "Transcript", isExpanded: $showingTranscript) {
+            Button {
+                showingFullScreenTranscript = true
+            } label: {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(transcriptPreviewText)
+                        .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
+                        .foregroundColor(theme.textColor)
+                        .lineSpacing(4)
+                        .lineLimit(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer()
+                    HStack(spacing: 6) {
+                        Text("Open full transcript")
+                            .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                            .foregroundColor(theme.accentColor)
 
-                Button(showingTranscript ? "Hide" : "Show") {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        showingTranscript.toggle()
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(theme.accentColor)
                     }
                 }
-                .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                .foregroundColor(themeManager.currentTheme.accentColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
-
-            if showingTranscript {
-                MeetingDetailCard(action: {
-                    showingFullScreenTranscript = true
-                }) {
-                    ScrollView {
-                        Text(meeting.audioTranscript)
-                            .themedBody()
-                            .lineSpacing(2)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(maxHeight: 300)
-                }
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
+            .buttonStyle(.plain)
         }
     }
     
     private var actionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                sectionHeader(title: "MEETING ACTIONS:", alternateTitle: "Meeting Actions:")
-
-                Spacer()
-
-                if meeting.isProcessing {
-                    Text("Extracting...")
-                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                        .foregroundColor(themeManager.currentTheme.warningColor)
-                }
-            }
-
-            if meeting.isProcessing {
-                MeetingDetailCard {
-                    HStack {
-                        Text("Extracting action items from meeting...")
-                            .themedBody()
-                            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                            .opacity(0.6)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    }
-                }
-            } else if !relatedActions.isEmpty {
-                VStack(spacing: 8) {
+        editorialSection(title: "Actions", isExpanded: $showingActions) {
+            if !relatedActions.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
                     ForEach(relatedActions.sorted(by: { !$0.isCompleted && $1.isCompleted })) { action in
-                        MeetingDetailCard {
-                            HStack(spacing: 12) {
-                                // Colored priority badge
-                                Circle()
-                                    .fill(priorityColor(for: action))
-                                    .frame(width: 8, height: 8)
+                        HStack(alignment: .top, spacing: 12) {
+                            Circle()
+                                .fill(priorityColor(for: action))
+                                .frame(width: 8, height: 8)
+                                .padding(.top, 6)
 
-                                Text(action.title)
-                                    .themedBody()
-                                    .foregroundColor(action.isCompleted ? themeManager.currentTheme.secondaryTextColor : themeManager.currentTheme.accentColor)
-                                    .strikethrough(action.isCompleted)
-                                    .lineLimit(2)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            Text(action.title)
+                                .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
+                                .foregroundColor(action.isCompleted ? theme.secondaryTextColor : theme.textColor)
+                                .strikethrough(action.isCompleted)
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
 
-                                if action.isCompleted {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(themeManager.currentTheme.accentColor)
-                                }
+                            if action.isCompleted {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(theme.accentColor)
                             }
                         }
                     }
                 }
             } else {
-                MeetingDetailCard {
-                    Text("No action items found in this meeting")
-                        .themedBody()
-                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                Text("No action items found in this meeting")
+                    .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(theme.secondaryTextColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
     
     // MARK: - Helper Views
     
-    private func sectionHeader(title: String, alternateTitle: String) -> some View {
-        Text(alternateTitle)
-            .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-            .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-    }
-    
-    private var editButton: some View {
-        Button("Edit") {
-            startEditingSummary()
+    private func editorialSection<Content: View>(
+        title: String,
+        isExpanded: Binding<Bool>,
+        transition: AnyTransition = .move(edge: .top).combined(with: .opacity),
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            editorialSectionHeader(title: title, isExpanded: isExpanded)
+
+            if isExpanded.wrappedValue {
+                content()
+                    .transition(transition)
+            }
         }
-        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-        .foregroundColor(themeManager.currentTheme.accentColor)
+        .padding(.top, 14)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(theme.secondaryBackgroundColor)
+                .frame(height: 1)
+        }
+    }
+
+    private func editorialSectionHeader<Trailing: View>(title: String, isExpanded: Binding<Bool>, @ViewBuilder trailing: () -> Trailing) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isExpanded.wrappedValue.toggle()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Text(title)
+                        .font(.system(.title3, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                        .foregroundColor(theme.textColor)
+
+                    Image(systemName: isExpanded.wrappedValue ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(theme.secondaryTextColor)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            trailing()
+        }
+    }
+
+    private func editorialSectionHeader(title: String, isExpanded: Binding<Bool>) -> some View {
+        editorialSectionHeader(title: title, isExpanded: isExpanded) {
+            EmptyView()
+        }
     }
     
     private var processingLabel: some View {
         Text("Processing...")
             .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
             .foregroundColor(themeManager.currentTheme.warningColor)
-    }
-    
-    private var summaryEditor: some View {
-        TextEditor(text: $tempSummary)
-            .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
-            .padding()
-            .background(themeManager.currentTheme.materialStyle)
-            .cornerRadius(themeManager.currentTheme.cornerRadius)
-            .frame(minHeight: 300)
-            .overlay(
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button("Save") {
-                            saveSummary()
-                        }
-                        .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                        .foregroundColor(themeManager.currentTheme.accentColor)
-                        .padding(.top, 8)
-                        .padding(.trailing, 8)
-                    }
-                    Spacer()
-                }
-            )
     }
     
     
@@ -951,6 +813,20 @@ struct MeetingDetailView: View {
     private func getMeetingTitle() -> String {
         return meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
     }
+
+    private var transcriptPreviewText: String {
+        let trimmed = meeting.audioTranscript.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            return "No transcript available"
+        }
+
+        if trimmed.count <= 700 {
+            return trimmed
+        }
+
+        return String(trimmed.prefix(700)).trimmingCharacters(in: .whitespacesAndNewlines) + "..."
+    }
     
     private func priorityColor(for action: Action) -> Color {
         switch action.priority {
@@ -983,32 +859,6 @@ struct MeetingDetailView: View {
             }
         } catch {
             print("Error saving name: \(error)")
-        }
-    }
-    
-    private func startEditingSummary() {
-        tempSummary = meeting.aiSummary
-        isEditingSummary = true
-    }
-    
-    private func saveSummary() {
-        meeting.aiSummary = tempSummary
-        meeting.dateModified = Date()
-        isEditingSummary = false
-
-        do {
-            try modelContext.save()
-
-            // Sync to Supabase
-            Task {
-                do {
-                    try await SupabaseManager.shared.saveMeeting(meeting)
-                } catch {
-                    print("⚠️ Failed to sync meeting summary to Supabase: \(error)")
-                }
-            }
-        } catch {
-            print("Error saving summary: \(error)")
         }
     }
     

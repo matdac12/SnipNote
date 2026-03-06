@@ -1389,10 +1389,12 @@ struct CreateMeetingView: View {
                     updateMeetingWithTranscript(transcript: transcript)
                 }
                 
-                // Upload imported audio to Supabase
-                if let meeting = createdMeeting {
+                var uploadedAudioPath: String?
+
+                // Local-model transcriptions do not need a durable remote audio file.
+                if !localTranscriptionManager.isLocalModeEnabled, let meeting = createdMeeting {
                     do {
-                        _ = try await SupabaseManager.shared.uploadAudioRecording(
+                        uploadedAudioPath = try await SupabaseManager.shared.uploadAudioRecording(
                             audioURL: audioURL,
                             meetingId: meeting.id,
                             duration: cachedAudioDuration
@@ -1436,7 +1438,13 @@ struct CreateMeetingView: View {
                 )
                 
                 await MainActor.run {
-                    updateMeetingWithAI(overview: overview, summary: summary, actionItems: actionItems)
+                    updateMeetingWithAI(
+                        overview: overview,
+                        summary: summary,
+                        actionItems: actionItems,
+                        duration: cachedAudioDuration,
+                        audioStoragePath: uploadedAudioPath
+                    )
                     isProcessingAudio = false
                     currentProcessingPhase = .transcribing
 
@@ -1795,10 +1803,12 @@ struct CreateMeetingView: View {
                     updateMeetingWithTranscript(transcript: transcript)
                 }
                 
-                // Upload audio to Supabase before deleting local file
-                if let meeting = createdMeeting {
+                var uploadedAudioPath: String?
+
+                // Local-model transcriptions do not need a durable remote audio file.
+                if !localTranscriptionManager.isLocalModeEnabled, let meeting = createdMeeting {
                     do {
-                        _ = try await SupabaseManager.shared.uploadAudioRecording(
+                        uploadedAudioPath = try await SupabaseManager.shared.uploadAudioRecording(
                             audioURL: recordingURL,
                             meetingId: meeting.id,
                             duration: recordingDuration
@@ -1828,7 +1838,13 @@ struct CreateMeetingView: View {
                 )
                 
                 await MainActor.run {
-                    updateMeetingWithAI(overview: overview, summary: summary, actionItems: actionItems)
+                    updateMeetingWithAI(
+                        overview: overview,
+                        summary: summary,
+                        actionItems: actionItems,
+                        duration: recordingDuration,
+                        audioStoragePath: uploadedAudioPath
+                    )
 
                     // End background task on success
                     if currentBackgroundTaskId != .invalid {
@@ -1988,7 +2004,13 @@ struct CreateMeetingView: View {
         }
     }
     
-    private func updateMeetingWithAI(overview: String, summary: String, actionItems: [ActionItem]) {
+    private func updateMeetingWithAI(
+        overview: String,
+        summary: String,
+        actionItems: [ActionItem],
+        duration: TimeInterval,
+        audioStoragePath: String?
+    ) {
         guard let meetingId = createdMeetingId else { return }
         
         let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
@@ -2003,8 +2025,10 @@ struct CreateMeetingView: View {
             // FIXED: Use new state management methods
             meeting.markCompleted()
 
-            // Clean up local audio file now that processing is complete (only after successful upload)
-            if meeting.hasRecording,
+            let shouldDeleteLocalAudio = meeting.hasRecording || localTranscriptionManager.isLocalModeEnabled
+
+            // Clean up local audio file after a successful completion.
+            if shouldDeleteLocalAudio,
                let localPath = meeting.localAudioPath,
                FileManager.default.fileExists(atPath: localPath) {
                 try? FileManager.default.removeItem(atPath: localPath)
@@ -2048,6 +2072,18 @@ struct CreateMeetingView: View {
             Task {
                 do {
                     try await SupabaseManager.shared.saveMeeting(meeting)
+
+                    if let audioStoragePath {
+                        try await SupabaseManager.shared.saveCompletedTranscriptionJob(
+                            meetingId: meeting.id,
+                            audioStoragePath: audioStoragePath,
+                            duration: duration,
+                            transcript: meeting.audioTranscript,
+                            overview: overview,
+                            summary: summary,
+                            actions: actionItems
+                        )
+                    }
                 } catch {
                     print("⚠️ Failed to sync updated meeting to Supabase: \(error)")
                 }

@@ -1408,10 +1408,15 @@ struct MeetingDetailView: View {
                 )
             }
 
-            if let latestLocalPath = meeting.localAudioPath {
+            let shouldUploadAudio = await MainActor.run {
+                !LocalTranscriptionManager.shared.isLocalModeEnabled
+            }
+            var uploadedAudioPath: String?
+
+            if shouldUploadAudio, let latestLocalPath = meeting.localAudioPath {
                 let latestURL = URL(fileURLWithPath: latestLocalPath)
                 do {
-                    _ = try await SupabaseManager.shared.uploadAudioRecording(
+                    uploadedAudioPath = try await SupabaseManager.shared.uploadAudioRecording(
                         audioURL: latestURL,
                         meetingId: meeting.id,
                         duration: meeting.duration
@@ -1452,7 +1457,9 @@ struct MeetingDetailView: View {
                 modelContext.insert(action)
             }
 
-            if meeting.hasRecording,
+            let shouldDeleteLocalAudio = meeting.hasRecording || !shouldUploadAudio
+
+            if shouldDeleteLocalAudio,
                debitSucceeded,
                let latestLocalPath = meeting.localAudioPath,
                FileManager.default.fileExists(atPath: latestLocalPath) {
@@ -1471,6 +1478,18 @@ struct MeetingDetailView: View {
                 Task {
                     do {
                         try await SupabaseManager.shared.saveMeeting(meeting)
+
+                        if let uploadedAudioPath {
+                            try await SupabaseManager.shared.saveCompletedTranscriptionJob(
+                                meetingId: meeting.id,
+                                audioStoragePath: uploadedAudioPath,
+                                duration: meeting.duration,
+                                transcript: meeting.audioTranscript,
+                                overview: overview,
+                                summary: summary,
+                                actions: actionItems
+                            )
+                        }
                     } catch {
                         print("⚠️ Failed to sync retry results to Supabase: \(error)")
                     }

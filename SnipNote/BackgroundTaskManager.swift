@@ -276,18 +276,25 @@ class BackgroundTaskManager: ObservableObject {
                 await UsageTracker.shared.trackMeetingCreated(transcribed: true, meetingSeconds: durationSeconds)
             }
 
-            do {
-                _ = try await SupabaseManager.shared.uploadAudioRecording(
-                    audioURL: audioURL,
-                    meetingId: meetingId,
-                    duration: Double(durationSeconds)
-                )
-                if let meetingToUpdate = try? context.fetch(descriptor).first {
-                    meetingToUpdate.hasRecording = true
-                    try? context.save()
+            let shouldUploadAudio = await MainActor.run {
+                !LocalTranscriptionManager.shared.isLocalModeEnabled
+            }
+            var uploadedAudioPath: String?
+
+            if shouldUploadAudio {
+                do {
+                    uploadedAudioPath = try await SupabaseManager.shared.uploadAudioRecording(
+                        audioURL: audioURL,
+                        meetingId: meetingId,
+                        duration: Double(durationSeconds)
+                    )
+                    if let meetingToUpdate = try? context.fetch(descriptor).first {
+                        meetingToUpdate.hasRecording = true
+                        try? context.save()
+                    }
+                } catch {
+                    print("🔄 Error uploading audio during resume: \(error)")
                 }
-            } catch {
-                print("🔄 Error uploading audio during resume: \(error)")
             }
 
             let overview = try await OpenAIService.shared.generateMeetingOverview(transcript)
@@ -324,7 +331,9 @@ class BackgroundTaskManager: ObservableObject {
                     context.insert(action)
                 }
 
-                if meetingToFinalize.hasRecording,
+                let shouldDeleteLocalAudio = meetingToFinalize.hasRecording || !shouldUploadAudio
+
+                if shouldDeleteLocalAudio,
                    debitSucceeded,
                    FileManager.default.fileExists(atPath: audioURL.path) {
                     try? FileManager.default.removeItem(at: audioURL)
@@ -332,6 +341,26 @@ class BackgroundTaskManager: ObservableObject {
                 }
 
                 try? context.save()
+
+                Task {
+                    do {
+                        try await SupabaseManager.shared.saveMeeting(meetingToFinalize)
+
+                        if let uploadedAudioPath {
+                            try await SupabaseManager.shared.saveCompletedTranscriptionJob(
+                                meetingId: meetingId,
+                                audioStoragePath: uploadedAudioPath,
+                                duration: Double(durationSeconds),
+                                transcript: transcript,
+                                overview: overview,
+                                summary: summary,
+                                actions: actionItems
+                            )
+                        }
+                    } catch {
+                        print("⚠️ [BackgroundTask] Failed to sync resumed transcription to Supabase: \(error)")
+                    }
+                }
 
                 Task {
                     await NotificationService.shared.sendProcessingCompleteNotification(

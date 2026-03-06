@@ -13,6 +13,7 @@ class SupabaseManager {
     static let shared = SupabaseManager()
     
     let client: SupabaseClient
+    private let recordingsPublicBaseURL = "https://bndbnqtvicvynzkyygte.supabase.co/storage/v1/object/public/recordings"
     
     private init() {
         let supabaseURL = URL(string: "https://bndbnqtvicvynzkyygte.supabase.co")!
@@ -241,6 +242,62 @@ class SupabaseManager {
         }
     }
 
+    /// Save completed transcript and AI output for non-server transcription flows.
+    func saveCompletedTranscriptionJob(
+        meetingId: UUID,
+        audioStoragePath: String?,
+        duration: TimeInterval,
+        transcript: String,
+        overview: String,
+        summary: String,
+        actions: [ActionItem]
+    ) async throws {
+        guard let userId = client.auth.currentUser?.id else {
+            throw SupabaseError.authRequired
+        }
+
+        let jobs: [ExistingTranscriptionJob] = try await client
+            .from("transcription_jobs")
+            .select("id")
+            .eq("user_id", value: userId.uuidString)
+            .eq("meeting_id", value: meetingId.uuidString)
+            .order("updated_at", ascending: false)
+            .limit(1)
+            .execute()
+            .value
+
+        let payload = CompletedTranscriptionJobPayload(
+            userId: userId,
+            meetingId: meetingId,
+            audioURL: audioStoragePath.map(publicRecordingURL(for:)),
+            status: "completed",
+            transcript: transcript,
+            duration: duration,
+            errorMessage: nil,
+            completedAt: Date(),
+            overview: overview,
+            summary: summary,
+            actions: actions,
+            progressPercentage: 100,
+            currentStage: "Completed"
+        )
+
+        if let existingJob = jobs.first {
+            try await client
+                .from("transcription_jobs")
+                .update(payload)
+                .eq("id", value: existingJob.id.uuidString)
+                .execute()
+            print("✅ Updated transcription job content for meeting \(meetingId)")
+        } else {
+            try await client
+                .from("transcription_jobs")
+                .insert(payload)
+                .execute()
+            print("✅ Created transcription job content for meeting \(meetingId)")
+        }
+    }
+
     /// Get meeting metadata from Supabase
     func getMeeting(id: UUID) async throws -> MeetingRecord? {
         guard let userId = client.auth.currentUser?.id else {
@@ -317,6 +374,7 @@ class SupabaseManager {
             .select()
             .eq("user_id", value: userId.uuidString)
             .eq("status", value: "completed")
+            .order("updated_at", ascending: false)
             .execute()
             .value
 
@@ -340,6 +398,10 @@ class SupabaseManager {
 
         print("✅ Combined \(meetingsWithContent.count) meetings with content")
         return meetingsWithContent
+    }
+
+    private func publicRecordingURL(for filePath: String) -> String {
+        "\(recordingsPublicBaseURL)/\(filePath)"
     }
 
     // MARK: - Subscription Functions
@@ -805,3 +867,38 @@ struct MeetingWithContent {
     let aiSummary: String?
 }
 
+private struct ExistingTranscriptionJob: Codable {
+    let id: UUID
+}
+
+private struct CompletedTranscriptionJobPayload: Codable {
+    let userId: UUID
+    let meetingId: UUID
+    let audioURL: String?
+    let status: String
+    let transcript: String
+    let duration: Double
+    let errorMessage: String?
+    let completedAt: Date
+    let overview: String
+    let summary: String
+    let actions: [ActionItem]
+    let progressPercentage: Int
+    let currentStage: String
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case meetingId = "meeting_id"
+        case audioURL = "audio_url"
+        case status
+        case transcript
+        case duration
+        case errorMessage = "error_message"
+        case completedAt = "completed_at"
+        case overview
+        case summary
+        case actions
+        case progressPercentage = "progress_percentage"
+        case currentStage = "current_stage"
+    }
+}

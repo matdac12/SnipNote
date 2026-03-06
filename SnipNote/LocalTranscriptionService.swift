@@ -21,15 +21,18 @@ enum LocalTranscriptionError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .whisperKitUnavailable:
-            return "Local transcription is unavailable in this build."
+            return LocalizationManager.localizedAppString("transcription.local.error.unavailable")
         case .modelNotInstalled(let model):
-            return "\(model.displayName) is not downloaded. Install it in Settings > Local Transcription."
+            return LocalizationManager.localizedAppString(
+                "transcription.local.error.modelNotInstalled",
+                model.displayName
+            )
         case .failedToLoadModel:
-            return "The local model could not be loaded."
+            return LocalizationManager.localizedAppString("transcription.local.error.failedToLoadModel")
         case .downloadIncomplete:
-            return "Download incomplete. Please retry."
+            return LocalizationManager.localizedAppString("transcription.local.error.downloadIncomplete")
         case .emptyTranscript:
-            return "The local transcription returned no text."
+            return LocalizationManager.localizedAppString("transcription.local.error.emptyTranscript")
         }
     }
 }
@@ -99,14 +102,10 @@ actor LocalTranscriptionService {
 
             try fileManager.moveItem(at: downloadedModelFolder, to: installedModelFolder)
             try excludeFromBackup(installedModelFolder)
-
-            whisperKit.modelFolder = installedModelFolder
-            try await whisperKit.prewarmModels()
-            try await whisperKit.loadModels()
             try writeInstalledMarker(for: model, in: installedModelFolder)
 
             defaults.set(installedModelFolder.path, forKey: storageKey(for: model))
-            loadedModels[model] = whisperKit
+            whisperKit.modelFolder = installedModelFolder
         } catch {
             try? cleanupInstalledArtifacts(for: model)
             throw error is LocalTranscriptionError ? error : LocalTranscriptionError.downloadIncomplete
@@ -149,7 +148,7 @@ actor LocalTranscriptionService {
             progressCallback(AudioChunkerProgress(
                 currentChunk: 1,
                 totalChunks: 1,
-                currentStage: "Running local transcription",
+                currentStage: LocalizationManager.localizedAppString("transcription.local.progress.running"),
                 percentComplete: 20.0,
                 partialTranscript: nil
             ))
@@ -167,7 +166,7 @@ actor LocalTranscriptionService {
             progressCallback(AudioChunkerProgress(
                 currentChunk: 1,
                 totalChunks: 1,
-                currentStage: "Local transcription complete",
+                currentStage: LocalizationManager.localizedAppString("transcription.local.progress.complete"),
                 percentComplete: 100.0,
                 partialTranscript: transcript
             ))
@@ -199,7 +198,11 @@ actor LocalTranscriptionService {
             progressCallback(AudioChunkerProgress(
                 currentChunk: chunkNumber,
                 totalChunks: totalChunks,
-                currentStage: "Transcribing locally: chunk \(chunkNumber) of \(totalChunks)",
+                currentStage: LocalizationManager.localizedAppString(
+                    "transcription.local.progress.chunkRunning",
+                    Int64(chunkNumber),
+                    Int64(totalChunks)
+                ),
                 percentComplete: 10.0 + (Double(chunkNumber - 1) / Double(totalChunks)) * 90.0,
                 partialTranscript: nil
             ))
@@ -221,7 +224,10 @@ actor LocalTranscriptionService {
             progressCallback(AudioChunkerProgress(
                 currentChunk: chunkNumber,
                 totalChunks: totalChunks,
-                currentStage: "Chunk \(chunkNumber) completed",
+                currentStage: LocalizationManager.localizedAppString(
+                    "transcription.local.progress.chunkComplete",
+                    Int64(chunkNumber)
+                ),
                 percentComplete: 10.0 + (Double(chunkNumber) / Double(totalChunks)) * 90.0,
                 partialTranscript: transcript
             ))
@@ -235,7 +241,7 @@ actor LocalTranscriptionService {
         progressCallback(AudioChunkerProgress(
             currentChunk: totalChunks,
             totalChunks: totalChunks,
-            currentStage: "Combining transcripts",
+            currentStage: LocalizationManager.localizedAppString("transcription.local.progress.combining"),
             percentComplete: 100.0,
             partialTranscript: nil
         ))
@@ -276,8 +282,6 @@ actor LocalTranscriptionService {
             loadedModels[model] = whisperKit
             return whisperKit
         } catch {
-            try? cleanupInstalledArtifacts(for: model)
-            defaults.removeObject(forKey: storageKey(for: model))
             throw LocalTranscriptionError.failedToLoadModel
         }
     }
@@ -319,12 +323,7 @@ actor LocalTranscriptionService {
     private func legacyModelDirectory(for model: LocalTranscriptionModel) -> URL {
         let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first
             ?? fileManager.temporaryDirectory
-        return documentsDirectory
-            .appendingPathComponent("huggingface", isDirectory: true)
-            .appendingPathComponent("models", isDirectory: true)
-            .appendingPathComponent("argmaxinc", isDirectory: true)
-            .appendingPathComponent("whisperkit-coreml", isDirectory: true)
-            .appendingPathComponent("openai_whisper-\(model.whisperVariant)", isDirectory: true)
+        return legacyModelDirectory(forVariant: model.whisperVariant, documentsDirectory: documentsDirectory)
     }
 
     private func resolvedModelDirectory(for model: LocalTranscriptionModel) -> URL? {
@@ -392,6 +391,15 @@ actor LocalTranscriptionService {
     private func stagingModelDirectory(for model: LocalTranscriptionModel) -> URL {
         let variantPath = "huggingface/models/argmaxinc/whisperkit-coreml/openai_whisper-\(model.whisperVariant)"
         return stagingRootDirectory().appendingPathComponent(variantPath, isDirectory: true)
+    }
+
+    private func legacyModelDirectory(forVariant variant: String, documentsDirectory: URL) -> URL {
+        documentsDirectory
+            .appendingPathComponent("huggingface", isDirectory: true)
+            .appendingPathComponent("models", isDirectory: true)
+            .appendingPathComponent("argmaxinc", isDirectory: true)
+            .appendingPathComponent("whisperkit-coreml", isDirectory: true)
+            .appendingPathComponent("openai_whisper-\(variant)", isDirectory: true)
     }
 
     private func excludeFromBackup(_ url: URL) throws {

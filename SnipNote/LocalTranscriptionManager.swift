@@ -17,9 +17,9 @@ enum TranscriptionMode: String, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .cloud:
-            return "Cloud"
+            return LocalizationManager.localizedAppString("transcription.mode.cloud")
         case .local:
-            return "Local"
+            return LocalizationManager.localizedAppString("transcription.mode.local")
         }
     }
 }
@@ -27,29 +27,24 @@ enum TranscriptionMode: String, CaseIterable, Identifiable {
 enum LocalTranscriptionModel: String, CaseIterable, Identifiable {
     case base
     case small
-    case distilLargeV3Turbo = "distil-large-v3_turbo"
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
         case .base:
-            return "Base"
+            return LocalizationManager.localizedAppString("transcription.local.model.base.name")
         case .small:
-            return "Small"
-        case .distilLargeV3Turbo:
-            return "Distilled Large V3 Turbo"
+            return LocalizationManager.localizedAppString("transcription.local.model.small.name")
         }
     }
 
     var detailText: String {
         switch self {
         case .base:
-            return "Best for fast local transcription with modest storage use."
+            return LocalizationManager.localizedAppString("transcription.local.model.base.detail")
         case .small:
-            return "Better transcript quality with a larger download."
-        case .distilLargeV3Turbo:
-            return "Highest-quality local option with the biggest download."
+            return LocalizationManager.localizedAppString("transcription.local.model.small.detail")
         }
     }
 
@@ -59,8 +54,6 @@ enum LocalTranscriptionModel: String, CaseIterable, Identifiable {
             return "~142 MB"
         case .small:
             return "~466 MB"
-        case .distilLargeV3Turbo:
-            return "~600 MB"
         }
     }
 
@@ -88,15 +81,18 @@ enum LocalModelStatus: Equatable {
     var statusText: String {
         switch self {
         case .checking:
-            return "Checking model files..."
+            return LocalizationManager.localizedAppString("transcription.local.status.checking")
         case .notInstalled:
-            return "Not downloaded"
+            return LocalizationManager.localizedAppString("transcription.local.status.notInstalled")
         case .downloading(let progress):
-            return "Downloading \(Int(progress * 100))%"
+            return LocalizationManager.localizedAppString(
+                "transcription.local.status.downloading",
+                Int64(progress * 100)
+            )
         case .verifying:
-            return "Verifying model..."
+            return LocalizationManager.localizedAppString("transcription.local.status.verifying")
         case .installed:
-            return "Installed"
+            return LocalizationManager.localizedAppString("transcription.local.status.installed")
         case .failed(let message):
             return message
         }

@@ -17,7 +17,7 @@ final class TranscriptionRouter {
 
     func transcribeAudioFromURL(
         audioURL: URL,
-        progressCallback: @escaping (AudioChunkerProgress) -> Void,
+        progressCallback: @escaping @Sendable (AudioChunkerProgress) -> Void,
         meetingName: String = "",
         meetingId: UUID? = nil,
         language: String? = nil

@@ -9,7 +9,7 @@ import Foundation
 import AVFoundation
 import CoreMedia
 
-struct AudioChunk {
+struct AudioChunk: Sendable {
     let data: Data
     let startTime: TimeInterval
     let duration: TimeInterval
@@ -17,7 +17,7 @@ struct AudioChunk {
     let totalChunks: Int
 }
 
-struct AudioChunkerProgress {
+struct AudioChunkerProgress: Sendable {
     let currentChunk: Int
     let totalChunks: Int
     let currentStage: String

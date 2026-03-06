@@ -492,8 +492,10 @@ struct CreateMeetingView: View {
                                         .foregroundColor(theme.accentColor)
                                 }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.vertical, 12)
                             .padding(.horizontal, 4)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
 

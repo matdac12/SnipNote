@@ -57,7 +57,7 @@ actor LocalTranscriptionService {
         #if canImport(WhisperKit)
         try ensureModelRootDirectory()
 
-        var whisperKit = try await WhisperKit(
+        let whisperKit = try await WhisperKit(
             verbose: true,
             logLevel: .error,
             prewarm: false,
@@ -228,7 +228,7 @@ actor LocalTranscriptionService {
             throw LocalTranscriptionError.modelNotInstalled(model)
         }
 
-        var whisperKit = try await WhisperKit(
+        let whisperKit = try await WhisperKit(
             verbose: true,
             logLevel: .error,
             prewarm: false,

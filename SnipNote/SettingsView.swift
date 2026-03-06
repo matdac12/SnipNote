@@ -203,24 +203,26 @@ struct SettingsView: View {
                          .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
 
                      VStack(alignment: .leading, spacing: 16) {
-                         Text("LOCAL TRANSCRIPTION")
+                         Text(localized("settings.localTranscription.sectionTitle").uppercased())
                              .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                              .foregroundColor(themeManager.currentTheme.secondaryTextColor)
 
                          VStack(spacing: 16) {
                              HStack {
                                  VStack(alignment: .leading, spacing: 4) {
-                                     Text("Transcription Backend")
+                                     Text(localized("settings.localTranscription.backendTitle"))
                                          .themedBody()
                                          .fontWeight(.bold)
 
-                                     Text(localTranscriptionManager.isLocalModeEnabled ? "Choose a local model to balance speed, quality, and storage." : "Use the existing cloud pipeline exactly as it works today.")
+                                     Text(localTranscriptionManager.isLocalModeEnabled
+                                          ? localized("settings.localTranscription.backendDescription.local")
+                                          : localized("settings.localTranscription.backendDescription.cloud"))
                                          .themedCaption()
                                  }
 
                                  Spacer()
 
-                                 Picker("Transcription Backend", selection: Binding(
+                                 Picker(localized("settings.localTranscription.backendTitle"), selection: Binding(
                                      get: { localTranscriptionManager.transcriptionMode },
                                      set: { localTranscriptionManager.setTranscriptionMode($0) }
                                  )) {
@@ -234,7 +236,7 @@ struct SettingsView: View {
 
                              if localTranscriptionManager.isLocalModeEnabled {
                                  VStack(alignment: .leading, spacing: 10) {
-                                     Text("Available models")
+                                     Text(localized("settings.localTranscription.availableModels"))
                                          .themedCaption()
                                          .fontWeight(.semibold)
 
@@ -259,7 +261,7 @@ struct SettingsView: View {
                                          )
                                      }
 
-                                     Text("If local mode is enabled and the selected model is missing, new recordings and transcriptions will stop and ask you to install it here.")
+                                     Text(localized("settings.localTranscription.installHint"))
                                          .themedCaption()
                                          .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                  }
@@ -980,6 +982,7 @@ struct LocalModelCard: View {
     let onDelete: () -> Void
 
     @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject var localizationManager: LocalizationManager
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -991,7 +994,7 @@ struct LocalModelCard: View {
                             .fontWeight(.bold)
 
                         if isSelected {
-                            Text("Selected")
+                            Text(localized("settings.localTranscription.model.selectedBadge"))
                                 .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                                 .foregroundColor(themeManager.currentTheme.accentColor)
                                 .padding(.horizontal, 8)
@@ -1018,7 +1021,9 @@ struct LocalModelCard: View {
             }
 
             HStack(spacing: 10) {
-                Button(isSelected ? "Selected" : "Use This Model") {
+                Button(isSelected
+                       ? localized("settings.localTranscription.model.selectedBadge")
+                       : localized("settings.localTranscription.model.useButton")) {
                     onSelect()
                 }
                 .disabled(isSelected)
@@ -1031,7 +1036,7 @@ struct LocalModelCard: View {
 
                 switch status {
                 case .installed:
-                    Button("Delete") {
+                    Button(localized("settings.localTranscription.model.deleteButton")) {
                         onDelete()
                     }
                     .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
@@ -1041,7 +1046,7 @@ struct LocalModelCard: View {
                     .background(themeManager.currentTheme.destructiveColor.opacity(0.12))
                     .cornerRadius(themeManager.currentTheme.cornerRadius)
                 case .downloading:
-                    Button("Downloading") { }
+                    Button(localized("settings.localTranscription.model.downloadingButton")) { }
                         .disabled(true)
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
@@ -1050,7 +1055,7 @@ struct LocalModelCard: View {
                         .background(themeManager.currentTheme.secondaryTextColor.opacity(0.12))
                         .cornerRadius(themeManager.currentTheme.cornerRadius)
                 case .verifying:
-                    Button("Verifying") { }
+                    Button(localized("settings.localTranscription.model.verifyingButton")) { }
                         .disabled(true)
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
@@ -1059,7 +1064,7 @@ struct LocalModelCard: View {
                         .background(themeManager.currentTheme.secondaryTextColor.opacity(0.12))
                         .cornerRadius(themeManager.currentTheme.cornerRadius)
                 default:
-                    Button("Download") {
+                    Button(localized("settings.localTranscription.model.downloadButton")) {
                         onDownload()
                     }
                     .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
@@ -1089,6 +1094,10 @@ struct LocalModelCard: View {
         default:
             return themeManager.currentTheme.secondaryTextColor
         }
+    }
+
+    private func localized(_ key: String) -> String {
+        localizationManager.localizedString(key)
     }
 }
 

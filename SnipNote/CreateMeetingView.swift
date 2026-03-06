@@ -1145,7 +1145,7 @@ struct CreateMeetingView: View {
         } message: {
             Text("Please enter the name of the meeting")
         }
-        .alert("Local Model Required", isPresented: $showingLocalTranscriptionAlert) {
+        .alert(localized("createMeeting.localTranscription.missingModelAlert.title"), isPresented: $showingLocalTranscriptionAlert) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(localTranscriptionAlertMessage)
@@ -2169,7 +2169,7 @@ struct CreateMeetingView: View {
         }
 
         guard localTranscriptionManager.isSelectedModelInstalled else {
-            localTranscriptionAlertMessage = "Local transcription is enabled, but the selected model is not installed. Download it in Settings > Local Transcription or switch back to Cloud mode."
+            localTranscriptionAlertMessage = localized("createMeeting.localTranscription.missingModelAlert.message")
             showingLocalTranscriptionAlert = true
             return false
         }

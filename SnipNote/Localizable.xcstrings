@@ -33,6 +33,7 @@
 
     },
     "%lld%% Complete" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -450,9 +451,6 @@
         }
       }
     },
-    "Available models" : {
-
-    },
     "Best for long meetings (1+ hour) - just share!" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -512,21 +510,8 @@
     "Chat with Eve about this meeting" : {
 
     },
-    "Choose a local model to balance speed, quality, and storage." : {
-
-    },
     "Choose Your Pack" : {
 
-    },
-    "Chunk %lld of %lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Chunk %1$lld of %2$lld"
-          }
-        }
-      }
     },
     "Chunk %lld/%lld" : {
       "localizations" : {
@@ -591,10 +576,41 @@
         }
       }
     },
-    "Current Balance" : {
-
+    "createMeeting.localTranscription.missingModelAlert.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local transcription is enabled, but the selected model is not installed. Download it in Settings > Local Transcription or switch back to Cloud mode."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La trascrizione locale è attiva, ma il modello selezionato non è installato. Scaricalo in Impostazioni > Trascrizione locale oppure torna alla modalità Cloud."
+          }
+        }
+      }
     },
-    "Delete" : {
+    "createMeeting.localTranscription.missingModelAlert.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local Model Required"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello locale richiesto"
+          }
+        }
+      }
+    },
+    "Current Balance" : {
 
     },
     "DEVELOPER" : {
@@ -626,16 +642,11 @@
         }
       }
     },
-    "Download" : {
-
-    },
-    "Downloading" : {
-
-    },
     "Duration: %@" : {
 
     },
     "Edit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -685,6 +696,7 @@
 
     },
     "Extracting action items from meeting..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -695,6 +707,7 @@
       }
     },
     "Extracting..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -759,9 +772,6 @@
         }
       }
     },
-    "Generating meeting summary..." : {
-
-    },
     "Get automatic summaries, action item extraction, and smart organization. Focus on the conversation while SnipNote handles the notes." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -790,6 +800,7 @@
       }
     },
     "Hide" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -798,9 +809,6 @@
           }
         }
       }
-    },
-    "If local mode is enabled and the selected model is missing, new recordings and transcriptions will stop and ask you to install it here." : {
-
     },
     "If you're experiencing issues or have questions:" : {
 
@@ -904,12 +912,6 @@
       }
     },
     "Loading subscription options..." : {
-
-    },
-    "Local Model Required" : {
-
-    },
-    "LOCAL TRANSCRIPTION" : {
 
     },
     "Making great progress!" : {
@@ -1122,6 +1124,12 @@
         }
       }
     },
+    "Open full summary" : {
+
+    },
+    "Open full transcript" : {
+
+    },
     "OpenAI API Key" : {
 
     },
@@ -1248,7 +1256,11 @@
         }
       }
     },
+    "Processing" : {
+
+    },
     "Processing meeting summary..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -1461,9 +1473,6 @@
           }
         }
       }
-    },
-    "Selected" : {
-
     },
     "Server Transcription" : {
       "extractionState" : "stale",
@@ -1997,6 +2006,210 @@
         }
       }
     },
+    "settings.localTranscription.availableModels" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available models"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelli disponibili"
+          }
+        }
+      }
+    },
+    "settings.localTranscription.backendDescription.cloud" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the existing cloud pipeline exactly as it works today."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa l'attuale pipeline cloud esattamente come funziona oggi."
+          }
+        }
+      }
+    },
+    "settings.localTranscription.backendDescription.local" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a local model to balance speed, quality, and storage."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli un modello locale per bilanciare velocità, qualità e spazio di archiviazione."
+          }
+        }
+      }
+    },
+    "settings.localTranscription.backendTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcription Backend"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motore di trascrizione"
+          }
+        }
+      }
+    },
+    "settings.localTranscription.installHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If local mode is enabled and the selected model is missing, new recordings and transcriptions will stop and ask you to install it here."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se la modalità locale è attiva e il modello selezionato non è disponibile, le nuove registrazioni e trascrizioni si fermeranno e ti chiederanno di installarlo qui."
+          }
+        }
+      }
+    },
+    "settings.localTranscription.model.deleteButton" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina"
+          }
+        }
+      }
+    },
+    "settings.localTranscription.model.downloadButton" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica"
+          }
+        }
+      }
+    },
+    "settings.localTranscription.model.downloadingButton" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download in corso"
+          }
+        }
+      }
+    },
+    "settings.localTranscription.model.selectedBadge" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selezionato"
+          }
+        }
+      }
+    },
+    "settings.localTranscription.model.useButton" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use This Model"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa questo modello"
+          }
+        }
+      }
+    },
+    "settings.localTranscription.model.verifyingButton" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifying"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica in corso"
+          }
+        }
+      }
+    },
+    "settings.localTranscription.sectionTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local Transcription"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizione locale"
+          }
+        }
+      }
+    },
     "settings.notifications.logout.cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2468,6 +2681,7 @@
       }
     },
     "Show" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
@@ -2711,11 +2925,365 @@
         }
       }
     },
-    "Transcription Backend" : {
-
-    },
     "Transcription Failed" : {
 
+    },
+    "transcription.local.error.downloadIncomplete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download incomplete. Please retry."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download incompleto. Riprova."
+          }
+        }
+      }
+    },
+    "transcription.local.error.emptyTranscript" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The local transcription returned no text."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La trascrizione locale non ha restituito alcun testo."
+          }
+        }
+      }
+    },
+    "transcription.local.error.failedToLoadModel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The local model could not be initialized on this device."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il modello locale non può essere inizializzato su questo dispositivo."
+          }
+        }
+      }
+    },
+    "transcription.local.error.modelNotInstalled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is not downloaded. Install it in Settings > Local Transcription."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ non è scaricato. Installalo in Impostazioni > Trascrizione locale."
+          }
+        }
+      }
+    },
+    "transcription.local.error.unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local transcription is unavailable in this build."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La trascrizione locale non è disponibile in questa build."
+          }
+        }
+      }
+    },
+    "transcription.local.model.base.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Best for fast local transcription with modest storage use."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ideale per trascrizioni locali rapide con un uso contenuto dello spazio."
+          }
+        }
+      }
+    },
+    "transcription.local.model.base.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base"
+          }
+        }
+      }
+    },
+    "transcription.local.model.small.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Better transcript quality with a larger download."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qualità di trascrizione migliore, con un download più grande."
+          }
+        }
+      }
+    },
+    "transcription.local.model.small.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Small"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Small"
+          }
+        }
+      }
+    },
+    "transcription.local.progress.chunkComplete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chunk %1$lld completed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segmento %1$lld completato"
+          }
+        }
+      }
+    },
+    "transcription.local.progress.chunkRunning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribing locally: chunk %1$lld of %2$lld"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizione locale: segmento %1$lld di %2$lld"
+          }
+        }
+      }
+    },
+    "transcription.local.progress.combining" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combining transcripts"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unione delle trascrizioni"
+          }
+        }
+      }
+    },
+    "transcription.local.progress.complete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local transcription complete"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizione locale completata"
+          }
+        }
+      }
+    },
+    "transcription.local.progress.running" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running local transcription"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizione locale in esecuzione"
+          }
+        }
+      }
+    },
+    "transcription.local.status.checking" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking model files..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controllo dei file del modello..."
+          }
+        }
+      }
+    },
+    "transcription.local.status.downloading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading %1$lld%%"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download %1$lld%%"
+          }
+        }
+      }
+    },
+    "transcription.local.status.installed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installato"
+          }
+        }
+      }
+    },
+    "transcription.local.status.notInstalled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not downloaded"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non scaricato"
+          }
+        }
+      }
+    },
+    "transcription.local.status.verifying" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifying model..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica del modello..."
+          }
+        }
+      }
+    },
+    "transcription.mode.cloud" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cloud"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cloud"
+          }
+        }
+      }
+    },
+    "transcription.mode.local" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locale"
+          }
+        }
+      }
     },
     "Troubleshooting:" : {
 
@@ -2773,15 +3341,6 @@
           }
         }
       }
-    },
-    "Use the existing cloud pipeline exactly as it works today." : {
-
-    },
-    "Use This Model" : {
-
-    },
-    "Verifying" : {
-
     },
     "VERSION" : {
 

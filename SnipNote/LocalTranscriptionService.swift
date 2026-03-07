@@ -144,14 +144,7 @@ actor LocalTranscriptionService {
         #if canImport(WhisperKit)
         let transcriptionStart = Date()
         let whisperKit = try await ensureLoadedModel(model)
-        let decodeOptions = DecodingOptions(
-            task: .transcribe,
-            language: language,
-            temperatureFallbackCount: 0,
-            usePrefillPrompt: language != nil,
-            detectLanguage: language == nil,
-            skipSpecialTokens: true
-        )
+        let decodeOptions = Self.makeLocalDecodeOptions(model: model, language: language)
         let maxChunkLength = whisperKit.featureExtractor.windowSamples ?? 480_000
         let cachedPlanJSON: String? = if let meetingId {
             await readStoredSpeechPlan(for: meetingId)
@@ -197,6 +190,7 @@ actor LocalTranscriptionService {
         }
 
         Self.logPreprocessingDiagnostics(preparedAudio.diagnostics, model: model, audioURL: audioURL)
+        Self.logDecodeDiagnostics(decodeOptions, model: model)
 
         let totalChunks = preparedAudio.plan.totalChunks
         let safeCompletedChunks = min(max(0, resumeFromCompletedChunks), totalChunks)
@@ -659,5 +653,71 @@ actor LocalTranscriptionService {
 
     private static func formatSeconds(_ seconds: TimeInterval) -> String {
         String(format: "%.1fs", seconds)
+    }
+
+    private static func makeLocalDecodeOptions(
+        model: LocalTranscriptionModel,
+        language: String?
+    ) -> DecodingOptions {
+        let thresholds = decodeThresholds(for: model)
+
+        return DecodingOptions(
+            task: .transcribe,
+            language: language,
+            temperature: 0,
+            temperatureIncrementOnFallback: 0.2,
+            temperatureFallbackCount: thresholds.temperatureFallbackCount,
+            topK: 5,
+            usePrefillPrompt: language != nil,
+            detectLanguage: language == nil,
+            skipSpecialTokens: true,
+            suppressBlank: true,
+            compressionRatioThreshold: thresholds.compressionRatioThreshold,
+            logProbThreshold: thresholds.logProbThreshold,
+            firstTokenLogProbThreshold: thresholds.firstTokenLogProbThreshold,
+            noSpeechThreshold: thresholds.noSpeechThreshold,
+            chunkingStrategy: .none
+        )
+    }
+
+    private static func decodeThresholds(for model: LocalTranscriptionModel) -> (
+        temperatureFallbackCount: Int,
+        compressionRatioThreshold: Float,
+        logProbThreshold: Float,
+        firstTokenLogProbThreshold: Float,
+        noSpeechThreshold: Float
+    ) {
+        switch model {
+        case .base:
+            return (
+                temperatureFallbackCount: 1,
+                compressionRatioThreshold: 2.2,
+                logProbThreshold: -0.9,
+                firstTokenLogProbThreshold: -1.1,
+                noSpeechThreshold: 0.5
+            )
+        case .small:
+            return (
+                temperatureFallbackCount: 1,
+                compressionRatioThreshold: 2.1,
+                logProbThreshold: -0.85,
+                firstTokenLogProbThreshold: -1.05,
+                noSpeechThreshold: 0.45
+            )
+        }
+    }
+
+    private static func logDecodeDiagnostics(
+        _ options: DecodingOptions,
+        model: LocalTranscriptionModel
+    ) {
+        print(
+            "🎛️ [LocalTranscription] Decode options for \(model.rawValue) " +
+            "(temp: \(options.temperature), fallbacks: \(options.temperatureFallbackCount), " +
+            "compression: \(options.compressionRatioThreshold ?? -1), " +
+            "logprob: \(options.logProbThreshold ?? -1), " +
+            "first-token: \(options.firstTokenLogProbThreshold ?? -1), " +
+            "no-speech: \(options.noSpeechThreshold ?? -1), suppressBlank: \(options.suppressBlank))"
+        )
     }
 }

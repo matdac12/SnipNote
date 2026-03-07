@@ -107,6 +107,8 @@ final class Meeting {
     var resumePhaseRaw: String?
     var sourceAudioDurationSeconds: Double = 0
     var didDebitTranscriptionMinutes: Bool = false
+    var hasPendingMinutesDebit: Bool = false
+    var pendingMinutesDebitError: String?
     var localSpeechPlanJSON: String?
     var localSpeechPlanFingerprint: String?
 
@@ -218,6 +220,8 @@ final class Meeting {
         self.resumePhaseRaw = nil
         self.sourceAudioDurationSeconds = 0
         self.didDebitTranscriptionMinutes = false
+        self.hasPendingMinutesDebit = false
+        self.pendingMinutesDebitError = nil
         self.localSpeechPlanJSON = nil
         self.localSpeechPlanFingerprint = nil
     }
@@ -260,6 +264,20 @@ final class Meeting {
         dateModified = Date()
     }
 
+    func markMinutesDebitPending(message: String? = nil) {
+        didDebitTranscriptionMinutes = false
+        hasPendingMinutesDebit = true
+        pendingMinutesDebitError = message
+        dateModified = Date()
+    }
+
+    func markMinutesDebitSettled() {
+        didDebitTranscriptionMinutes = true
+        hasPendingMinutesDebit = false
+        pendingMinutesDebitError = nil
+        dateModified = Date()
+    }
+
     func configureTranscriptionJob(
         backend: TranscriptionBackend,
         model: LocalTranscriptionModel? = nil,
@@ -271,6 +289,8 @@ final class Meeting {
         transcriptionLanguage = language
         sourceAudioDurationSeconds = sourceAudioDuration
         didDebitTranscriptionMinutes = false
+        hasPendingMinutesDebit = false
+        pendingMinutesDebitError = nil
         localSpeechPlanJSON = nil
         localSpeechPlanFingerprint = nil
         pausedAt = nil

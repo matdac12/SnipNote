@@ -8,9 +8,32 @@
 import Foundation
 import Supabase
 import StoreKit
+import SwiftData
 
 @MainActor
 class MinutesManager: ObservableObject {
+    enum DebitMinutesResult: Equatable {
+        case debited
+        case queuedForRetry(message: String)
+        case failed(message: String)
+
+        var didDebitImmediately: Bool {
+            if case .debited = self {
+                return true
+            }
+            return false
+        }
+
+        var userMessage: String? {
+            switch self {
+            case .debited:
+                return nil
+            case .queuedForRetry(let message), .failed(let message):
+                return message
+            }
+        }
+    }
+
     // MARK: - Published Properties
     @Published var currentBalance: Int = 0
     @Published var isLoading: Bool = false
@@ -18,6 +41,8 @@ class MinutesManager: ObservableObject {
 
     // MARK: - Singleton
     static let shared = MinutesManager()
+
+    private var scheduledDebitRetryTask: Task<Void, Never>?
 
     private init() {}
 
@@ -155,39 +180,65 @@ class MinutesManager: ObservableObject {
     }
 
     /// Debit minutes for usage
-    func debitMinutes(seconds: Int, meetingID: String? = nil) async -> Bool {
+    func debitMinutes(seconds: Int, meetingID: String? = nil) async -> DebitMinutesResult {
         // User-friendly rounding: 119 seconds = 1 minute, 120 seconds = 2 minutes
         let minutes = max(1, Int(ceil(Double(seconds) / 60.0)))
 
         guard minutes > 0 else {
             print("❌ [MinutesManager] Invalid debit amount: \(minutes)")
-            return false
+            return .failed(message: "Unable to calculate minutes for this meeting.")
         }
 
-        do {
-            let params = DebitMinutesParams(
-                p_amount: minutes,
-                p_meeting_id: meetingID
-            )
+        let immediateRetryCount = 3
+        var lastDebitError: Error?
 
-            let response = try await SupabaseManager.shared.client
-                .rpc("debit_minutes", params: params)
-                .execute()
+        for attempt in 1...immediateRetryCount {
+            do {
+                try await performDebitRequest(minutes: minutes, seconds: seconds, meetingID: meetingID)
+                if let meetingID {
+                    await updateMeetingDebitState(meetingID: meetingID, pending: false, message: nil)
+                }
+                return .debited
+            } catch {
+                lastDebitError = error
 
-            let data = response.data
-            if let newBalance = try? JSONDecoder().decode(Int.self, from: data) {
-                currentBalance = newBalance // Allow negative balance temporarily
-                print("✅ [MinutesManager] Debited \(minutes) minutes (\(seconds)s). New balance: \(currentBalance)")
-                return true
-            } else {
-                print("❌ [MinutesManager] Failed to decode debit response")
-                return false
+                if isDuplicateDebitError(error) {
+                    print("✅ [MinutesManager] Debit already recorded for meeting \(meetingID ?? "n/a") - treating as success")
+                    await refreshBalance()
+                    if let meetingID {
+                        await updateMeetingDebitState(meetingID: meetingID, pending: false, message: nil)
+                    }
+                    return .debited
+                }
+
+                let isRetryable = shouldRetryDebit(error)
+                print("❌ [MinutesManager] Failed to debit minutes (attempt \(attempt)/\(immediateRetryCount)): \(error)")
+
+                if isRetryable && attempt < immediateRetryCount {
+                    let delay = retryDelay(for: attempt)
+                    try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                    continue
+                }
+
+                break
             }
-        } catch {
-            print("❌ [MinutesManager] Failed to debit minutes: \(error)")
-            lastError = error.localizedDescription
-            return false
         }
+
+        let errorMessage = userFriendlyDebitFailureMessage(for: lastDebitError)
+        lastError = errorMessage
+
+        if let meetingID {
+            FailedMinutesDebitQueue.shared.addDebit(
+                meetingID: meetingID,
+                seconds: seconds,
+                errorMessage: errorMessage
+            )
+            await updateMeetingDebitState(meetingID: meetingID, pending: true, message: errorMessage)
+            schedulePendingDebitRetry()
+            return .queuedForRetry(message: errorMessage)
+        }
+
+        return .failed(message: errorMessage)
     }
 
     // MARK: - Subscription Helpers
@@ -367,6 +418,171 @@ extension MinutesManager {
             }
         } else if UserDefaults.standard.bool(forKey: freeGrantedKey) {
             print("✅ [MinutesManager] Free tier already granted for this user")
+        }
+
+        await retryPendingDebits()
+    }
+}
+
+// MARK: - Debit Retry Helpers
+
+extension MinutesManager {
+    func retryPendingDebits() async {
+        guard SupabaseManager.shared.client.auth.currentUser != nil else { return }
+
+        let pendingDebits = FailedMinutesDebitQueue.shared.getPendingDebits()
+        guard !pendingDebits.isEmpty else { return }
+
+        print("🔄 [MinutesManager] Retrying \(pendingDebits.count) pending minute debit(s)")
+
+        for pendingDebit in pendingDebits {
+            let minutes = max(1, Int(ceil(Double(pendingDebit.seconds) / 60.0)))
+
+            do {
+                try await performDebitRequest(
+                    minutes: minutes,
+                    seconds: pendingDebit.seconds,
+                    meetingID: pendingDebit.meetingID
+                )
+
+                FailedMinutesDebitQueue.shared.removeDebit(meetingID: pendingDebit.meetingID)
+                await updateMeetingDebitState(meetingID: pendingDebit.meetingID, pending: false, message: nil)
+            } catch {
+                if isDuplicateDebitError(error) {
+                    await refreshBalance()
+                    FailedMinutesDebitQueue.shared.removeDebit(meetingID: pendingDebit.meetingID)
+                    await updateMeetingDebitState(meetingID: pendingDebit.meetingID, pending: false, message: nil)
+                    continue
+                }
+
+                let errorMessage = userFriendlyDebitFailureMessage(for: error)
+                lastError = errorMessage
+                FailedMinutesDebitQueue.shared.markRetryFailure(
+                    meetingID: pendingDebit.meetingID,
+                    errorMessage: errorMessage
+                )
+                await updateMeetingDebitState(meetingID: pendingDebit.meetingID, pending: true, message: errorMessage)
+                print("⚠️ [MinutesManager] Pending debit retry failed for meeting \(pendingDebit.meetingID): \(error)")
+            }
+        }
+
+        if !FailedMinutesDebitQueue.shared.getPendingDebits().isEmpty {
+            schedulePendingDebitRetry()
+        }
+    }
+
+    private func schedulePendingDebitRetry() {
+        guard scheduledDebitRetryTask == nil else { return }
+
+        scheduledDebitRetryTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 15_000_000_000)
+            guard let self else { return }
+            self.scheduledDebitRetryTask = nil
+            await self.retryPendingDebits()
+        }
+    }
+
+    private func performDebitRequest(minutes: Int, seconds: Int, meetingID: String?) async throws {
+        let params = DebitMinutesParams(
+            p_amount: minutes,
+            p_meeting_id: meetingID
+        )
+
+        let response = try await SupabaseManager.shared.client
+            .rpc("debit_minutes", params: params)
+            .execute()
+
+        let data = response.data
+        guard let newBalance = try? JSONDecoder().decode(Int.self, from: data) else {
+            throw NSError(
+                domain: "MinutesManager",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to decode debit response"]
+            )
+        }
+
+        currentBalance = newBalance
+        lastError = nil
+        print("✅ [MinutesManager] Debited \(minutes) minutes (\(seconds)s). New balance: \(currentBalance)")
+    }
+
+    private func shouldRetryDebit(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return false
+        }
+
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .networkConnectionLost,
+                 .notConnectedToInternet,
+                 .timedOut,
+                 .cannotConnectToHost,
+                 .cannotFindHost,
+                 .dnsLookupFailed:
+                return true
+            default:
+                return false
+            }
+        }
+
+        let description = error.localizedDescription.lowercased()
+        return description.contains("network")
+            || description.contains("timeout")
+            || description.contains("connection")
+            || description.contains("unreachable")
+    }
+
+    private func retryDelay(for attempt: Int) -> Double {
+        min(pow(2.0, Double(attempt - 1)), 8.0)
+    }
+
+    private func isDuplicateDebitError(_ error: Error) -> Bool {
+        let description = String(describing: error).lowercased()
+        return description.contains("duplicate")
+            || description.contains("already")
+            || description.contains("conflict")
+            || description.contains("23505")
+            || description.contains("constraint")
+    }
+
+    private func userFriendlyDebitFailureMessage(for error: Error?) -> String {
+        guard let error else {
+            return "Meeting completed. We’re retrying the minutes sync in the background."
+        }
+
+        if shouldRetryDebit(error) {
+            return "Meeting completed. We’re retrying the minutes sync in the background."
+        }
+
+        return "Meeting completed, but your minutes balance could not be updated yet."
+    }
+
+    private func updateMeetingDebitState(meetingID: String, pending: Bool, message: String?) async {
+        guard let meetingUUID = UUID(uuidString: meetingID) else { return }
+
+        do {
+            let schema = Schema([
+                Meeting.self,
+                Action.self,
+                EveMessage.self,
+                ChatConversation.self,
+            ])
+            let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let context = ModelContext(container)
+            let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingUUID })
+
+            guard let meeting = try context.fetch(descriptor).first else { return }
+
+            if pending {
+                meeting.markMinutesDebitPending(message: message)
+            } else {
+                meeting.markMinutesDebitSettled()
+            }
+
+            try context.save()
+        } catch {
+            print("⚠️ [MinutesManager] Failed to update debit state for meeting \(meetingID): \(error)")
         }
     }
 }

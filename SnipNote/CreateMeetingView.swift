@@ -1446,11 +1446,15 @@ struct CreateMeetingView: View {
 
                 // Debit minutes for transcription
                 let duration = Int(cachedAudioDuration)
+                let debitResult: MinutesManager.DebitMinutesResult
                 if let meetingId = createdMeetingId {
-                    let debitSuccess = await minutesManager.debitMinutes(seconds: duration, meetingID: meetingId.uuidString)
-                    if !debitSuccess {
-                        print("⚠️ [CreateMeeting] Minutes debit failed for imported audio transcription (meeting: \(meetingId))")
+                    let result = await minutesManager.debitMinutes(seconds: duration, meetingID: meetingId.uuidString)
+                    debitResult = result
+                    if result != .debited {
+                        print("⚠️ [CreateMeeting] Minutes debit delayed for imported audio transcription (meeting: \(meetingId)): \(debitResult.userMessage ?? "unknown")")
                     }
+                } else {
+                    debitResult = .failed(message: "Unable to associate the meeting with a minutes debit.")
                 }
 
                 // Track successful transcription
@@ -1529,6 +1533,7 @@ struct CreateMeetingView: View {
                         overview: overview,
                         summary: summary,
                         actionItems: actionItems,
+                        debitResult: debitResult,
                         duration: cachedAudioDuration,
                         audioStoragePath: uploadedAudioPath
                     )
@@ -1727,7 +1732,7 @@ struct CreateMeetingView: View {
 
                 let jobResponse: CreateJobResponse
                 if needsChunking {
-                    jobResponse = try await transcriptionService.createChunkedJob(
+                    jobResponse = try await createTranscriptionJobWithRetry(
                         userId: userId,
                         meetingId: meetingId,
                         totalChunks: totalChunks,
@@ -1738,10 +1743,10 @@ struct CreateMeetingView: View {
                     let publicAudioURL = "https://bndbnqtvicvynzkyygte.supabase.co/storage/v1/object/public/recordings/\(audioPath!)"
                     print("📍 Public audio URL: \(publicAudioURL)")
 
-                    jobResponse = try await transcriptionService.createJob(
+                    jobResponse = try await createTranscriptionJobWithRetry(
                         userId: userId,
                         meetingId: meetingId,
-                        audioURL: publicAudioURL,
+                        publicAudioURL: publicAudioURL,
                         language: language
                     )
                 }
@@ -1779,7 +1784,7 @@ struct CreateMeetingView: View {
             } catch {
                 await MainActor.run {
                     print("❌ Error in server-side transcription: \(error)")
-                    meeting.setProcessingError("Upload failed. Please try again.")
+                    meeting.setProcessingError(serverBootstrapErrorMessage(for: error))
 
                     do {
                         try modelContext.save()
@@ -1792,6 +1797,128 @@ struct CreateMeetingView: View {
                 backgroundTaskManager.endBackgroundTask(backgroundTaskId)
             }
         }
+    }
+
+    private func createTranscriptionJobWithRetry(
+        userId: UUID,
+        meetingId: UUID,
+        totalChunks: Int,
+        duration: TimeInterval,
+        language: String?
+    ) async throws -> CreateJobResponse {
+        let maxAttempts = 3
+        var lastError: Error?
+
+        for attempt in 1...maxAttempts {
+            do {
+                return try await transcriptionService.createChunkedJob(
+                    userId: userId,
+                    meetingId: meetingId,
+                    totalChunks: totalChunks,
+                    duration: duration,
+                    language: language
+                )
+            } catch {
+                lastError = error
+                guard shouldRetryServerBootstrap(error), attempt < maxAttempts else {
+                    throw error
+                }
+
+                let delay = bootstrapRetryDelay(for: attempt)
+                print("🔄 [CreateMeeting][Server] Retrying chunked job creation in \(delay)s (attempt \(attempt + 1)/\(maxAttempts))")
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+        }
+
+        throw lastError ?? NSError(
+            domain: "CreateMeetingView",
+            code: -1,
+            userInfo: [NSLocalizedDescriptionKey: "Failed to create chunked transcription job"]
+        )
+    }
+
+    private func createTranscriptionJobWithRetry(
+        userId: UUID,
+        meetingId: UUID,
+        publicAudioURL: String,
+        language: String?
+    ) async throws -> CreateJobResponse {
+        let maxAttempts = 3
+        var lastError: Error?
+
+        for attempt in 1...maxAttempts {
+            do {
+                return try await transcriptionService.createJob(
+                    userId: userId,
+                    meetingId: meetingId,
+                    audioURL: publicAudioURL,
+                    language: language
+                )
+            } catch {
+                lastError = error
+                guard shouldRetryServerBootstrap(error), attempt < maxAttempts else {
+                    throw error
+                }
+
+                let delay = bootstrapRetryDelay(for: attempt)
+                print("🔄 [CreateMeeting][Server] Retrying job creation in \(delay)s (attempt \(attempt + 1)/\(maxAttempts))")
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+        }
+
+        throw lastError ?? NSError(
+            domain: "CreateMeetingView",
+            code: -1,
+            userInfo: [NSLocalizedDescriptionKey: "Failed to create transcription job"]
+        )
+    }
+
+    private func shouldRetryServerBootstrap(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return false
+        }
+
+        if let transcriptionError = error as? TranscriptionError {
+            switch transcriptionError {
+            case .networkError(let underlyingError):
+                return shouldRetryServerBootstrap(underlyingError)
+            case .serverError(let message):
+                return ["408", "429", "500", "502", "503", "504"].contains { message.contains($0) }
+            case .invalidURL, .decodingError, .maxRetriesExceeded:
+                return false
+            }
+        }
+
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .networkConnectionLost,
+                 .notConnectedToInternet,
+                 .timedOut,
+                 .cannotConnectToHost,
+                 .cannotFindHost,
+                 .dnsLookupFailed:
+                return true
+            default:
+                return false
+            }
+        }
+
+        let description = error.localizedDescription.lowercased()
+        return description.contains("network")
+            || description.contains("timeout")
+            || description.contains("connection")
+    }
+
+    private func bootstrapRetryDelay(for attempt: Int) -> Double {
+        min(pow(2.0, Double(attempt - 1)), 8.0)
+    }
+
+    private func serverBootstrapErrorMessage(for error: Error) -> String {
+        if shouldRetryServerBootstrap(error) {
+            return "We couldn't finish starting cloud transcription because the connection dropped. The meeting is saved and you can retry from the meeting screen."
+        }
+
+        return "Cloud transcription couldn’t be started. Please try again."
     }
 
     private func stopMeetingRecording() {
@@ -1907,11 +2034,15 @@ struct CreateMeetingView: View {
                 
                 // Debit minutes for transcription
                 let duration = Int(recordingDuration)
+                let debitResult: MinutesManager.DebitMinutesResult
                 if let meetingId = createdMeetingId {
-                    let debitSuccess = await minutesManager.debitMinutes(seconds: duration, meetingID: meetingId.uuidString)
-                    if !debitSuccess {
-                        print("⚠️ [CreateMeeting] Minutes debit failed for recorded audio transcription (meeting: \(meetingId))")
+                    let result = await minutesManager.debitMinutes(seconds: duration, meetingID: meetingId.uuidString)
+                    debitResult = result
+                    if result != .debited {
+                        print("⚠️ [CreateMeeting] Minutes debit delayed for recorded audio transcription (meeting: \(meetingId)): \(debitResult.userMessage ?? "unknown")")
                     }
+                } else {
+                    debitResult = .failed(message: "Unable to associate the meeting with a minutes debit.")
                 }
 
                 // Track successful transcription
@@ -1973,6 +2104,7 @@ struct CreateMeetingView: View {
                         overview: overview,
                         summary: summary,
                         actionItems: actionItems,
+                        debitResult: debitResult,
                         duration: recordingDuration,
                         audioStoragePath: uploadedAudioPath
                     )
@@ -2153,6 +2285,7 @@ struct CreateMeetingView: View {
         overview: String,
         summary: String,
         actionItems: [ActionItem]?,
+        debitResult: MinutesManager.DebitMinutesResult,
         duration: TimeInterval,
         audioStoragePath: String?
     ) {
@@ -2169,6 +2302,11 @@ struct CreateMeetingView: View {
 
             // FIXED: Use new state management methods
             meeting.markCompleted()
+            if debitResult.didDebitImmediately {
+                meeting.markMinutesDebitSettled()
+            } else {
+                meeting.markMinutesDebitPending(message: debitResult.userMessage)
+            }
 
             let shouldDeleteLocalAudio = meeting.hasRecording || localTranscriptionManager.isLocalModeEnabled
 

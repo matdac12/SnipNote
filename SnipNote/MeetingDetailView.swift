@@ -64,6 +64,10 @@ struct MeetingDetailView: View {
                             meetingNotesSection
                         }
 
+                        if meeting.hasPendingMinutesDebit {
+                            minutesSyncNoticeCard
+                        }
+
                         overviewSection
                         summarySection
                         transcriptSection
@@ -102,6 +106,8 @@ struct MeetingDetailView: View {
                         meeting.progressPercent != fetchedMeeting.progressPercent ||
                         meeting.currentStageDescription != fetchedMeeting.currentStageDescription ||
                         meeting.processingError != fetchedMeeting.processingError ||
+                        meeting.hasPendingMinutesDebit != fetchedMeeting.hasPendingMinutesDebit ||
+                        meeting.pendingMinutesDebitError != fetchedMeeting.pendingMinutesDebitError ||
                         meeting.pauseReason != fetchedMeeting.pauseReason ||
                         meeting.pausedAt != fetchedMeeting.pausedAt ||
                         meeting.audioTranscript != fetchedMeeting.audioTranscript ||
@@ -117,6 +123,8 @@ struct MeetingDetailView: View {
                     meeting.progressPercent = fetchedMeeting.progressPercent
                     meeting.currentStageDescription = fetchedMeeting.currentStageDescription
                     meeting.processingError = fetchedMeeting.processingError
+                    meeting.hasPendingMinutesDebit = fetchedMeeting.hasPendingMinutesDebit
+                    meeting.pendingMinutesDebitError = fetchedMeeting.pendingMinutesDebitError
                     meeting.pauseReason = fetchedMeeting.pauseReason
                     meeting.pausedAt = fetchedMeeting.pausedAt
                     meeting.resumePhaseRaw = fetchedMeeting.resumePhaseRaw
@@ -146,6 +154,8 @@ struct MeetingDetailView: View {
                             meeting.progressPercent != fetchedMeeting.progressPercent ||
                             meeting.currentStageDescription != fetchedMeeting.currentStageDescription ||
                             meeting.processingError != fetchedMeeting.processingError ||
+                            meeting.hasPendingMinutesDebit != fetchedMeeting.hasPendingMinutesDebit ||
+                            meeting.pendingMinutesDebitError != fetchedMeeting.pendingMinutesDebitError ||
                             meeting.pauseReason != fetchedMeeting.pauseReason ||
                             meeting.pausedAt != fetchedMeeting.pausedAt ||
                             meeting.audioTranscript != fetchedMeeting.audioTranscript ||
@@ -161,6 +171,8 @@ struct MeetingDetailView: View {
                         meeting.progressPercent = fetchedMeeting.progressPercent
                         meeting.currentStageDescription = fetchedMeeting.currentStageDescription
                         meeting.processingError = fetchedMeeting.processingError
+                        meeting.hasPendingMinutesDebit = fetchedMeeting.hasPendingMinutesDebit
+                        meeting.pendingMinutesDebitError = fetchedMeeting.pendingMinutesDebitError
                         meeting.pauseReason = fetchedMeeting.pauseReason
                         meeting.pausedAt = fetchedMeeting.pausedAt
                         meeting.resumePhaseRaw = fetchedMeeting.resumePhaseRaw
@@ -407,6 +419,28 @@ struct MeetingDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var minutesSyncNoticeCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                    .foregroundColor(theme.accentColor)
+                    .font(.title3)
+
+                Text("Minutes Sync In Progress")
+                    .font(.system(.headline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                    .foregroundColor(theme.textColor)
+            }
+
+            Text(meeting.pendingMinutesDebitError ?? "This meeting finished successfully. We’re updating your minutes balance in the background.")
+                .font(.system(.subheadline, design: theme.useMonospacedFont ? .monospaced : .default))
+                .foregroundColor(theme.secondaryTextColor)
+        }
+        .padding(16)
+        .background(theme.materialStyle)
+        .cornerRadius(theme.cornerRadius)
+        .shadow(color: Color.black.opacity(theme.colorScheme == .dark ? 0.5 : 0.18), radius: 4, x: 0, y: 2)
     }
     
     private var overviewSection: some View {
@@ -1402,13 +1436,13 @@ struct MeetingDetailView: View {
             let durationSeconds = Int(meeting.billingDuration)
             var debitSucceeded = true
             if durationSeconds > 0 {
-                let debitSuccess = await minutesManager.debitMinutes(
+                let debitResult = await minutesManager.debitMinutes(
                     seconds: durationSeconds,
                     meetingID: meeting.id.uuidString
                 )
-                debitSucceeded = debitSuccess
-                if !debitSuccess {
-                    print("⚠️ Minutes debit failed during retry for meeting \(meeting.id)")
+                debitSucceeded = debitResult.didDebitImmediately
+                if !debitResult.didDebitImmediately {
+                    print("⚠️ Minutes debit delayed during retry for meeting \(meeting.id): \(debitResult.userMessage ?? "unknown")")
                 }
                 await UsageTracker.shared.trackMeetingCreated(
                     transcribed: true,
@@ -1447,6 +1481,13 @@ struct MeetingDetailView: View {
             meeting.shortSummary = overview
             meeting.aiSummary = summary
             meeting.markCompleted()
+            if debitSucceeded {
+                meeting.markMinutesDebitSettled()
+            } else {
+                meeting.markMinutesDebitPending(
+                    message: "Meeting completed. We’re retrying the minutes sync in the background."
+                )
+            }
             HapticService.shared.success()
 
             if let actionItems {
@@ -1484,10 +1525,6 @@ struct MeetingDetailView: View {
                FileManager.default.fileExists(atPath: latestLocalPath) {
                 try? FileManager.default.removeItem(atPath: latestLocalPath)
                 meeting.localAudioPath = nil
-            }
-
-            if durationSeconds > 0 && !debitSucceeded {
-                meeting.setProcessingError("Minutes debit failed for this transcription. Please refresh your balance.")
             }
 
             do {

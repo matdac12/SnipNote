@@ -458,16 +458,21 @@ actor LocalTranscriptionJobManager {
             if alreadyDebited {
                 debitSucceeded = true
             } else {
-                debitSucceeded = await MinutesManager.shared.debitMinutes(seconds: durationSeconds, meetingID: meetingID)
+                let debitResult = await MinutesManager.shared.debitMinutes(seconds: durationSeconds, meetingID: meetingID)
+                debitSucceeded = debitResult.didDebitImmediately
             }
 
             if !debitSucceeded {
-                print("⚠️ [LocalJobManager] Minutes debit failed for meeting \(meetingId)")
+                print("⚠️ [LocalJobManager] Minutes debit delayed for meeting \(meetingId)")
             }
 
             try await updateMeeting(meetingId) { meeting, _ in
                 if debitSucceeded {
-                    meeting.didDebitTranscriptionMinutes = true
+                    meeting.markMinutesDebitSettled()
+                } else {
+                    meeting.markMinutesDebitPending(
+                        message: "Meeting completed. We’re retrying the minutes sync in the background."
+                    )
                 }
             }
 
@@ -491,15 +496,16 @@ actor LocalTranscriptionJobManager {
         actionItems: [ActionItem]?
     ) async throws {
         let meetingID = context.meetingId
-        let billingFailureMessage = "Minutes debit failed for this transcription. Please refresh your balance."
-
         try await updateMeeting(meetingID) { meeting, modelContext in
             meeting.shortSummary = overview
             meeting.aiSummary = summary
+            meeting.markLocalJobCompleted()
             if debitSucceeded {
-                meeting.markLocalJobCompleted()
+                meeting.markMinutesDebitSettled()
             } else {
-                meeting.markLocalJobFailed(billingFailureMessage)
+                meeting.markMinutesDebitPending(
+                    message: "Meeting completed. We’re retrying the minutes sync in the background."
+                )
             }
 
             if let actionItems {
@@ -552,11 +558,7 @@ actor LocalTranscriptionJobManager {
         if debitSucceeded {
             await sendCompletionNotification(for: context.meetingId, meetingName: context.meetingName)
         } else {
-            await sendFailureNotification(
-                for: context.meetingId,
-                meetingName: context.meetingName,
-                message: billingFailureMessage
-            )
+            await sendCompletionNotification(for: context.meetingId, meetingName: context.meetingName)
         }
     }
 

@@ -266,12 +266,6 @@
     "API Key Required" : {
 
     },
-    "Apple" : {
-
-    },
-    "Apple Test" : {
-
-    },
     "Are you sure you want to cancel? All progress will be lost." : {
 
     },
@@ -1143,9 +1137,6 @@
 
     },
     "OpenAI API Key" : {
-
-    },
-    "Output" : {
 
     },
     "Password" : {
@@ -3153,6 +3144,23 @@
         }
       }
     },
+    "transcription.local.progress.chunkSkipped" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chunk %1$lld contained no speech"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il segmento %1$lld non conteneva parlato"
+          }
+        }
+      }
+    },
     "transcription.local.progress.combining" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3170,6 +3178,23 @@
         }
       }
     },
+    "transcription.local.progress.detectingSpeech" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detecting speech regions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rilevamento delle aree di parlato"
+          }
+        }
+      }
+    },
     "transcription.local.progress.complete" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3183,6 +3208,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trascrizione locale completata"
+          }
+        }
+      }
+    },
+    "transcription.local.progress.loadingAudio" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading local audio"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caricamento audio locale"
+          }
+        }
+      }
+    },
+    "transcription.local.progress.preparingChunks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing local chunks"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparazione segmenti locali"
           }
         }
       }

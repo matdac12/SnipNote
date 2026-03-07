@@ -47,6 +47,7 @@ final class TranscriptionRouter {
                 from: audioURL,
                 model: model,
                 language: language,
+                meetingId: meetingId,
                 resumeFromCompletedChunks: localResumeCompletedChunks,
                 existingTranscript: localExistingTranscript,
                 progressCallback: progressCallback

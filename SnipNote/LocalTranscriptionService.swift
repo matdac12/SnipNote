@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftData
 
 #if canImport(WhisperKit)
 import WhisperKit
@@ -135,13 +136,14 @@ actor LocalTranscriptionService {
         from audioURL: URL,
         model: LocalTranscriptionModel,
         language: String?,
+        meetingId: UUID? = nil,
         resumeFromCompletedChunks: Int = 0,
         existingTranscript: String? = nil,
         progressCallback: @escaping @Sendable (AudioChunkerProgress) -> Void
     ) async throws -> String {
         #if canImport(WhisperKit)
+        let transcriptionStart = Date()
         let whisperKit = try await ensureLoadedModel(model)
-        let needsChunking = try AudioChunker.needsChunking(url: audioURL)
         let decodeOptions = DecodingOptions(
             task: .transcribe,
             language: language,
@@ -150,41 +152,58 @@ actor LocalTranscriptionService {
             detectLanguage: language == nil,
             skipSpecialTokens: true
         )
-
-        if !needsChunking {
-            progressCallback(AudioChunkerProgress(
-                currentChunk: 1,
-                totalChunks: 1,
-                currentStage: LocalizationManager.localizedAppString("transcription.local.progress.running"),
-                percentComplete: 20.0,
-                partialTranscript: nil
-            ))
-
-            let result = try await whisperKit.transcribe(audioPath: audioURL.path, decodeOptions: decodeOptions)
-            let transcript = Self.sanitizeTranscript(result
-                .map(\.text)
-                .joined(separator: " ")
-                .trimmingCharacters(in: .whitespacesAndNewlines))
-
-            guard !transcript.isEmpty else {
-                throw LocalTranscriptionError.emptyTranscript
-            }
-
-            progressCallback(AudioChunkerProgress(
-                currentChunk: 1,
-                totalChunks: 1,
-                currentStage: LocalizationManager.localizedAppString("transcription.local.progress.complete"),
-                percentComplete: 100.0,
-                partialTranscript: transcript
-            ))
-
-            return transcript
+        let maxChunkLength = whisperKit.featureExtractor.windowSamples ?? 480_000
+        let cachedPlanJSON: String? = if let meetingId {
+            await readStoredSpeechPlan(for: meetingId)
+        } else {
+            nil
         }
 
-        let safeCompletedChunks = max(0, resumeFromCompletedChunks)
+        progressCallback(AudioChunkerProgress(
+            currentChunk: 0,
+            totalChunks: 0,
+            currentStage: LocalizationManager.localizedAppString("transcription.local.progress.loadingAudio"),
+            percentComplete: 5.0,
+            partialTranscript: nil
+        ))
+
+        let preparedAudio = try await LocalAudioPreprocessor.shared.prepareAudio(
+            from: audioURL,
+            maxChunkLength: maxChunkLength,
+            cachedPlanJSON: cachedPlanJSON,
+            progressHandler: { stage in
+                let percent: Double
+                switch stage {
+                case LocalizationManager.localizedAppString("transcription.local.progress.loadingAudio"):
+                    percent = 5.0
+                case LocalizationManager.localizedAppString("transcription.local.progress.detectingSpeech"):
+                    percent = 7.0
+                default:
+                    percent = 9.0
+                }
+
+                progressCallback(AudioChunkerProgress(
+                    currentChunk: 0,
+                    totalChunks: 0,
+                    currentStage: stage,
+                    percentComplete: percent,
+                    partialTranscript: nil
+                ))
+            }
+        )
+
+        if let meetingId {
+            await persistSpeechPlan(preparedAudio.plan, for: meetingId)
+        }
+
+        Self.logPreprocessingDiagnostics(preparedAudio.diagnostics, model: model, audioURL: audioURL)
+
+        let totalChunks = preparedAudio.plan.totalChunks
+        let safeCompletedChunks = min(max(0, resumeFromCompletedChunks), totalChunks)
         var chunkNumber = safeCompletedChunks
-        var totalChunks = 1
         var transcripts: [String] = []
+        var completedTranscriptChunks = 0
+        var skippedEmptyChunks = 0
 
         if let existingTranscript {
             let sanitizedExisting = Self.sanitizeTranscript(existingTranscript)
@@ -193,31 +212,21 @@ actor LocalTranscriptionService {
             }
         }
 
-        for try await chunk in AudioChunker.streamChunks(
-            from: audioURL,
-            startAtChunkIndex: safeCompletedChunks,
-            progressCallback: { progress in
-                let stageDescription: String
-                if safeCompletedChunks > 0,
-                   progress.currentStage.hasPrefix("Creating audio chunk") {
-                    stageDescription = "Resuming from chunk \(progress.currentChunk) of \(progress.totalChunks)"
-                } else {
-                    stageDescription = progress.currentStage
-                }
-
-                progressCallback(AudioChunkerProgress(
-                    currentChunk: progress.currentChunk,
-                    totalChunks: progress.totalChunks,
-                    currentStage: stageDescription,
-                    percentComplete: progress.percentComplete * 0.1,
-                    partialTranscript: progress.partialTranscript
-                ))
-            }
-        ) {
+        if safeCompletedChunks > 0, safeCompletedChunks < totalChunks, totalChunks > 0 {
             try Task.checkCancellation()
+            progressCallback(AudioChunkerProgress(
+                currentChunk: safeCompletedChunks + 1,
+                totalChunks: totalChunks,
+                currentStage: "Resuming from chunk \(safeCompletedChunks + 1) of \(totalChunks)",
+                percentComplete: 10.0 + (Double(safeCompletedChunks) / Double(totalChunks)) * 90.0,
+                partialTranscript: nil
+            ))
+        }
 
-            chunkNumber = chunk.chunkIndex + 1
-            totalChunks = chunk.totalChunks
+        for index in safeCompletedChunks..<totalChunks {
+            try Task.checkCancellation()
+            let chunk = preparedAudio.plan.chunks[index]
+            chunkNumber = index + 1
 
             progressCallback(AudioChunkerProgress(
                 currentChunk: chunkNumber,
@@ -231,19 +240,33 @@ actor LocalTranscriptionService {
                 partialTranscript: nil
             ))
 
-            let chunkURL = try writeTemporaryChunk(chunk)
-            defer { try? fileManager.removeItem(at: chunkURL) }
+            let samples = Array(preparedAudio.audioSamples[chunk.startSample..<chunk.endSample])
+            let result = try await whisperKit.transcribe(audioArray: samples, decodeOptions: decodeOptions)
+            let transcript = Self.sanitizeTranscript(
+                result
+                    .flatMap { $0.segments }
+                    .map { $0.text }
+                    .joined(separator: " ")
+                    .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+            )
 
-            let result = try await whisperKit.transcribe(audioPath: chunkURL.path, decodeOptions: decodeOptions)
-            let transcript = Self.sanitizeTranscript(result
-                .map(\.text)
-                .joined(separator: " ")
-                .trimmingCharacters(in: .whitespacesAndNewlines))
-
-            guard !transcript.isEmpty else {
-                throw LocalTranscriptionError.emptyTranscript
+            if transcript.isEmpty {
+                progressCallback(AudioChunkerProgress(
+                    currentChunk: chunkNumber,
+                    totalChunks: totalChunks,
+                    currentStage: LocalizationManager.localizedAppString(
+                        "transcription.local.progress.chunkSkipped",
+                        Int64(chunkNumber)
+                    ),
+                    percentComplete: 10.0 + (Double(chunkNumber) / Double(totalChunks)) * 90.0,
+                    partialTranscript: nil
+                ))
+                skippedEmptyChunks += 1
+                continue
             }
+
             transcripts.append(transcript)
+            completedTranscriptChunks += 1
 
             progressCallback(AudioChunkerProgress(
                 currentChunk: chunkNumber,
@@ -255,6 +278,10 @@ actor LocalTranscriptionService {
                 percentComplete: 10.0 + (Double(chunkNumber) / Double(totalChunks)) * 90.0,
                 partialTranscript: transcript
             ))
+        }
+
+        guard completedTranscriptChunks > 0 || !transcripts.isEmpty else {
+            throw LocalTranscriptionError.emptyTranscript
         }
 
         let mergedTranscript = Self.sanitizeTranscript(Self.mergeChunkTranscripts(transcripts))
@@ -269,6 +296,15 @@ actor LocalTranscriptionService {
             percentComplete: 100.0,
             partialTranscript: nil
         ))
+
+        Self.logCompletionDiagnostics(
+            model: model,
+            totalChunks: totalChunks,
+            transcribedChunks: completedTranscriptChunks,
+            skippedEmptyChunks: skippedEmptyChunks,
+            transcriptCharacterCount: mergedTranscript.count,
+            elapsedSeconds: Date().timeIntervalSince(transcriptionStart)
+        )
 
         return mergedTranscript
         #else
@@ -472,12 +508,49 @@ actor LocalTranscriptionService {
         }
     }
 
-    private func writeTemporaryChunk(_ chunk: AudioChunk) throws -> URL {
-        let tempURL = fileManager.temporaryDirectory
-            .appendingPathComponent("local_chunk_\(UUID().uuidString)")
-            .appendingPathExtension("m4a")
-        try chunk.data.write(to: tempURL)
-        return tempURL
+    private func makeModelContainer() throws -> ModelContainer {
+        let schema = Schema([
+            Meeting.self,
+            Action.self,
+            EveMessage.self,
+            ChatConversation.self,
+        ])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        return try ModelContainer(for: schema, configurations: [configuration])
+    }
+
+    private func readStoredSpeechPlan(for meetingId: UUID) async -> String? {
+        do {
+            let container = try makeModelContainer()
+            let context = ModelContext(container)
+            let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
+            return try context.fetch(descriptor).first?.localSpeechPlanJSON
+        } catch {
+            print("⚠️ [LocalTranscriptionService] Failed to read speech plan for meeting \(meetingId): \(error)")
+            return nil
+        }
+    }
+
+    private func persistSpeechPlan(_ plan: LocalSpeechChunkPlan, for meetingId: UUID) async {
+        guard let encodedPlan = LocalAudioPreprocessor.encodePlan(plan) else { return }
+
+        do {
+            let container = try makeModelContainer()
+            let context = ModelContext(container)
+            let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
+            guard let meeting = try context.fetch(descriptor).first else { return }
+
+            if meeting.localSpeechPlanFingerprint == plan.fingerprint,
+               meeting.localSpeechPlanJSON == encodedPlan {
+                return
+            }
+
+            meeting.localSpeechPlanJSON = encodedPlan
+            meeting.localSpeechPlanFingerprint = plan.fingerprint
+            try context.save()
+        } catch {
+            print("⚠️ [LocalTranscriptionService] Failed to persist speech plan for meeting \(meetingId): \(error)")
+        }
     }
     #endif
 
@@ -553,5 +626,38 @@ actor LocalTranscriptionService {
 
         let index = sanitizedNext.index(sanitizedNext.startIndex, offsetBy: overlapLength)
         return sanitizedNext[index...].trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func logPreprocessingDiagnostics(
+        _ diagnostics: LocalSpeechChunkDiagnostics,
+        model: LocalTranscriptionModel,
+        audioURL: URL
+    ) {
+        let coveragePercent = Int((diagnostics.speechCoverage * 100).rounded())
+        print(
+            "🧠 [LocalTranscription] Prepared '\(audioURL.lastPathComponent)' with \(model.rawValue) model " +
+            "(duration: \(formatSeconds(diagnostics.totalDurationSeconds)), " +
+            "speech spans: \(diagnostics.detectedSpeechSpanCount), merged spans: \(diagnostics.mergedSpeechSpanCount), " +
+            "chunks: \(diagnostics.finalChunkCount), speech coverage: \(coveragePercent)%)"
+        )
+    }
+
+    private static func logCompletionDiagnostics(
+        model: LocalTranscriptionModel,
+        totalChunks: Int,
+        transcribedChunks: Int,
+        skippedEmptyChunks: Int,
+        transcriptCharacterCount: Int,
+        elapsedSeconds: TimeInterval
+    ) {
+        print(
+            "✅ [LocalTranscription] Finished with \(model.rawValue) model " +
+            "(chunks: \(transcribedChunks)/\(totalChunks), skipped empty: \(skippedEmptyChunks), " +
+            "chars: \(transcriptCharacterCount), elapsed: \(formatSeconds(elapsedSeconds)))"
+        )
+    }
+
+    private static func formatSeconds(_ seconds: TimeInterval) -> String {
+        String(format: "%.1fs", seconds)
     }
 }

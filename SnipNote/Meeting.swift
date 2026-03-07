@@ -107,6 +107,8 @@ final class Meeting {
     var resumePhaseRaw: String?
     var sourceAudioDurationSeconds: Double = 0
     var didDebitTranscriptionMinutes: Bool = false
+    var localSpeechPlanJSON: String?
+    var localSpeechPlanFingerprint: String?
 
     // Computed property for processing state
     var processingState: ProcessingState {
@@ -216,6 +218,8 @@ final class Meeting {
         self.resumePhaseRaw = nil
         self.sourceAudioDurationSeconds = 0
         self.didDebitTranscriptionMinutes = false
+        self.localSpeechPlanJSON = nil
+        self.localSpeechPlanFingerprint = nil
     }
     
     func startRecording() {
@@ -267,6 +271,8 @@ final class Meeting {
         transcriptionLanguage = language
         sourceAudioDurationSeconds = sourceAudioDuration
         didDebitTranscriptionMinutes = false
+        localSpeechPlanJSON = nil
+        localSpeechPlanFingerprint = nil
         pausedAt = nil
         pauseReason = nil
         resumePhaseRaw = nil

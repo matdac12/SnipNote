@@ -22,7 +22,7 @@ enum MeetingAnalysisProviderType: String, CaseIterable, Identifiable {
         case .openAI:
             return "OpenAI"
         case .appleIntelligence:
-            return "Apple Intelligence"
+            return "Local"
         }
     }
 }

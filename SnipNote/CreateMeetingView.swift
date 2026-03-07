@@ -49,6 +49,7 @@ struct CreateMeetingView: View {
     @StateObject private var minutesManager = MinutesManager.shared
     @StateObject private var backgroundTaskManager = BackgroundTaskManager.shared
     @StateObject private var localTranscriptionManager = LocalTranscriptionManager.shared
+    @StateObject private var meetingAnalysisManager = MeetingAnalysisManager.shared
     @Query private var allMeetings: [Meeting]
     
     @State private var meetingName = ""
@@ -1231,7 +1232,7 @@ struct CreateMeetingView: View {
     }
     
     private func startMeetingRecording() {
-        guard openAIService.apiKey != nil else {
+        guard hasRequiredOpenAIKey else {
             showingAPIKeyAlert = true
             return
         }
@@ -1294,6 +1295,11 @@ struct CreateMeetingView: View {
     private func analyzeImportedAudio() {
         guard let audioURL = importedAudioURL else {
             print("❌ No audio URL to analyze")
+            return
+        }
+
+        guard hasRequiredOpenAIKey else {
+            showingAPIKeyAlert = true
             return
         }
 
@@ -1480,7 +1486,10 @@ struct CreateMeetingView: View {
                 }
 
                 print("🧠 [CreateMeeting][Imported] Starting overview generation (transcript chars: \(transcript.count))")
-                let overview = try await openAIService.generateMeetingOverview(transcript)
+                let overview = try await MeetingAnalysisRouter.shared.generateOverview(
+                    transcript: transcript,
+                    explicitLanguageCode: selectedLanguage
+                )
                 print("✅ [CreateMeeting][Imported] Overview generated (chars: \(overview.count))")
                 await MainActor.run {
                     liveOverview = overview
@@ -1488,16 +1497,23 @@ struct CreateMeetingView: View {
                 }
 
                 print("🧠 [CreateMeeting][Imported] Starting summary generation")
-                let summary = try await openAIService.summarizeMeeting(transcript)
+                let summary = try await MeetingAnalysisRouter.shared.generateSummary(
+                    transcript: transcript,
+                    explicitLanguageCode: selectedLanguage
+                )
                 print("✅ [CreateMeeting][Imported] Summary generated (chars: \(summary.count))")
                 await MainActor.run {
                     liveSummary = summary
-                    currentProcessingPhase = .extractingActions
                 }
 
-                print("🧠 [CreateMeeting][Imported] Starting action extraction")
-                let actionItems = try await openAIService.extractActions(transcript)
-                print("✅ [CreateMeeting][Imported] Extracted \(actionItems.count) action items")
+                var actionItems: [ActionItem]?
+                if let extractedItems = try await MeetingAnalysisRouter.shared.extractActionsIfEnabled(transcript) {
+                    await MainActor.run {
+                        currentProcessingPhase = .extractingActions
+                    }
+                    print("✅ [CreateMeeting][Imported] Extracted \(extractedItems.count) action items")
+                    actionItems = extractedItems
+                }
                 await MainActor.run {
                     currentProcessingPhase = .complete
                 }
@@ -1505,7 +1521,7 @@ struct CreateMeetingView: View {
                 // Track AI usage
                 await UsageTracker.shared.trackAIUsage(
                     summaries: 1,
-                    actionsExtracted: actionItems.count
+                    actionsExtracted: actionItems?.count ?? 0
                 )
                 
                 await MainActor.run {
@@ -1573,9 +1589,10 @@ struct CreateMeetingView: View {
                     // Preserve a completed transcript if only the later AI analysis failed.
                     if let meeting = createdMeeting {
                         if meeting.hasTranscriptContent {
-                            meeting.setProcessingError("Transcript saved, but AI analysis failed. Check your connection and retry.")
+                            let analysisError = MeetingAnalysisRouter.shared.failureDescription(for: error)
+                            meeting.setProcessingError("Transcript saved, but AI analysis failed. \(analysisError)")
                             meeting.shortSummary = "AI overview unavailable"
-                            meeting.aiSummary = "The transcript was saved, but the AI summary could not be generated. You can retry the AI analysis."
+                            meeting.aiSummary = "The transcript was saved, but the AI summary could not be generated. \(analysisError)"
                         } else {
                             meeting.setProcessingError("Transcription failed. Please try again.")
                             meeting.audioTranscript = "Transcription failed"
@@ -1929,19 +1946,26 @@ struct CreateMeetingView: View {
 
                 // Process AI in background after navigation
                 print("🧠 [CreateMeeting][Recorded] Starting overview generation (transcript chars: \(transcript.count))")
-                let overview = try await openAIService.generateMeetingOverview(transcript)
+                let overview = try await MeetingAnalysisRouter.shared.generateOverview(
+                    transcript: transcript,
+                    explicitLanguageCode: selectedLanguage
+                )
                 print("✅ [CreateMeeting][Recorded] Overview generated (chars: \(overview.count))")
                 print("🧠 [CreateMeeting][Recorded] Starting summary generation")
-                let summary = try await openAIService.summarizeMeeting(transcript)
+                let summary = try await MeetingAnalysisRouter.shared.generateSummary(
+                    transcript: transcript,
+                    explicitLanguageCode: selectedLanguage
+                )
                 print("✅ [CreateMeeting][Recorded] Summary generated (chars: \(summary.count))")
-                print("🧠 [CreateMeeting][Recorded] Starting action extraction")
-                let actionItems = try await openAIService.extractActions(transcript)
-                print("✅ [CreateMeeting][Recorded] Extracted \(actionItems.count) action items")
+                let actionItems = try await MeetingAnalysisRouter.shared.extractActionsIfEnabled(transcript)
+                if let actionItems {
+                    print("✅ [CreateMeeting][Recorded] Extracted \(actionItems.count) action items")
+                }
                 
                 // Track AI usage
                 await UsageTracker.shared.trackAIUsage(
                     summaries: 1,
-                    actionsExtracted: actionItems.count
+                    actionsExtracted: actionItems?.count ?? 0
                 )
                 
                 await MainActor.run {
@@ -1978,9 +2002,10 @@ struct CreateMeetingView: View {
                     // Preserve a completed transcript if only the later AI analysis failed.
                     if let meeting = createdMeeting {
                         if meeting.hasTranscriptContent {
-                            meeting.setProcessingError("Transcript saved, but AI analysis failed. Check your connection and retry.")
+                            let analysisError = MeetingAnalysisRouter.shared.failureDescription(for: error)
+                            meeting.setProcessingError("Transcript saved, but AI analysis failed. \(analysisError)")
                             meeting.shortSummary = "AI overview unavailable"
-                            meeting.aiSummary = "The transcript was saved, but the AI summary could not be generated. You can retry the AI analysis."
+                            meeting.aiSummary = "The transcript was saved, but the AI summary could not be generated. \(analysisError)"
                         } else {
                             meeting.setProcessingError("Transcription failed. Please try again.")
                             meeting.audioTranscript = "Transcription failed"
@@ -2127,7 +2152,7 @@ struct CreateMeetingView: View {
     private func updateMeetingWithAI(
         overview: String,
         summary: String,
-        actionItems: [ActionItem],
+        actionItems: [ActionItem]?,
         duration: TimeInterval,
         audioStoragePath: String?
     ) {
@@ -2164,26 +2189,28 @@ struct CreateMeetingView: View {
             }
             
             // Create Action entities from extracted action items
-            for actionItem in actionItems {
-                let priority: ActionPriority
-                switch actionItem.priority.uppercased() {
-                case "HIGH":
-                    priority = .high
-                case "MED", "MEDIUM":
-                    priority = .medium
-                case "LOW":
-                    priority = .low
-                default:
-                    priority = .medium
+            if let actionItems {
+                for actionItem in actionItems {
+                    let priority: ActionPriority
+                    switch actionItem.priority.uppercased() {
+                    case "HIGH":
+                        priority = .high
+                    case "MED", "MEDIUM":
+                        priority = .medium
+                    case "LOW":
+                        priority = .low
+                    default:
+                        priority = .medium
+                    }
+
+                    let action = Action(
+                        title: actionItem.action,
+                        priority: priority,
+                        sourceNoteId: meeting.id // Reusing the same field for meetings
+                    )
+
+                    modelContext.insert(action)
                 }
-                
-                let action = Action(
-                    title: actionItem.action,
-                    priority: priority,
-                    sourceNoteId: meeting.id // Reusing the same field for meetings
-                )
-                
-                modelContext.insert(action)
             }
 
             try modelContext.save()
@@ -2200,7 +2227,7 @@ struct CreateMeetingView: View {
                         transcript: meeting.audioTranscript,
                         overview: overview,
                         summary: summary,
-                        actions: actionItems
+                        actions: actionItems ?? []
                     )
                 } catch {
                     print("⚠️ Failed to sync updated meeting to Supabase: \(error)")
@@ -2208,7 +2235,7 @@ struct CreateMeetingView: View {
             }
 
             // Track action creation
-            if !actionItems.isEmpty {
+            if let actionItems, !actionItems.isEmpty {
                 Task {
                     await UsageTracker.shared.trackActionsCreated(count: actionItems.count)
                 }
@@ -2220,7 +2247,7 @@ struct CreateMeetingView: View {
     }
     
     private func startCountdown() {
-        guard openAIService.apiKey != nil else {
+        guard hasRequiredOpenAIKey else {
             showingAPIKeyAlert = true
             return
         }
@@ -2256,6 +2283,12 @@ struct CreateMeetingView: View {
         }
 
         startCountdownAfterPermission()
+    }
+
+    private var hasRequiredOpenAIKey: Bool {
+        let requiresCloudTranscription = !localTranscriptionManager.isLocalModeEnabled
+        let requiresOpenAIAnalysis = meetingAnalysisManager.selectedProvider == .openAI
+        return !(requiresCloudTranscription || requiresOpenAIAnalysis) || openAIService.apiKey != nil
     }
 
     private func startCountdownAfterPermission() {

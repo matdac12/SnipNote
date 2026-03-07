@@ -606,7 +606,7 @@ class OpenAIService: ObservableObject {
         return response.outputText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    func generateMeetingOverview(_ text: String) async throws -> String {
+    func generateMeetingOverview(_ text: String, languageContext: AnalysisLanguageContext) async throws -> String {
         guard let apiKey = apiKey else {
             throw OpenAIError.noAPIKey
         }
@@ -617,23 +617,12 @@ class OpenAIService: ObservableObject {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let prompt = """
-        Identify the language spoken and always respond in the same language as the input transcript.
-        Summarize this meeting transcript in exactly one short, clear sentence. Capture the main topic and key outcome or focus of the meeting.
-
-        Examples:
-        - "Team discussed Q4 goals and assigned project leads for upcoming initiatives."
-        - "Budget review meeting where department heads presented spending proposals."
-        - "Weekly standup covering project progress and addressing technical blockers."
-        - "Client presentation meeting to review design mockups and gather feedback."
-
-        Meeting Transcript: \(text)
-        """
+        let prompt = MeetingAnalysisPrompts.overviewPrompt(transcript: text, languageContext: languageContext)
 
         let requestBody = ChatRequest(
             model: "gpt-5-mini",
             input: [
-                ChatMessage(role: "system", content: "You create concise one-sentence meeting overviews. Always respond with exactly one clear, informative sentence in the same language as the input transcript."),
+                ChatMessage(role: "system", content: MeetingAnalysisPrompts.overviewInstructions),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,
@@ -663,7 +652,7 @@ class OpenAIService: ObservableObject {
         return response.outputText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    func summarizeMeeting(_ text: String) async throws -> String {
+    func summarizeMeeting(_ text: String, languageContext: AnalysisLanguageContext) async throws -> String {
         guard let apiKey = apiKey else {
             throw OpenAIError.noAPIKey
         }
@@ -674,33 +663,12 @@ class OpenAIService: ObservableObject {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let prompt = """
-        Identify the language spoken and always respond in the same language as the input transcript.
-        Please create a comprehensive meeting summary from this transcript. Structure your response with the following sections:
-
-        ## Key Discussion Points
-        - Main topics discussed
-        - Important insights shared
-
-        ## Decisions Made
-        - Key decisions reached during the meeting
-        - Who is responsible for what
-
-        ## Action Items
-        - Tasks assigned with responsible parties
-        - Deadlines mentioned
-
-        ## Next Steps
-        - Follow-up actions
-        - Future meetings or milestones
-
-        Meeting Transcript: \(text)
-        """
+        let prompt = MeetingAnalysisPrompts.summaryPrompt(transcript: text, languageContext: languageContext)
 
         let requestBody = ChatRequest(
             model: "gpt-5-mini",
             input: [
-                ChatMessage(role: "system", content: "You are a professional meeting summarizer. Create structured, comprehensive summaries that capture key decisions, action items, and next steps. Always respond in the same language as the input transcript."),
+                ChatMessage(role: "system", content: MeetingAnalysisPrompts.summaryInstructions),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,

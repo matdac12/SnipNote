@@ -23,7 +23,6 @@ actor LocalTranscriptionJobManager {
         let existingTranscript: String?
     }
 
-    private let openAIService = OpenAIService.shared
     private var activeJobs: [UUID: Task<Void, Never>] = [:]
     private var pauseRequestedMeetingIDs = Set<UUID>()
     private var cancelRequestedMeetingIDs = Set<UUID>()
@@ -181,7 +180,7 @@ actor LocalTranscriptionJobManager {
 
             await UsageTracker.shared.trackAIUsage(
                 summaries: 1,
-                actionsExtracted: actionItems.count
+                actionsExtracted: actionItems?.count ?? 0
             )
 
             try await finalizeSuccess(
@@ -203,7 +202,7 @@ actor LocalTranscriptionJobManager {
                 notifyUser: false
             )
         } catch {
-            let message = await failureMessage(for: context.meetingId)
+            let message = await failureMessage(for: context.meetingId, error: error)
             await failJob(meetingId: context.meetingId, message: message, notifyUser: true)
             print("❌ [LocalJobManager] Local job failed for meeting \(context.meetingId): \(error)")
         }
@@ -377,7 +376,10 @@ actor LocalTranscriptionJobManager {
             meeting.updateProcessingPhase(.generatingOverview, stage: "Generating overview...", progressPercent: max(meeting.displayedProgressPercent, 92))
         }
 
-        let overview = try await openAIService.generateMeetingOverview(transcript)
+        let overview = try await MeetingAnalysisRouter.shared.generateOverview(
+            transcript: transcript,
+            explicitLanguageCode: context.language
+        )
         try Task.checkCancellation()
 
         try await updateMeeting(context.meetingId) { meeting, _ in
@@ -405,19 +407,28 @@ actor LocalTranscriptionJobManager {
             }
         }
 
-        let summary = try await openAIService.summarizeMeeting(transcript)
+        let summary = try await MeetingAnalysisRouter.shared.generateSummary(
+            transcript: transcript,
+            explicitLanguageCode: context.language
+        )
         try Task.checkCancellation()
+
+        let actionsEnabled = await MeetingAnalysisRouter.shared.actionsEnabled()
 
         try await updateMeeting(context.meetingId) { meeting, _ in
             meeting.aiSummary = summary
             meeting.updateProcessingState(.generatingSummary)
-            meeting.updateProcessingPhase(.extractingActions, stage: "Extracting action items...", progressPercent: max(meeting.displayedProgressPercent, 98))
+            if actionsEnabled {
+                meeting.updateProcessingPhase(.extractingActions, stage: "Extracting action items...", progressPercent: max(meeting.displayedProgressPercent, 98))
+            } else {
+                meeting.updateProcessingPhase(.generatingSummary, stage: "Finalizing analysis...", progressPercent: max(meeting.displayedProgressPercent, 99))
+            }
         }
 
         return summary
     }
 
-    private func ensureActions(for context: JobContext, transcript: String) async throws -> [ActionItem] {
+    private func ensureActions(for context: JobContext, transcript: String) async throws -> [ActionItem]? {
         if context.resumePhase == .extractingActions {
             try await updateMeeting(context.meetingId) { meeting, _ in
                 meeting.updateProcessingState(.generatingSummary)
@@ -425,7 +436,7 @@ actor LocalTranscriptionJobManager {
             }
         }
 
-        return try await openAIService.extractActions(transcript)
+        return try await MeetingAnalysisRouter.shared.extractActionsIfEnabled(transcript)
     }
 
     private func persistTranscript(
@@ -477,7 +488,7 @@ actor LocalTranscriptionJobManager {
         debitSucceeded: Bool,
         overview: String,
         summary: String,
-        actionItems: [ActionItem]
+        actionItems: [ActionItem]?
     ) async throws {
         let meetingID = context.meetingId
         let billingFailureMessage = "Minutes debit failed for this transcription. Please refresh your balance."
@@ -491,32 +502,34 @@ actor LocalTranscriptionJobManager {
                 meeting.markLocalJobFailed(billingFailureMessage)
             }
 
-            let actionDescriptor = FetchDescriptor<Action>(predicate: #Predicate { $0.sourceNoteId == meetingID })
-            let existingActions = try modelContext.fetch(actionDescriptor)
-            for action in existingActions {
-                modelContext.delete(action)
-            }
-
-            for actionItem in actionItems {
-                let priority: ActionPriority
-                switch actionItem.priority.uppercased() {
-                case "HIGH":
-                    priority = .high
-                case "LOW":
-                    priority = .low
-                case "MED", "MEDIUM":
-                    priority = .medium
-                default:
-                    priority = .medium
+            if let actionItems {
+                let actionDescriptor = FetchDescriptor<Action>(predicate: #Predicate { $0.sourceNoteId == meetingID })
+                let existingActions = try modelContext.fetch(actionDescriptor)
+                for action in existingActions {
+                    modelContext.delete(action)
                 }
 
-                modelContext.insert(
-                    Action(
-                        title: actionItem.action,
-                        priority: priority,
-                        sourceNoteId: meetingID
+                for actionItem in actionItems {
+                    let priority: ActionPriority
+                    switch actionItem.priority.uppercased() {
+                    case "HIGH":
+                        priority = .high
+                    case "LOW":
+                        priority = .low
+                    case "MED", "MEDIUM":
+                        priority = .medium
+                    default:
+                        priority = .medium
+                    }
+
+                    modelContext.insert(
+                        Action(
+                            title: actionItem.action,
+                            priority: priority,
+                            sourceNoteId: meetingID
+                        )
                     )
-                )
+                }
             }
 
             if debitSucceeded,
@@ -592,7 +605,7 @@ actor LocalTranscriptionJobManager {
         transcript: String,
         overview: String,
         summary: String,
-        actions: [ActionItem],
+        actions: [ActionItem]?,
         duration: TimeInterval
     ) async throws {
         let container = try makeModelContainer()
@@ -612,17 +625,18 @@ actor LocalTranscriptionJobManager {
                 transcript: transcript,
                 overview: overview,
                 summary: summary,
-                actions: actions
+                actions: actions ?? []
             )
         } catch {
             print("⚠️ [LocalJobManager] Failed to sync meeting \(meetingId): \(error)")
         }
     }
 
-    private func failureMessage(for meetingId: UUID) async -> String {
+    private func failureMessage(for meetingId: UUID, error: Error) async -> String {
         let hasTranscript = (await readMeetingValue(meetingId, value: { $0.hasTranscriptContent })) ?? false
+        let analysisError = MeetingAnalysisRouter.shared.failureDescription(for: error)
         if hasTranscript {
-            return "Transcript saved, but AI analysis failed. Check your connection and retry."
+            return "Transcript saved, but AI analysis failed. \(analysisError)"
         }
         return "Transcription failed. Please try again."
     }

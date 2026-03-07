@@ -28,7 +28,6 @@ struct MeetingDetailView: View {
 
     // Retry functionality
     @State private var isRetrying = false
-    @StateObject private var openAIService = OpenAIService.shared
     @StateObject private var minutesManager = MinutesManager.shared
 
     // Force refresh for processing updates
@@ -1434,34 +1433,47 @@ struct MeetingDetailView: View {
                 }
             }
 
-            let overview = try await openAIService.generateMeetingOverview(transcript)
-            let summary = try await openAIService.summarizeMeeting(transcript)
-            let actionItems = try await openAIService.extractActions(transcript)
+            let overview = try await MeetingAnalysisRouter.shared.generateOverview(
+                transcript: transcript,
+                explicitLanguageCode: meeting.transcriptionLanguage
+            )
+            let summary = try await MeetingAnalysisRouter.shared.generateSummary(
+                transcript: transcript,
+                explicitLanguageCode: meeting.transcriptionLanguage
+            )
+            let actionItems = try await MeetingAnalysisRouter.shared.extractActionsIfEnabled(transcript)
+            let actionsForSync = actionItems ?? existingActionItems()
 
             meeting.shortSummary = overview
             meeting.aiSummary = summary
             meeting.markCompleted()
             HapticService.shared.success()
 
-            for actionItem in actionItems {
-                let priority: ActionPriority
-                switch actionItem.priority.uppercased() {
-                case "HIGH":
-                    priority = .high
-                case "MED", "MEDIUM":
-                    priority = .medium
-                case "LOW":
-                    priority = .low
-                default:
-                    priority = .medium
+            if let actionItems {
+                for action in relatedActions {
+                    modelContext.delete(action)
                 }
 
-                let action = Action(
-                    title: actionItem.action,
-                    priority: priority,
-                    sourceNoteId: meeting.id
-                )
-                modelContext.insert(action)
+                for actionItem in actionItems {
+                    let priority: ActionPriority
+                    switch actionItem.priority.uppercased() {
+                    case "HIGH":
+                        priority = .high
+                    case "MED", "MEDIUM":
+                        priority = .medium
+                    case "LOW":
+                        priority = .low
+                    default:
+                        priority = .medium
+                    }
+
+                    let action = Action(
+                        title: actionItem.action,
+                        priority: priority,
+                        sourceNoteId: meeting.id
+                    )
+                    modelContext.insert(action)
+                }
             }
 
             let shouldDeleteLocalAudio = meeting.hasRecording || !shouldUploadAudio
@@ -1492,7 +1504,7 @@ struct MeetingDetailView: View {
                             transcript: meeting.audioTranscript,
                             overview: overview,
                             summary: summary,
-                            actions: actionItems
+                            actions: actionsForSync
                         )
                     } catch {
                         print("⚠️ Failed to sync retry results to Supabase: \(error)")
@@ -1512,7 +1524,8 @@ struct MeetingDetailView: View {
         } catch {
             print("Error during retry: \(error)")
             if meeting.hasTranscriptContent {
-                meeting.setProcessingError("Transcript saved, but AI analysis failed again. Check your connection and retry.")
+                let analysisError = MeetingAnalysisRouter.shared.failureDescription(for: error)
+                meeting.setProcessingError("Transcript saved, but AI analysis failed again. \(analysisError)")
             } else {
                 meeting.setProcessingError("Transcription failed again. Please try later.")
             }
@@ -1547,43 +1560,53 @@ struct MeetingDetailView: View {
 
         do {
             print("🧠 [MeetingDetail][AI Retry] Starting overview generation (transcript chars: \(transcript.count))")
-            let overview = try await openAIService.generateMeetingOverview(transcript)
+            let overview = try await MeetingAnalysisRouter.shared.generateOverview(
+                transcript: transcript,
+                explicitLanguageCode: meeting.transcriptionLanguage
+            )
             print("✅ [MeetingDetail][AI Retry] Overview generated (chars: \(overview.count))")
             print("🧠 [MeetingDetail][AI Retry] Starting summary generation")
-            let summary = try await openAIService.summarizeMeeting(transcript)
+            let summary = try await MeetingAnalysisRouter.shared.generateSummary(
+                transcript: transcript,
+                explicitLanguageCode: meeting.transcriptionLanguage
+            )
             print("✅ [MeetingDetail][AI Retry] Summary generated (chars: \(summary.count))")
-            print("🧠 [MeetingDetail][AI Retry] Starting action extraction")
-            let actionItems = try await openAIService.extractActions(transcript)
-            print("✅ [MeetingDetail][AI Retry] Extracted \(actionItems.count) action items")
+            let actionItems = try await MeetingAnalysisRouter.shared.extractActionsIfEnabled(transcript)
+            let actionsForSync = actionItems ?? existingActionItems()
+            if let actionItems {
+                print("✅ [MeetingDetail][AI Retry] Extracted \(actionItems.count) action items")
+            }
 
             meeting.shortSummary = overview
             meeting.aiSummary = summary
             meeting.markCompleted()
 
-            for action in relatedActions {
-                modelContext.delete(action)
-            }
-
-            for actionItem in actionItems {
-                let priority: ActionPriority
-                switch actionItem.priority.uppercased() {
-                case "HIGH":
-                    priority = .high
-                case "MED", "MEDIUM":
-                    priority = .medium
-                case "LOW":
-                    priority = .low
-                default:
-                    priority = .medium
+            if let actionItems {
+                for action in relatedActions {
+                    modelContext.delete(action)
                 }
 
-                modelContext.insert(
-                    Action(
-                        title: actionItem.action,
-                        priority: priority,
-                        sourceNoteId: meeting.id
+                for actionItem in actionItems {
+                    let priority: ActionPriority
+                    switch actionItem.priority.uppercased() {
+                    case "HIGH":
+                        priority = .high
+                    case "MED", "MEDIUM":
+                        priority = .medium
+                    case "LOW":
+                        priority = .low
+                    default:
+                        priority = .medium
+                    }
+
+                    modelContext.insert(
+                        Action(
+                            title: actionItem.action,
+                            priority: priority,
+                            sourceNoteId: meeting.id
+                        )
                     )
-                )
+                }
             }
 
             do {
@@ -1599,7 +1622,7 @@ struct MeetingDetailView: View {
                             transcript: meeting.audioTranscript,
                             overview: overview,
                             summary: summary,
-                            actions: actionItems
+                            actions: actionsForSync
                         )
                     } catch {
                         print("⚠️ Failed to sync AI retry results to Supabase: \(error)")
@@ -1610,7 +1633,8 @@ struct MeetingDetailView: View {
             }
         } catch {
             print("Error during AI retry: \(error)")
-            meeting.setProcessingError("Transcript saved, but AI analysis failed again. Check your connection and retry.")
+            let analysisError = MeetingAnalysisRouter.shared.failureDescription(for: error)
+            meeting.setProcessingError("Transcript saved, but AI analysis failed again. \(analysisError)")
             try? modelContext.save()
         }
     }
@@ -1664,6 +1688,12 @@ struct MeetingDetailView: View {
 
         // Reuse existing retry logic which handles on-device processing
         await performRetryTranscription()
+    }
+
+    private func existingActionItems() -> [ActionItem] {
+        relatedActions.map {
+            ActionItem(action: $0.title, priority: $0.priority.rawValue)
+        }
     }
 }
 

@@ -34,6 +34,7 @@ struct SettingsView: View {
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var minutesManager = MinutesManager.shared
     @StateObject private var localTranscriptionManager = LocalTranscriptionManager.shared
+    @StateObject private var meetingAnalysisManager = MeetingAnalysisManager.shared
     @Query private var meetings: [Meeting]
     @State private var showingLogoutConfirmation = false
     @State private var userUsage: UserUsage?
@@ -267,6 +268,54 @@ struct SettingsView: View {
                                          .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                                  }
                              }
+                         }
+                         .padding()
+                         .background(themeManager.currentTheme.materialStyle)
+                         .cornerRadius(themeManager.currentTheme.cornerRadius)
+                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
+                     }
+                     .padding(.horizontal, 10)
+                     .padding(.vertical, 12)
+                     .background(
+                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
+                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
+                     )
+                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
+
+                     VStack(alignment: .leading, spacing: 16) {
+                         Text("AI ANALYSIS")
+                             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
+                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+
+                         VStack(spacing: 16) {
+                             HStack {
+                                 VStack(alignment: .leading, spacing: 4) {
+                                     Text("AI Analysis Provider")
+                                         .themedBody()
+                                         .fontWeight(.bold)
+
+                                     Text("Choose which provider generates meeting overviews and summaries.")
+                                         .themedCaption()
+                                 }
+
+                                 Spacer()
+
+                                 Picker("AI Analysis Provider", selection: Binding(
+                                     get: { meetingAnalysisManager.selectedProvider },
+                                     set: { meetingAnalysisManager.setSelectedProvider($0) }
+                                 )) {
+                                     ForEach(MeetingAnalysisProviderType.allCases) { provider in
+                                         Text(provider.displayName).tag(provider)
+                                     }
+                                 }
+                                 .pickerStyle(.segmented)
+                                 .frame(width: 220)
+                             }
+
+                             Text("Apple Intelligence status: \(meetingAnalysisManager.appleIntelligenceStatusText)")
+                                 .themedCaption()
+                                 .frame(maxWidth: .infinity, alignment: .leading)
+                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                          }
                          .padding()
                          .background(themeManager.currentTheme.materialStyle)

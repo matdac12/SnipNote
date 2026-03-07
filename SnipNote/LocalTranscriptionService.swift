@@ -676,7 +676,7 @@ actor LocalTranscriptionService {
             logProbThreshold: thresholds.logProbThreshold,
             firstTokenLogProbThreshold: thresholds.firstTokenLogProbThreshold,
             noSpeechThreshold: thresholds.noSpeechThreshold,
-            chunkingStrategy: .none
+            chunkingStrategy: ChunkingStrategy.none
         )
     }
 

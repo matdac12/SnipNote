@@ -89,19 +89,29 @@ struct SnipNoteApp: App {
                     // Initialize minutes manager - grant free tier if needed and refresh balance
                     await MinutesManager.shared.handleAppLaunch()
                 }
+                checkForSharedAudio()
             }
             .onChange(of: scenePhase) { _, newPhase in
                 BackgroundTaskManager.shared.handleScenePhaseChange(newPhase)
+                if newPhase == .active {
+                    checkForSharedAudio()
+                }
             }
         }
         .modelContainer(sharedModelContainer)
     }
     
+    private static let appGroupID = "group.com.mattianalytics.snipnote"
+
     private func handleDeepLink(_ url: URL) {
         print("📱 Deep link received: \(url)")
-        
+
         if url.scheme == "snipnote" {
-            if url.host == "import-audio" {
+            if url.host == "import-shared-audio" {
+                // Triggered by Share Extension — read from shared container
+                print("🎵 Share Extension triggered, checking shared container...")
+                checkForSharedAudio()
+            } else if url.host == "import-audio" {
                 if let audioURLString = url.queryParameters["audioURL"],
                    let audioURL = URL(string: audioURLString) {
                     print("🎵 Audio URL extracted: \(audioURL)")
@@ -121,6 +131,34 @@ struct SnipNoteApp: App {
                 source: .fileShare
             )
         }
+    }
+
+    private func checkForSharedAudio() {
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: Self.appGroupID) else { return }
+
+        let flagFile = containerURL.appendingPathComponent("pending_audio.txt")
+
+        guard let filename = try? String(contentsOf: flagFile, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+              !filename.isEmpty else {
+            return
+        }
+
+        let audioURL = containerURL.appendingPathComponent("SharedAudio").appendingPathComponent(filename)
+
+        guard FileManager.default.fileExists(atPath: audioURL.path) else {
+            print("⚠️ Pending audio file not found: \(filename)")
+            try? FileManager.default.removeItem(at: flagFile)
+            return
+        }
+
+        // Remove the flag so we don't re-import
+        try? FileManager.default.removeItem(at: flagFile)
+
+        print("📂 ✅ Found shared audio: \(filename)")
+        sharedAudioImportRequest = SharedAudioImportRequest(
+            url: audioURL,
+            source: .fileShare
+        )
     }
     
 }

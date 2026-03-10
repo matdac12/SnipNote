@@ -10,6 +10,7 @@
 		4932D5C42E7867CD00769B1D /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4932D5C32E7867CD00769B1D /* StoreKit.framework */; };
 		4976E7522E240927000394DC /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 4976E7512E240927000394DC /* Supabase */; };
 		49B6A1012FBD100100AA1101 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 49B6A1032FBD100100AA1101 /* WhisperKit */; };
+		49FE080D2F5FFA680006B1D6 /* SnipNoteShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 49FE08032F5FFA680006B1D6 /* SnipNoteShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,13 +28,35 @@
 			remoteGlobalIDString = 4961E7252E0D7A090099EE31;
 			remoteInfo = SnipNote;
 		};
+		49FE080B2F5FFA680006B1D6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4961E71E2E0D7A090099EE31 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 49FE08022F5FFA680006B1D6;
+			remoteInfo = SnipNoteShare;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		49FE080E2F5FFA680006B1D6 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				49FE080D2F5FFA680006B1D6 /* SnipNoteShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		4932D5C32E7867CD00769B1D /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		4961E7262E0D7A090099EE31 /* SnipNote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SnipNote.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4961E7352E0D7A0B0099EE31 /* SnipNoteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SnipNoteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4961E73F2E0D7A0B0099EE31 /* SnipNoteUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SnipNoteUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		49FE08032F5FFA680006B1D6 /* SnipNoteShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SnipNoteShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -43,6 +66,13 @@
 				Info.plist,
 			);
 			target = 4961E7252E0D7A090099EE31 /* SnipNote */;
+		};
+		49FE08122F5FFA680006B1D6 /* Exceptions for "SnipNoteShare" folder in "SnipNoteShare" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 49FE08022F5FFA680006B1D6 /* SnipNoteShare */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -63,6 +93,14 @@
 		4961E7422E0D7A0B0099EE31 /* SnipNoteUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = SnipNoteUITests;
+			sourceTree = "<group>";
+		};
+		49FE08042F5FFA680006B1D6 /* SnipNoteShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				49FE08122F5FFA680006B1D6 /* Exceptions for "SnipNoteShare" folder in "SnipNoteShare" target */,
+			);
+			path = SnipNoteShare;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -92,6 +130,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		49FE08002F5FFA680006B1D6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -101,6 +146,7 @@
 				4961E7282E0D7A090099EE31 /* SnipNote */,
 				4961E7382E0D7A0B0099EE31 /* SnipNoteTests */,
 				4961E7422E0D7A0B0099EE31 /* SnipNoteUITests */,
+				49FE08042F5FFA680006B1D6 /* SnipNoteShare */,
 				4976E7502E240927000394DC /* Frameworks */,
 				4961E7272E0D7A090099EE31 /* Products */,
 			);
@@ -112,6 +158,7 @@
 				4961E7262E0D7A090099EE31 /* SnipNote.app */,
 				4961E7352E0D7A0B0099EE31 /* SnipNoteTests.xctest */,
 				4961E73F2E0D7A0B0099EE31 /* SnipNoteUITests.xctest */,
+				49FE08032F5FFA680006B1D6 /* SnipNoteShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -134,10 +181,12 @@
 				4961E7222E0D7A090099EE31 /* Sources */,
 				4961E7232E0D7A090099EE31 /* Frameworks */,
 				4961E7242E0D7A090099EE31 /* Resources */,
+				49FE080E2F5FFA680006B1D6 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				49FE080C2F5FFA680006B1D6 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				4961E7282E0D7A090099EE31 /* SnipNote */,
@@ -197,6 +246,28 @@
 			productReference = 4961E73F2E0D7A0B0099EE31 /* SnipNoteUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		49FE08022F5FFA680006B1D6 /* SnipNoteShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 49FE08112F5FFA680006B1D6 /* Build configuration list for PBXNativeTarget "SnipNoteShare" */;
+			buildPhases = (
+				49FE07FF2F5FFA680006B1D6 /* Sources */,
+				49FE08002F5FFA680006B1D6 /* Frameworks */,
+				49FE08012F5FFA680006B1D6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				49FE08042F5FFA680006B1D6 /* SnipNoteShare */,
+			);
+			name = SnipNoteShare;
+			packageProductDependencies = (
+			);
+			productName = SnipNoteShare;
+			productReference = 49FE08032F5FFA680006B1D6 /* SnipNoteShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -204,7 +275,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1640;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
 					4961E7252E0D7A090099EE31 = {
@@ -217,6 +288,9 @@
 					4961E73E2E0D7A0B0099EE31 = {
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = 4961E7252E0D7A090099EE31;
+					};
+					49FE08022F5FFA680006B1D6 = {
+						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
@@ -242,6 +316,7 @@
 				4961E7252E0D7A090099EE31 /* SnipNote */,
 				4961E7342E0D7A0B0099EE31 /* SnipNoteTests */,
 				4961E73E2E0D7A0B0099EE31 /* SnipNoteUITests */,
+				49FE08022F5FFA680006B1D6 /* SnipNoteShare */,
 			);
 		};
 /* End PBXProject section */
@@ -262,6 +337,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		4961E73D2E0D7A0B0099EE31 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		49FE08012F5FFA680006B1D6 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -292,6 +374,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		49FE07FF2F5FFA680006B1D6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -304,6 +393,11 @@
 			isa = PBXTargetDependency;
 			target = 4961E7252E0D7A090099EE31 /* SnipNote */;
 			targetProxy = 4961E7402E0D7A0B0099EE31 /* PBXContainerItemProxy */;
+		};
+		49FE080C2F5FFA680006B1D6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 49FE08022F5FFA680006B1D6 /* SnipNoteShare */;
+			targetProxy = 49FE080B2F5FFA680006B1D6 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -440,6 +534,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SnipNote/SnipNote.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -475,6 +570,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SnipNote/SnipNote.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -577,6 +673,68 @@
 			};
 			name = Release;
 		};
+		49FE080F2F5FFA680006B1D6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SnipNoteShare/SnipNoteShare.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5K8R3X2322;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SnipNoteShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SnipNoteShare;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.4;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattianalytics.snipnote.SnipNoteShare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		49FE08102F5FFA680006B1D6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SnipNoteShare/SnipNoteShare.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5K8R3X2322;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SnipNoteShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SnipNoteShare;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.4;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattianalytics.snipnote.SnipNoteShare;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -612,6 +770,15 @@
 			buildConfigurations = (
 				4961E7502E0D7A0B0099EE31 /* Debug */,
 				4961E7512E0D7A0B0099EE31 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		49FE08112F5FFA680006B1D6 /* Build configuration list for PBXNativeTarget "SnipNoteShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				49FE080F2F5FFA680006B1D6 /* Debug */,
+				49FE08102F5FFA680006B1D6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

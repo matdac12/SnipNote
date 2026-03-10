@@ -61,7 +61,7 @@ final class MeetingAnalysisManager: ObservableObject {
 
             switch model.availability {
             case .available:
-                return "Available on this device."
+                return LocalizationManager.localizedAppString("settings.aiAnalysis.appleIntelligenceAvailable")
             case .unavailable(.deviceNotEligible):
                 return "This device does not support Apple Intelligence."
             case .unavailable(.appleIntelligenceNotEnabled):

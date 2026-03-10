@@ -283,24 +283,24 @@ struct SettingsView: View {
                      .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
 
                      VStack(alignment: .leading, spacing: 16) {
-                         Text("AI ANALYSIS")
+                         Text(localized("settings.section.aiAnalysis.title").uppercased())
                              .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                              .foregroundColor(themeManager.currentTheme.secondaryTextColor)
 
                          VStack(spacing: 16) {
                              HStack {
                                  VStack(alignment: .leading, spacing: 4) {
-                                     Text("AI Analysis Provider")
+                                     Text(localized("settings.aiAnalysis.provider"))
                                          .themedBody()
                                          .fontWeight(.bold)
 
-                                     Text("Choose which provider generates meeting overviews and summaries.")
+                                     Text(localized("settings.aiAnalysis.providerDescription"))
                                          .themedCaption()
                                  }
 
                                  Spacer()
 
-                                 Picker("AI Analysis Provider", selection: Binding(
+                                 Picker(localized("settings.aiAnalysis.provider"), selection: Binding(
                                      get: { meetingAnalysisManager.selectedProvider },
                                      set: { meetingAnalysisManager.setSelectedProvider($0) }
                                  )) {
@@ -312,7 +312,7 @@ struct SettingsView: View {
                                  .frame(width: 220)
                              }
 
-                             Text("Apple Intelligence status: \(meetingAnalysisManager.appleIntelligenceStatusText)")
+                             Text("\(localized("settings.aiAnalysis.appleIntelligenceStatus")): \(meetingAnalysisManager.appleIntelligenceStatusText)")
                                  .themedCaption()
                                  .frame(maxWidth: .infinity, alignment: .leading)
                                  .foregroundColor(themeManager.currentTheme.secondaryTextColor)

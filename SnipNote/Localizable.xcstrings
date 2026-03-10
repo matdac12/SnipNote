@@ -23,6 +23,16 @@
         }
       }
     },
+    "%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
     "%@×" : {
 
     },
@@ -1049,6 +1059,9 @@
     "minutes" : {
 
     },
+    "Minutes Sync In Progress" : {
+
+    },
     "More than halfway there!" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1896,6 +1909,74 @@
         }
       }
     },
+    "settings.aiAnalysis.appleIntelligenceAvailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available on this device."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disponibile sul dispositivo."
+          }
+        }
+      }
+    },
+    "settings.aiAnalysis.appleIntelligenceStatus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence status"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato Apple Intelligence"
+          }
+        }
+      }
+    },
+    "settings.aiAnalysis.provider" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI Analysis Provider"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provider analisi AI"
+          }
+        }
+      }
+    },
+    "settings.aiAnalysis.providerDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose which provider generates meeting overviews and summaries."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scegli quale provider genera panoramiche e riassunti delle riunioni."
+          }
+        }
+      }
+    },
     "settings.appearance.darkDescription" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2419,6 +2500,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Account"
+          }
+        }
+      }
+    },
+    "settings.section.aiAnalysis.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI Analysis"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analisi AI"
           }
         }
       }
@@ -3178,23 +3276,6 @@
         }
       }
     },
-    "transcription.local.progress.detectingSpeech" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detecting speech regions"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rilevamento delle aree di parlato"
-          }
-        }
-      }
-    },
     "transcription.local.progress.complete" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3208,6 +3289,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trascrizione locale completata"
+          }
+        }
+      }
+    },
+    "transcription.local.progress.detectingSpeech" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detecting speech regions"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rilevamento delle aree di parlato"
           }
         }
       }

@@ -169,6 +169,7 @@ struct MeetingsView: View {
                     }
                     .listStyle(PlainListStyle())
                     .scrollContentBackground(.hidden)
+                    .scrollIndicators(.hidden)
                     .refreshable {
                         await performSync()
                     }

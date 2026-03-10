@@ -130,9 +130,10 @@ struct MeetingsView: View {
                             .font(.system(size: 60))
                             .foregroundColor(themeManager.currentTheme.secondaryTextColor.opacity(0.6))
                             .offset(y: isBouncingEmpty ? -10 : 0)
-                            .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: isBouncingEmpty)
                             .onAppear {
-                                isBouncingEmpty = true
+                                withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
+                                    isBouncingEmpty = true
+                                }
                             }
 
                         Text("No meetings yet")

@@ -30,7 +30,7 @@ enum TranscriptionError: LocalizedError {
 
 @MainActor
 class RenderTranscriptionService: ObservableObject {
-    private let baseURL = "https://snipnote-transcription.onrender.com"
+    private let baseURL = "https://api.snipnote.app"
     private var pollingTimer: Timer?
     private var retryAttempts: [String: Int] = [:] // jobId -> attempt count
 

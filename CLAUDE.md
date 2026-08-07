@@ -358,11 +358,13 @@
 ### Backend Architecture (Python FastAPI):
 
 #### Server Components:
-- **Base URL**: `https://snipnote-transcription.onrender.com`
+- **Base URL**: `https://api.snipnote.app` (self-hosted on the `omni` VPS; migrated off
+  Render in Aug 2026 — see `snipnote-transcription-service/DEPLOYMENT.md`)
 - **Endpoints**:
   - `POST /jobs` - Create transcription job (returns `job_id`)
   - `GET /jobs/{job_id}` - Poll job status
-- **Background Worker**: Cron job running every 1 minute processing pending jobs
+- **Background Worker**: systemd service polling for pending jobs every 20 seconds
+- **Transcription Model**: `gpt-transcribe` ($0.0045/min)
 - **Database**: Supabase `transcription_jobs` table
 
 #### Job Status Flow:

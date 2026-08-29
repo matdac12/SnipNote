@@ -419,4 +419,28 @@ final class Meeting {
     var canRetry: Bool {
         return (processingState == .failed || isPausedLocalJob) && localAudioPath != nil
     }
+
+    // MARK: - Display Helpers
+
+    func summaryPreview(maxLength: Int = 92) -> String? {
+        let source: String
+        if !shortSummary.isEmpty,
+           shortSummary != "Generating overview...",
+           shortSummary != "Processing failed",
+           shortSummary != "AI overview unavailable" {
+            source = shortSummary
+        } else if !meetingNotes.isEmpty {
+            source = meetingNotes
+        } else {
+            return nil
+        }
+
+        let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        if trimmed.count <= maxLength {
+            return trimmed
+        }
+        return String(trimmed.prefix(maxLength)).trimmingCharacters(in: .whitespacesAndNewlines) + "..."
+    }
 }

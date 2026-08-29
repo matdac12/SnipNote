@@ -395,7 +395,7 @@ struct MeetingRowView: View {
                 }
             }
 
-            if let preview = summaryPreview(maxLength: 92) {
+            if let preview = meeting.summaryPreview(maxLength: 92) {
                 Text(preview)
                     .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
                     .foregroundColor(theme.secondaryTextColor)
@@ -424,26 +424,4 @@ struct MeetingRowView: View {
         meeting.dateCreated.formatted(date: .abbreviated, time: .omitted)
     }
 
-    private func summaryPreview(maxLength: Int) -> String? {
-        let source: String
-        if !meeting.shortSummary.isEmpty,
-           meeting.shortSummary != "Generating overview...",
-           meeting.shortSummary != "Processing failed",
-           meeting.shortSummary != "AI overview unavailable" {
-            source = meeting.shortSummary
-        } else if !meeting.meetingNotes.isEmpty {
-            source = meeting.meetingNotes
-        } else {
-            return nil
-        }
-
-        let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-
-        if trimmed.count <= maxLength {
-            return trimmed
-        }
-
-        return String(trimmed.prefix(maxLength)).trimmingCharacters(in: .whitespacesAndNewlines) + "..."
-    }
 }

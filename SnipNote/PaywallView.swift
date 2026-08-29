@@ -224,7 +224,6 @@ struct PaywallView: View {
                     .foregroundColor(themeManager.currentTheme.accentColor)
             }
             
-            // Terms and Privacy links placeholder - update these when you have the URLs
             HStack(spacing: 12) {
                 Button(action: {
                     // Link to Apple's Standard EULA
@@ -242,10 +241,9 @@ struct PaywallView: View {
                     .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                 
                 Button(action: {
-                    // TODO: Add Privacy URL when ready
-                    if let url = URL(string: "https://www.mattianalytics.com/privacy") {
+                    if let url = URL(string: "https://snipnote.app/privacy") {
                         UIApplication.shared.open(url)
-                        }
+                    }
                 }) {
                     Text("Privacy Policy")
                         .font(.system(.caption2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))

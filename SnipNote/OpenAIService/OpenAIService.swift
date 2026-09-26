@@ -42,7 +42,7 @@ class OpenAIService: ObservableObject {
     /// verbosity for it in the Supabase `ai_model_config` table. The values set in
     /// each request below are only defaults used when no row exists.
     private enum AITask: String {
-        case overview, summary, actions, title
+        case overview, summary, actions, title, transcription
         case textSummary = "text_summary"
         case eveChat = "eve_chat"
         case actionsReport = "actions_report"
@@ -50,6 +50,7 @@ class OpenAIService: ObservableObject {
 
     private static let defaultModel = "gpt-6-luna"
     private static let defaultReasoningEffort = "low"
+    private static let defaultTranscriptionModel = "gpt-transcribe"
 
     // MARK: - Audio Processing
 
@@ -238,6 +239,7 @@ class OpenAIService: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(AITask.transcription.rawValue, forHTTPHeaderField: "X-SnipNote-Task")
 
         let boundary = UUID().uuidString
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
@@ -250,7 +252,7 @@ class OpenAIService: ObservableObject {
         body.append("\r\n".data(using: .utf8)!)
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
-        body.append("gpt-4o-transcribe\r\n".data(using: .utf8)!)
+        body.append("\(Self.defaultTranscriptionModel)\r\n".data(using: .utf8)!)
 
         // Add language field if specified
         if let language = language {

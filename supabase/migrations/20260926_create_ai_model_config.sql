@@ -4,6 +4,7 @@
 -- changes apply within ~60 seconds, no app release or redeploy needed.
 --
 -- NULL reasoning_effort / verbosity = leave whatever the caller sent.
+-- The 'transcription' row only uses model and fallback_model.
 -- fallback_model = retried once if OpenAI rejects the request with 400/404
 -- (e.g. typo in model name, unsupported parameter). NULL disables the retry.
 
@@ -42,5 +43,6 @@ INSERT INTO public.ai_model_config (task, model, reasoning_effort, verbosity, fa
     ('title',          'gpt-6-luna', 'low', NULL,     'gpt-6-luna', 'Meeting title (iOS)'),
     ('text_summary',   'gpt-6-luna', 'low', NULL,     'gpt-6-luna', 'Generic transcript summary, summarizeText (iOS)'),
     ('eve_chat',       'gpt-6-luna', 'low', 'medium', 'gpt-6-luna', 'Eve chat with stored prompt (iOS)'),
-    ('actions_report', 'gpt-6-luna', 'low', NULL,     'gpt-6-luna', 'Actions report, Chat Completions API (iOS)')
+    ('actions_report', 'gpt-6-luna', 'low', NULL,     'gpt-6-luna', 'Actions report, Chat Completions API (iOS)'),
+    ('transcription',  'gpt-transcribe', NULL, NULL,  'gpt-4o-transcribe', 'Speech-to-text (iOS <=5 min + VPS). Only model/fallback_model apply')
 ON CONFLICT (task) DO NOTHING;

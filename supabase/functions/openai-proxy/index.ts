@@ -14,8 +14,9 @@ import { corsHeaders } from '../_shared/cors.ts'
 //
 // Model selection: when the app sends `X-SnipNote-Task: <task>`, the matching
 // row in `public.ai_model_config` overrides model / reasoning effort / verbosity
-// in the JSON body, so models can be switched from the Supabase Table Editor
-// without an app release. No header or no row = body forwarded as sent.
+// in the JSON body (or just the model field of a transcription upload), so
+// models can be switched from the Supabase Table Editor without an app release.
+// No header or no row = body forwarded as sent.
 
 const OPENAI_BASE_URL = 'https://api.openai.com/v1'
 
@@ -27,8 +28,9 @@ const ALLOWED_PATHS = new Set([
   '/chat/completions',
 ])
 
-// JSON endpoints whose body carries a model we may override
-const MODEL_PATHS = new Set(['/responses', '/chat/completions'])
+// Endpoints whose body carries a model we may override
+const MODEL_PATHS = new Set(['/responses', '/chat/completions', '/audio/transcriptions'])
+const TRANSCRIPTION_PATH = '/audio/transcriptions'
 
 // Sampling params reasoning models reject unless effort is "none"
 const SAMPLING_PARAMS = ['temperature', 'top_p', 'logprobs', 'top_logprobs']
@@ -151,18 +153,34 @@ Deno.serve(async (req) => {
   const callOpenAI = (body: BodyInit) =>
     fetch(`${OPENAI_BASE_URL}${openAIPath}`, { method: 'POST', headers: forwardHeaders, body })
 
-  // Resolve per-task model config (JSON endpoints only)
+  // Resolve per-task model config
   const task = req.headers.get('X-SnipNote-Task')
   const config = task && MODEL_PATHS.has(openAIPath) ? await getModelConfig(task) : undefined
+  const isTranscription = openAIPath === TRANSCRIPTION_PATH
 
+  // Parsed body when a config applies: FormData for transcription uploads, JSON otherwise
   // deno-lint-ignore no-explicit-any
   let body: any
   if (config) {
     try {
-      body = await req.json()
+      body = isTranscription ? await req.formData() : await req.json()
     } catch {
-      return jsonResponse({ error: { message: 'Invalid JSON body' } }, 400)
+      return jsonResponse({ error: { message: 'Invalid request body' } }, 400)
     }
+    if (isTranscription) {
+      // fetch() generates a new multipart boundary for the rebuilt form
+      forwardHeaders.delete('Content-Type')
+    }
+  }
+
+  const setModel = (model: string): BodyInit => {
+    if (isTranscription) {
+      // Only the model applies to transcription; effort/verbosity are ignored
+      body.set('model', model)
+      return body
+    }
+    applyModelConfig(body, openAIPath, config!, model)
+    return JSON.stringify(body)
   }
 
   const startedAt = Date.now()
@@ -171,18 +189,16 @@ Deno.serve(async (req) => {
 
   try {
     if (config) {
-      applyModelConfig(body, openAIPath, config, config.model)
       usedModel = config.model
-      upstream = await callOpenAI(JSON.stringify(body))
+      upstream = await callOpenAI(setModel(config.model))
 
       // One retry on the fallback model if OpenAI rejected the request
       const fallback = config.fallback_model
       if ((upstream.status === 400 || upstream.status === 404) && fallback && fallback !== config.model) {
         const errorText = await upstream.text()
         console.warn(`${openAIPath} task=${task} model=${config.model} rejected (${upstream.status}): ${errorText.slice(0, 300)} -> retrying with ${fallback}`)
-        applyModelConfig(body, openAIPath, config, fallback)
         usedModel = fallback
-        upstream = await callOpenAI(JSON.stringify(body))
+        upstream = await callOpenAI(setModel(fallback))
       }
     } else {
       // Forward the body untouched (JSON or multipart audio upload).

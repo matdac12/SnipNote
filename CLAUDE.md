@@ -1,7 +1,7 @@
 ## Workflow Memories
 
 - Remembered workflow: solving problems through careful documentation and systematic approach
-- AI Models in use: configured per task in Supabase table `ai_model_config` (default `gpt-6-luna`, effort `low`), applied by the `openai-proxy` Edge Function and the VPS worker; transcription `gpt-4o-transcribe` (see OPENAI_PROXY_SETUP.md)
+- AI Models in use: configured per task in Supabase table `ai_model_config` (default `gpt-6-luna`, effort `low`), applied by the `openai-proxy` Edge Function and the VPS worker; transcription `gpt-transcribe` via the `transcription` row, iOS and VPS (see OPENAI_PROXY_SETUP.md)
 - When dealing with software implementation, always carefully review and validate code, especially in index files, to prevent previous errors
 - Importance of maintaining a continuous learning mindset and documenting insights from each coding session
 

@@ -32,8 +32,12 @@ The VPS worker reads the same rows for long-meeting summaries (see
 | `text_summary` | iOS (`summarizeText`) | gpt-6-luna / low / – |
 | `eve_chat` | iOS | gpt-6-luna / low / medium |
 | `actions_report` | iOS (Chat Completions) | gpt-6-luna / low / – |
+| `transcription` | iOS (5 min or less) + VPS | gpt-transcribe / – / – |
 
-All rows are seeded with `fallback_model = gpt-6-luna`.
+The LLM rows are seeded with `fallback_model = gpt-6-luna`. The `transcription` row uses
+`gpt-4o-transcribe`, since a chat model can't transcribe audio. For `transcription`, only
+`model` and `fallback_model` apply: the proxy rewrites the `model` field of the audio upload
+and ignores effort and verbosity.
 
 **To switch a model:** open Supabase Dashboard → Table Editor → `ai_model_config`, edit
 `model`, `reasoning_effort` or `verbosity`, and save. The change applies within 60 seconds
@@ -47,7 +51,6 @@ Rules the proxy applies:
   differs from `model`. The Edge Function logs show the OpenAI error that triggered it.
 - If there's no header or no row, the body is forwarded as sent. The app's built-in defaults
   are also `gpt-6-luna` with effort `low`.
-- Transcription (`/audio/transcriptions`) is not affected. It stays `gpt-4o-transcribe` in the app.
 
 Parameter notes (GPT-6 family, checked Sept 2026): `reasoning.effort` accepts
 `none|low|medium|high|xhigh|max`, and **`minimal` is rejected**. `text.verbosity`
@@ -155,7 +158,8 @@ this repo, and `db push` would try to apply every older migration.
 1. Supabase Dashboard → **SQL Editor** → **New query**.
 2. Paste the whole contents of `supabase/migrations/20260926_create_ai_model_config.sql`
    and click **Run**. Running it twice is safe: `IF NOT EXISTS` / `ON CONFLICT DO NOTHING`.
-3. Table Editor → `ai_model_config` should show 7 rows, all `gpt-6-luna` / `low`.
+3. Table Editor → `ai_model_config` should show 8 rows: 7 with `gpt-6-luna` / `low`, plus
+   `transcription` with `gpt-transcribe`.
 4. Show Mattia how to edit a row. This is how models get switched from now on.
 
 ### Step 3: Deploy the function

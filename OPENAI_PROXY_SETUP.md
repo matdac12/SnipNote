@@ -61,10 +61,10 @@ Once most users are on the proxy build:
 
 ## For the Claude Code agent on Mattia's Mac: guide the user through setup
 
-You're helping Mattia set this up on his Mac. **Guide, don't do.** Mattia pastes
-the OpenAI key himself. Never ask him to paste the key into the chat, never
+You're helping Mattia set this up on their Mac. **Guide, don't do.** Mattia pastes
+the OpenAI key himself. Never ask them to paste the key into the chat, never
 put it in a file in this repo, and never run a command that has the key in it
-on his behalf. Go one step at a time and wait for him to confirm each step
+on their behalf. Go one step at a time and wait for them to confirm each step
 before moving on.
 
 Supabase project ref: `bndbnqtvicvynzkyygte`
@@ -81,29 +81,29 @@ OpenAI key.** Every OpenAI request must use `baseURL` (the proxy) and
 key usage is left (comments are fine).
 
 ### Step 1: Get the key ready
-Ask Mattia to open https://platform.openai.com/api-keys and either copy his
+Ask Mattia to open https://platform.openai.com/api-keys and either copy their
 current key or create a new one (for example "snipnote-supabase-proxy").
 Creating a new one is better. The old key has shipped inside the app, so it
 will be revoked later (see Key rotation).
 
 ### Step 2: Add the secret. Option A: Dashboard (easiest, no install)
-Walk him through this:
+Walk them through this:
 1. Go to https://supabase.com/dashboard/project/bndbnqtvicvynzkyygte
 2. In the left sidebar, open **Edge Functions**, then the **Secrets** tab. If
    the UI has moved, look in **Project Settings → Edge Functions**.
 3. Click **Add new secret**. Set Name to `OPENAI_API_KEY` (exactly that) and
-   Value to the key he copied (`sk-...`). Save.
+   Value to the key they copied (`sk-...`). Save.
 4. The key should now appear in the list, showing only a digest and not the
    value.
 
 ### Step 2: Add the secret. Option B: CLI
-Mattia runs these himself in Terminal:
+Mattia runs these themselves in Terminal:
 ```bash
 brew install supabase/tap/supabase        # if `supabase --version` fails
 supabase login                            # opens the browser
 cd <path to SnipNote repo>
 supabase link --project-ref bndbnqtvicvynzkyygte
-supabase secrets set OPENAI_API_KEY=sk-... # he types or pastes the key here himself
+supabase secrets set OPENAI_API_KEY=sk-... # Mattia types or pastes the key here
 supabase secrets list                      # OPENAI_API_KEY should be listed
 ```
 Tip: prefix the `secrets set` line with a space so it isn't saved in shell
@@ -122,9 +122,9 @@ supabase functions deploy openai-proxy
 ### Step 4: Verify
 - Run the unauthenticated curl from the **Smoke test** section. It must return
   `401`. You can run this one yourself, since it contains no secrets.
-- Mattia builds the app in Xcode. You don't build; he will report any errors.
-  He deletes `openAIAPIKey` from his local `Config.swift` before building.
-- In the app, he tries a short recording (5 minutes or less), then checks the
+- Mattia builds the app in Xcode. You don't build; Mattia will report any errors.
+  Mattia deletes `openAIAPIKey` from the local `Config.swift` before building.
+- In the app, Mattia tries a short recording (5 minutes or less), then checks the
   summary, title, actions, an Eve chat and the actions report.
 - Dashboard → Edge Functions → openai-proxy → Logs should show lines like
   `/responses user=... status=200`.

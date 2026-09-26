@@ -15,3 +15,9 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/validate-storekit-transaction/deno.json"
 entrypoint = "./functions/validate-storekit-transaction/index.ts"
+
+[functions.openai-proxy]
+enabled = true
+verify_jwt = true
+import_map = "./functions/openai-proxy/deno.json"
+entrypoint = "./functions/openai-proxy/index.ts"

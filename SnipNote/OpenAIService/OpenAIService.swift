@@ -6,15 +6,17 @@
 //
 
 import Foundation
-import Security
+import Supabase
 import AVFoundation
 
 class OpenAIService: ObservableObject {
     static let shared = OpenAIService()
 
-    private let baseURL = "https://api.openai.com/v1"
-    private let keychainService = "com.mattia.snipnote.apikey"
-    private let keychainAccount = "openai_api_key"
+    /// All OpenAI calls go through the `openai-proxy` Supabase Edge Function, which
+    /// verifies the signed-in user and attaches the OpenAI key server-side.
+    private let baseURL = SupabaseManager.supabaseURL
+        .appendingPathComponent("functions/v1/openai-proxy")
+        .absoluteString
     private let urlSession: URLSession
 
     private init() {
@@ -22,74 +24,18 @@ class OpenAIService: ObservableObject {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 120  // 2 minutes per request
         configuration.timeoutIntervalForResource = 600 // 10 minutes total
+        // Supabase API gateway expects the public anon key on every request
+        configuration.httpAdditionalHeaders = ["apikey": SupabaseManager.supabaseAnonKey]
         self.urlSession = URLSession(configuration: configuration)
     }
-    
-    var apiKey: String? {
-        get {
-            // First check if API key is set in Config
-            if Config.openAIAPIKey != "YOUR_OPENAI_API_KEY_HERE" && !Config.openAIAPIKey.isEmpty {
-                return Config.openAIAPIKey
-                
-            }
-            // Fallback to keychain
-            if let key = getAPIKeyFromKeychain(), !key.isEmpty {
-                return key
-            }
-            return nil
+
+    /// Current user's Supabase access token, used to authenticate with the proxy.
+    /// The Supabase SDK refreshes an expired session automatically.
+    private func proxyAccessToken() async throws -> String {
+        guard let session = try? await SupabaseManager.shared.client.auth.session else {
+            throw OpenAIError.notAuthenticated
         }
-        set {
-            if let key = newValue {
-                saveAPIKeyToKeychain(key)
-            } else {
-                deleteAPIKeyFromKeychain()
-            }
-        }
-    }
-    
-    private func saveAPIKeyToKeychain(_ key: String) {
-        let data = key.data(using: .utf8)!
-        
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount,
-            kSecValueData as String: data
-        ]
-        
-        SecItemDelete(query as CFDictionary)
-        SecItemAdd(query as CFDictionary, nil)
-    }
-    
-    private func getAPIKeyFromKeychain() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        
-        guard status == errSecSuccess,
-              let data = item as? Data,
-              let key = String(data: data, encoding: .utf8) else {
-            return nil
-        }
-        
-        return key
-    }
-    
-    private func deleteAPIKeyFromKeychain() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount
-        ]
-        
-        SecItemDelete(query as CFDictionary)
+        return session.accessToken
     }
 
     // MARK: - Audio Processing
@@ -270,9 +216,7 @@ class OpenAIService: ObservableObject {
     }
 
     func transcribeAudio(audioData: Data, language: String? = nil) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
+        let accessToken = try await proxyAccessToken()
 
         // Speed up audio by 1.5x to reduce costs by 33%
         let processedAudioData = try await speedUpAudio(audioData: audioData)
@@ -280,7 +224,7 @@ class OpenAIService: ObservableObject {
         let url = URL(string: "\(baseURL)/audio/transcriptions")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
         let boundary = UUID().uuidString
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
@@ -495,14 +439,12 @@ class OpenAIService: ObservableObject {
     }
 
     func summarizeText(_ text: String) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
+        let accessToken = try await proxyAccessToken()
         
         let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let prompt = """
@@ -550,14 +492,12 @@ class OpenAIService: ObservableObject {
     }
 
     func generateTitle(_ text: String) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
+        let accessToken = try await proxyAccessToken()
         
         let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let prompt = """
@@ -607,14 +547,12 @@ class OpenAIService: ObservableObject {
     }
 
     func generateMeetingOverview(_ text: String, languageContext: AnalysisLanguageContext) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
+        let accessToken = try await proxyAccessToken()
 
         let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let prompt = MeetingAnalysisPrompts.overviewPrompt(transcript: text, languageContext: languageContext)
@@ -653,14 +591,12 @@ class OpenAIService: ObservableObject {
     }
 
     func summarizeMeeting(_ text: String, languageContext: AnalysisLanguageContext) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
+        let accessToken = try await proxyAccessToken()
 
         let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let prompt = MeetingAnalysisPrompts.summaryPrompt(transcript: text, languageContext: languageContext)
@@ -699,14 +635,12 @@ class OpenAIService: ObservableObject {
     }
 
     func extractActions(_ text: String) async throws -> [ActionItem] {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
+        let accessToken = try await proxyAccessToken()
 
         let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let prompt = """
@@ -771,17 +705,15 @@ class OpenAIService: ObservableObject {
         promptVariables: EvePromptVariables,
         conversationId: String?
     ) async throws -> ChatWithEveResult {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
+        let accessToken = try await proxyAccessToken()
 
-        let activeConversationId = try await ensureConversationId(apiKey: apiKey, currentConversationId: conversationId)
+        let activeConversationId = try await ensureConversationId(accessToken: accessToken, currentConversationId: conversationId)
         let sanitizedVariables = promptVariables.sanitized()
 
         let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         var requestBody = ResponsesRequest(
@@ -833,26 +765,24 @@ class OpenAIService: ObservableObject {
     }
 
     func createConversation() async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
+        let accessToken = try await proxyAccessToken()
 
-        return try await createConversation(apiKey: apiKey)
+        return try await createConversation(accessToken: accessToken)
     }
 
-    private func ensureConversationId(apiKey: String, currentConversationId: String?) async throws -> String {
+    private func ensureConversationId(accessToken: String, currentConversationId: String?) async throws -> String {
         if let existingId = currentConversationId {
             return existingId
         }
 
-        return try await createConversation(apiKey: apiKey)
+        return try await createConversation(accessToken: accessToken)
     }
 
-    private func createConversation(apiKey: String) async throws -> String {
+    private func createConversation(accessToken: String) async throws -> String {
         let url = URL(string: "\(baseURL)/conversations")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let payload = ConversationCreateRequest(metadata: ["source": "SnipNote"])
@@ -871,14 +801,12 @@ class OpenAIService: ObservableObject {
     }
 
     func generateActionsReport(groupedActions: [String: [(action: String, priority: String, isCompleted: Bool)]]) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
+        let accessToken = try await proxyAccessToken()
 
         let url = URL(string: "\(baseURL)/chat/completions")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // Format the actions data for the prompt

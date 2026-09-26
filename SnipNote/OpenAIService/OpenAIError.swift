@@ -8,7 +8,7 @@
 import Foundation
 
 enum OpenAIError: Error {
-    case noAPIKey
+    case notAuthenticated
     case transcriptionFailed
     case summarizationFailed
     case audioProcessingFailed(String)

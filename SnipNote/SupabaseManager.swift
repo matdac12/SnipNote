@@ -12,14 +12,15 @@ import StoreKit
 class SupabaseManager {
     static let shared = SupabaseManager()
     
+    static let supabaseURL = URL(string: "https://bndbnqtvicvynzkyygte.supabase.co")!
+    /// Public anon key (safe to ship: access is enforced by RLS and Edge Function auth).
+    static let supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJuZGJucXR2aWN2eW56a3l5Z3RlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MTgyNDUsImV4cCI6MjA2Nzk5NDI0NX0.KJR2WxJBeTY4diMjXISBsFwFiYsniX1r0xjDIF0sgY8"
+
     let client: SupabaseClient
     private let recordingsPublicBaseURL = "https://bndbnqtvicvynzkyygte.supabase.co/storage/v1/object/public/recordings"
     
     private init() {
-        let supabaseURL = URL(string: "https://bndbnqtvicvynzkyygte.supabase.co")!
-        let supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJuZGJucXR2aWN2eW56a3l5Z3RlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MTgyNDUsImV4cCI6MjA2Nzk5NDI0NX0.KJR2WxJBeTY4diMjXISBsFwFiYsniX1r0xjDIF0sgY8"
-        
-        client = SupabaseClient(supabaseURL: supabaseURL, supabaseKey: supabaseKey)
+        client = SupabaseClient(supabaseURL: Self.supabaseURL, supabaseKey: Self.supabaseAnonKey)
     }
     
     // MARK: - Audio Storage Functions

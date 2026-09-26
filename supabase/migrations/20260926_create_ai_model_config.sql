@@ -3,7 +3,8 @@
 -- worker (server-side summaries). Edit rows in the Table Editor to switch models;
 -- changes apply within ~60 seconds, no app release or redeploy needed.
 --
--- NULL reasoning_effort / verbosity = leave whatever the caller sent.
+-- NULL reasoning_effort = send no reasoning parameter (models without reasoning).
+-- NULL verbosity = keep the caller's default.
 -- The 'transcription' row only uses model and fallback_model.
 -- fallback_model = retried once if OpenAI rejects the request with 400/404
 -- (e.g. typo in model name, unsupported parameter). NULL disables the retry.

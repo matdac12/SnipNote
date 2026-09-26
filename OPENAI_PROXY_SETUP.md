@@ -44,12 +44,14 @@ and ignores effort and verbosity.
 (cache TTL) for both the app and the VPS. No app release and no redeploy are needed.
 
 Rules the proxy applies:
-- NULL `reasoning_effort` / `verbosity` means the value the app sent is kept.
+- NULL `reasoning_effort` sends no `reasoning` parameter (for models without reasoning).
+  NULL `verbosity` keeps the value the app sent.
 - A non-`none` effort strips `temperature`, `top_p` and `logprobs`, which reasoning models reject.
 - If OpenAI answers 400/404, the proxy retries once with `fallback_model`, when it is set and
   differs from `model`. The Edge Function logs show the OpenAI error that triggered it.
-- If there's no header or no row, the body is forwarded as sent. The app's built-in defaults
-  are also `gpt-6-luna` with effort `low`.
+- If there's no header or no row, the proxy applies its built-in default for the endpoint
+  (`DEFAULT_CONFIG` in `index.ts`: `gpt-6-luna` / `low` for `/responses`, `gpt-transcribe`
+  for transcription). Callers can never choose their own model.
 
 Parameter notes (GPT-6 family, checked Sept 2026): `reasoning.effort` accepts
 `none|low|medium|high|xhigh|max`, and **`minimal` is rejected**. `text.verbosity`
@@ -201,5 +203,5 @@ Deploy order: table (Step 2b), then function (Step 3), then VPS, then app build.
 | 401 from OpenAI (`invalid_api_key`) | The secret value is wrong. Set it again. The new value is used on the next request, no redeploy needed. |
 | 404 on the function URL | Function isn't deployed. Run Step 3. |
 | Logs show `rejected (400) ... retrying with gpt-6-luna` | The configured model or parameter was refused (e.g. typo, or `minimal` effort on a GPT-6 model). Fix the row. |
-| Logs show `model=as-sent` | No `X-SnipNote-Task` header, or no row for that task, so the app's defaults were used. Check the task name matches a row. |
+| Logs show `task=-` or an unknown task name | No `X-SnipNote-Task` header, or no row for that task, so the proxy's `DEFAULT_CONFIG` was used. Check the task name matches a row. (`model=as-sent` is normal for `/conversations`.) |
 | `Failed to load ai_model_config` | The table is missing (run Step 2b). The proxy keeps working with the app's defaults. |

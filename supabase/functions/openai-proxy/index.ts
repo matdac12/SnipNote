@@ -16,7 +16,8 @@ import { corsHeaders } from '../_shared/cors.ts'
 // row in `public.ai_model_config` overrides model / reasoning effort / verbosity
 // in the JSON body (or just the model field of a transcription upload), so
 // models can be switched from the Supabase Table Editor without an app release.
-// No header or no row = body forwarded as sent.
+// No header or no row = the endpoint's DEFAULT_CONFIG is applied, so callers can
+// never pick their own model. /conversations carries no model and is forwarded as sent.
 
 const OPENAI_BASE_URL = 'https://api.openai.com/v1'
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
@@ -37,6 +38,13 @@ interface ModelConfig {
   reasoning_effort: string | null
   verbosity: string | null
   fallback_model: string | null
+}
+
+// Applied when the request has no X-SnipNote-Task header or the task has no row.
+// Keep in sync with the seeded rows (migration 20260926_create_ai_model_config.sql).
+const DEFAULT_CONFIG: Record<string, ModelConfig> = {
+  '/responses': { task: 'default', model: 'gpt-6-luna', reasoning_effort: 'low', verbosity: null, fallback_model: null },
+  [TRANSCRIPTION_PATH]: { task: 'default', model: 'gpt-transcribe', reasoning_effort: null, verbosity: null, fallback_model: 'gpt-4o-transcribe' },
 }
 
 // Service role: verifies user tokens and reads ai_model_config (RLS, no policies)
@@ -80,7 +88,9 @@ function applyModelConfig(body: any, config: ModelConfig, model: string) {
   body.model = model
   const effort = config.reasoning_effort
 
+  // NULL effort = no reasoning param (models without reasoning support)
   if (effort) body.reasoning = { ...(body.reasoning ?? {}), effort }
+  else delete body.reasoning
   if (config.verbosity) body.text = { ...(body.text ?? {}), verbosity: config.verbosity }
 
   if (effort && effort !== 'none') {
@@ -118,7 +128,7 @@ Deno.serve(async (req) => {
 
   // Verify the user token and look up the task config in parallel
   const token = authHeader.replace('Bearer ', '')
-  const [{ data: { user }, error: authError }, config] = await Promise.all([
+  const [{ data: { user }, error: authError }, taskConfig] = await Promise.all([
     serviceClient.auth.getUser(token),
     task ? getModelConfig(task) : Promise.resolve(undefined),
   ])
@@ -133,10 +143,11 @@ Deno.serve(async (req) => {
   }
 
   const isTranscription = openAIPath === TRANSCRIPTION_PATH
+  const config: ModelConfig | undefined = taskConfig ?? DEFAULT_CONFIG[openAIPath]
   const forwardHeaders = new Headers({ Authorization: `Bearer ${OPENAI_API_KEY}` })
 
   // Parsed body when a config applies: FormData for transcription uploads, JSON otherwise.
-  // Without a config the body is forwarded untouched.
+  // Without a config (/conversations) the body is forwarded untouched.
   // deno-lint-ignore no-explicit-any
   let body: any
   if (config) {

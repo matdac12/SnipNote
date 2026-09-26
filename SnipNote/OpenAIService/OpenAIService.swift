@@ -37,13 +37,18 @@ class OpenAIService: ObservableObject {
         task: AITask?,
         contentType: String = "application/json"
     ) async throws -> URLRequest {
-        guard let session = try? await SupabaseManager.shared.client.auth.session else {
+        let accessToken: String
+        do {
+            accessToken = try await SupabaseManager.shared.client.auth.session.accessToken
+        } catch is AuthError {
             throw OpenAIError.notAuthenticated
         }
+        // Other errors (e.g. URLError while refreshing an expired token) propagate
+        // unchanged so shouldRetry(error:) can retry them.
 
         var request = URLRequest(url: URL(string: "\(baseURL)\(path)")!)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
         if let task {
             request.setValue(task.rawValue, forHTTPHeaderField: "X-SnipNote-Task")
@@ -279,7 +284,8 @@ class OpenAIService: ObservableObject {
         if let httpResponse = urlResponse as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
             if let apiError = try? JSONDecoder().decode(OpenAIAPIErrorResponse.self, from: data) {
-                throw OpenAIError.apiError(apiError.error.message)
+                // Keep the status code: shouldRetry(error:) decides on it
+                throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(apiError.error.message)")
             }
             let rawBody = String(data: data, encoding: .utf8) ?? "<binary>"
             throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(rawBody)")

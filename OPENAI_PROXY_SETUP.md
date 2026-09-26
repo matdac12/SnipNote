@@ -62,7 +62,7 @@ Once most users are on the proxy build:
 ## For the Claude Code agent on Mattia's Mac: guide the user through setup
 
 You're helping Mattia set this up on their Mac. **Guide, don't do.** Mattia pastes
-the OpenAI key himself. Never ask them to paste the key into the chat, never
+the OpenAI key themselves. Never ask them to paste the key into the chat, never
 put it in a file in this repo, and never run a command that has the key in it
 on their behalf. Go one step at a time and wait for them to confirm each step
 before moving on.

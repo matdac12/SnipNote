@@ -11,6 +11,11 @@ import { corsHeaders } from '../_shared/cors.ts'
 // forwards the request unchanged. The OpenAI key never leaves the server.
 //
 // Required secret:  supabase secrets set OPENAI_API_KEY=sk-...
+//
+// Model selection: when the app sends `X-SnipNote-Task: <task>`, the matching
+// row in `public.ai_model_config` overrides model / reasoning effort / verbosity
+// in the JSON body, so models can be switched from the Supabase Table Editor
+// without an app release. No header or no row = body forwarded as sent.
 
 const OPENAI_BASE_URL = 'https://api.openai.com/v1'
 
@@ -21,6 +26,74 @@ const ALLOWED_PATHS = new Set([
   '/conversations',
   '/chat/completions',
 ])
+
+// JSON endpoints whose body carries a model we may override
+const MODEL_PATHS = new Set(['/responses', '/chat/completions'])
+
+// Sampling params reasoning models reject unless effort is "none"
+const SAMPLING_PARAMS = ['temperature', 'top_p', 'logprobs', 'top_logprobs']
+
+const CONFIG_TTL_MS = 60_000
+
+interface ModelConfig {
+  task: string
+  model: string
+  reasoning_effort: string | null
+  verbosity: string | null
+  fallback_model: string | null
+}
+
+let configCache: { loadedAt: number; rows: Map<string, ModelConfig> } | null = null
+
+const serviceClient = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  { auth: { autoRefreshToken: false, persistSession: false } }
+)
+
+async function getModelConfig(task: string): Promise<ModelConfig | undefined> {
+  if (!configCache || Date.now() - configCache.loadedAt > CONFIG_TTL_MS) {
+    const { data, error } = await serviceClient
+      .from('ai_model_config')
+      .select('task, model, reasoning_effort, verbosity, fallback_model')
+
+    if (error) {
+      // Keep serving the last known config (or none) rather than failing the call
+      console.error('Failed to load ai_model_config:', error.message)
+    } else {
+      configCache = {
+        loadedAt: Date.now(),
+        rows: new Map((data as ModelConfig[]).map((row) => [row.task, row])),
+      }
+    }
+  }
+  return configCache?.rows.get(task)
+}
+
+// Apply a config row to a request body. Responses API and Chat Completions
+// spell the reasoning/verbosity fields differently.
+// deno-lint-ignore no-explicit-any
+function applyModelConfig(body: any, path: string, config: ModelConfig, model: string) {
+  body.model = model
+  const effort = config.reasoning_effort
+
+  if (path === '/responses') {
+    if (effort) body.reasoning = { ...(body.reasoning ?? {}), effort }
+    if (config.verbosity) body.text = { ...(body.text ?? {}), verbosity: config.verbosity }
+  } else {
+    if (effort) body.reasoning_effort = effort
+    if (config.verbosity) body.verbosity = config.verbosity
+    // Reasoning models only take max_completion_tokens
+    if ('max_tokens' in body) {
+      body.max_completion_tokens ??= body.max_tokens
+      delete body.max_tokens
+    }
+  }
+
+  if (effort && effort !== 'none') {
+    for (const param of SAMPLING_PARAMS) delete body[param]
+  }
+}
 
 function jsonResponse(body: Record<string, unknown>, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -69,28 +142,58 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: { message: 'Endpoint not allowed' } }, 403)
   }
 
-  // Forward the body untouched (JSON or multipart audio upload).
   const forwardHeaders = new Headers({ Authorization: `Bearer ${openAIKey}` })
   const contentType = req.headers.get('Content-Type')
   if (contentType) {
     forwardHeaders.set('Content-Type', contentType)
   }
 
-  const startedAt = Date.now()
+  const callOpenAI = (body: BodyInit) =>
+    fetch(`${OPENAI_BASE_URL}${openAIPath}`, { method: 'POST', headers: forwardHeaders, body })
 
+  // Resolve per-task model config (JSON endpoints only)
+  const task = req.headers.get('X-SnipNote-Task')
+  const config = task && MODEL_PATHS.has(openAIPath) ? await getModelConfig(task) : undefined
+
+  // deno-lint-ignore no-explicit-any
+  let body: any
+  if (config) {
+    try {
+      body = await req.json()
+    } catch {
+      return jsonResponse({ error: { message: 'Invalid JSON body' } }, 400)
+    }
+  }
+
+  const startedAt = Date.now()
   let upstream: Response
+  let usedModel = 'as-sent'
+
   try {
-    upstream = await fetch(`${OPENAI_BASE_URL}${openAIPath}`, {
-      method: 'POST',
-      headers: forwardHeaders,
-      body: await req.arrayBuffer(),
-    })
+    if (config) {
+      applyModelConfig(body, openAIPath, config, config.model)
+      usedModel = config.model
+      upstream = await callOpenAI(JSON.stringify(body))
+
+      // One retry on the fallback model if OpenAI rejected the request
+      const fallback = config.fallback_model
+      if ((upstream.status === 400 || upstream.status === 404) && fallback && fallback !== config.model) {
+        const errorText = await upstream.text()
+        console.warn(`${openAIPath} task=${task} model=${config.model} rejected (${upstream.status}): ${errorText.slice(0, 300)} -> retrying with ${fallback}`)
+        applyModelConfig(body, openAIPath, config, fallback)
+        usedModel = fallback
+        upstream = await callOpenAI(JSON.stringify(body))
+      }
+    } else {
+      // Forward the body untouched (JSON or multipart audio upload).
+      upstream = await callOpenAI(await req.arrayBuffer())
+    }
   } catch (error) {
     console.error(`OpenAI request failed for ${openAIPath}:`, error)
     return jsonResponse({ error: { message: 'Upstream request failed' } }, 502)
   }
 
-  console.log(`${openAIPath} user=${user.id} status=${upstream.status} ${Date.now() - startedAt}ms`)
+  console.log(`${openAIPath} task=${task ?? '-'} model=${usedModel} user=${user.id} status=${upstream.status} ${Date.now() - startedAt}ms`)
 
   // Relay OpenAI's status and body so the app's existing error handling keeps working.
   return new Response(upstream.body, {

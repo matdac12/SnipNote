@@ -38,6 +38,19 @@ class OpenAIService: ObservableObject {
         return session.accessToken
     }
 
+    /// Identifies the call to the proxy, which looks up model / reasoning effort /
+    /// verbosity for it in the Supabase `ai_model_config` table. The values set in
+    /// each request below are only defaults used when no row exists.
+    private enum AITask: String {
+        case overview, summary, actions, title
+        case textSummary = "text_summary"
+        case eveChat = "eve_chat"
+        case actionsReport = "actions_report"
+    }
+
+    private static let defaultModel = "gpt-6-luna"
+    private static let defaultReasoningEffort = "low"
+
     // MARK: - Audio Processing
 
     /// Extract sample rate from audio file
@@ -446,6 +459,7 @@ class OpenAIService: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(AITask.textSummary.rawValue, forHTTPHeaderField: "X-SnipNote-Task")
 
         let prompt = """
         Please analyze the following transcript and provide:
@@ -459,13 +473,13 @@ class OpenAIService: ObservableObject {
         """
 
         let requestBody = ChatRequest(
-            model: "gpt-5-mini",
+            model: Self.defaultModel,
             input: [
                 ChatMessage(role: "system", content: "You are a helpful assistant that summarizes spoken notes into actionable insights."),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,
-            reasoning: ReasoningConfig(effort: "minimal"),
+            reasoning: ReasoningConfig(effort: Self.defaultReasoningEffort),
             text: nil
         )
 
@@ -499,6 +513,7 @@ class OpenAIService: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(AITask.title.rawValue, forHTTPHeaderField: "X-SnipNote-Task")
 
         let prompt = """
         Identify the language spoken and always respond in the same language as the input transcript.
@@ -514,13 +529,13 @@ class OpenAIService: ObservableObject {
         """
 
         let requestBody = ChatRequest(
-            model: "gpt-5-mini",
+            model: Self.defaultModel,
             input: [
                 ChatMessage(role: "system", content: "You generate concise, descriptive titles for notes. Always respond with exactly 2-3 words, properly capitalized, in the same language as the input transcript."),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,
-            reasoning: ReasoningConfig(effort: "minimal"),
+            reasoning: ReasoningConfig(effort: Self.defaultReasoningEffort),
             text: nil
         )
 
@@ -554,17 +569,18 @@ class OpenAIService: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(AITask.overview.rawValue, forHTTPHeaderField: "X-SnipNote-Task")
 
         let prompt = MeetingAnalysisPrompts.overviewPrompt(transcript: text, languageContext: languageContext)
 
         let requestBody = ChatRequest(
-            model: "gpt-5-mini",
+            model: Self.defaultModel,
             input: [
                 ChatMessage(role: "system", content: MeetingAnalysisPrompts.overviewInstructions),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,
-            reasoning: ReasoningConfig(effort: "minimal"),
+            reasoning: ReasoningConfig(effort: Self.defaultReasoningEffort),
             text: TextConfig(verbosity: "low")
         )
 
@@ -598,17 +614,18 @@ class OpenAIService: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(AITask.summary.rawValue, forHTTPHeaderField: "X-SnipNote-Task")
 
         let prompt = MeetingAnalysisPrompts.summaryPrompt(transcript: text, languageContext: languageContext)
 
         let requestBody = ChatRequest(
-            model: "gpt-5-mini",
+            model: Self.defaultModel,
             input: [
                 ChatMessage(role: "system", content: MeetingAnalysisPrompts.summaryInstructions),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,
-            reasoning: ReasoningConfig(effort: "minimal"),
+            reasoning: ReasoningConfig(effort: Self.defaultReasoningEffort),
             text: TextConfig(verbosity: "low")
         )
 
@@ -642,6 +659,7 @@ class OpenAIService: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(AITask.actions.rawValue, forHTTPHeaderField: "X-SnipNote-Task")
 
         let prompt = """
         Identify the language spoken and always respond in the same language as the input transcript.
@@ -658,13 +676,13 @@ class OpenAIService: ObservableObject {
         """
 
         let requestBody = ChatRequest(
-            model: "gpt-5-mini",
+            model: Self.defaultModel,
             input: [
                 ChatMessage(role: "system", content: "You extract actionable items from text and return them as JSON. Be precise and only return valid JSON. Always use the same language as the input transcript for action descriptions."),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,
-            reasoning: ReasoningConfig(effort: "minimal"),
+            reasoning: ReasoningConfig(effort: Self.defaultReasoningEffort),
             text: nil
         )
 
@@ -715,9 +733,10 @@ class OpenAIService: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(AITask.eveChat.rawValue, forHTTPHeaderField: "X-SnipNote-Task")
 
         var requestBody = ResponsesRequest(
-            model: Config.openAIResponsesModel,
+            model: Self.defaultModel,
             prompt: ResponsesPrompt(
                 id: Config.openAIPromptID,
                 variables: ResponsesPromptVariables(
@@ -732,7 +751,7 @@ class OpenAIService: ObservableObject {
                 format: ResponseTextFormat(type: "text"),
                 verbosity: "medium"
             ),
-            reasoning: ResponseReasoningConfig(effort: "medium")
+            reasoning: ResponseReasoningConfig(effort: Self.defaultReasoningEffort)
         )
 
         var contents: [ResponseInputContent] = []
@@ -808,6 +827,7 @@ class OpenAIService: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(AITask.actionsReport.rawValue, forHTTPHeaderField: "X-SnipNote-Task")
 
         // Format the actions data for the prompt
         var promptContent = "Generate a comprehensive report for the following actions grouped by their source (notes or meetings):\n\n"
@@ -838,15 +858,14 @@ class OpenAIService: ObservableObject {
         ]
 
         let requestBody: [String: Any] = [
-            "model": "gpt-4o-mini",
+            "model": Self.defaultModel,
             "messages": messages,
-            "temperature": 0.7,
-            "max_tokens": 1500
+            "reasoning_effort": Self.defaultReasoningEffort
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await urlSession.data(for: request)
 
         if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
            let choices = json["choices"] as? [[String: Any]],

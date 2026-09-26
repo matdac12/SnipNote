@@ -12,8 +12,47 @@ The iOS app no longer ships an OpenAI API key. Every OpenAI call goes through
 iOS app ──(Supabase access token)──▶ /functions/v1/openai-proxy/<path> ──(OpenAI key)──▶ api.openai.com/v1/<path>
 ```
 
-The transcription server (VPS, `api.snipnote.app`) is unaffected: it reads
+The transcription server (VPS, `api.snipnote.app`) keeps its own key: it reads
 `OPENAI_API_KEY` from `/etc/snipnote-transcription/env`.
+
+## Switching models: the `ai_model_config` table
+
+Models are not chosen by the app. Each iOS call sends `X-SnipNote-Task: <task>`,
+and the proxy overrides `model`, reasoning effort and verbosity from the matching
+row in `public.ai_model_config` (migration `supabase/migrations/20260926_create_ai_model_config.sql`).
+The VPS worker reads the same rows for long-meeting summaries (see
+`AI_MODEL_CONFIG.md` in the transcription-service repo).
+
+| task | used by | seeded model / effort / verbosity |
+|---|---|---|
+| `overview` | iOS + VPS | gpt-6-luna / low / low |
+| `summary` | iOS + VPS | gpt-6-luna / low / low |
+| `actions` | iOS + VPS | gpt-6-luna / low / – |
+| `title` | iOS | gpt-6-luna / low / – |
+| `text_summary` | iOS (`summarizeText`) | gpt-6-luna / low / – |
+| `eve_chat` | iOS | gpt-6-luna / low / medium |
+| `actions_report` | iOS (Chat Completions) | gpt-6-luna / low / – |
+
+All rows are seeded with `fallback_model = gpt-6-luna`.
+
+**To switch a model:** open Supabase Dashboard → Table Editor → `ai_model_config`, edit
+`model`, `reasoning_effort` or `verbosity`, and save. The change applies within 60 seconds
+(cache TTL) for both the app and the VPS. No app release and no redeploy are needed.
+
+Rules the proxy applies:
+- NULL `reasoning_effort` / `verbosity` means the value the app sent is kept.
+- A non-`none` effort strips `temperature`, `top_p` and `logprobs`, which reasoning models reject.
+  On Chat Completions, `max_tokens` is renamed to `max_completion_tokens`.
+- If OpenAI answers 400/404, the proxy retries once with `fallback_model`, when it is set and
+  differs from `model`. The Edge Function logs show the OpenAI error that triggered it.
+- If there's no header or no row, the body is forwarded as sent. The app's built-in defaults
+  are also `gpt-6-luna` with effort `low`.
+- Transcription (`/audio/transcriptions`) is not affected. It stays `gpt-4o-transcribe` in the app.
+
+Parameter notes (GPT-6 family, checked Sept 2026): `reasoning.effort` accepts
+`none|low|medium|high|xhigh|max`, and **`minimal` is rejected**. `text.verbosity`
+(`low|medium|high`) is still supported. Check the model page on developers.openai.com
+before switching to a new family.
 
 ## Deploy
 
@@ -110,6 +149,15 @@ Tip: prefix the `secrets set` line with a space so it isn't saved in shell
 history (this works in zsh only if `HIST_IGNORE_SPACE` is set). Or clear the
 history line afterwards.
 
+### Step 2b: Create the `ai_model_config` table
+Use the SQL Editor, not `supabase db push`. The remote migration history may not match
+this repo, and `db push` would try to apply every older migration.
+1. Supabase Dashboard → **SQL Editor** → **New query**.
+2. Paste the whole contents of `supabase/migrations/20260926_create_ai_model_config.sql`
+   and click **Run**. Running it twice is safe: `IF NOT EXISTS` / `ON CONFLICT DO NOTHING`.
+3. Table Editor → `ai_model_config` should show 7 rows, all `gpt-6-luna` / `low`.
+4. Show Mattia how to edit a row. This is how models get switched from now on.
+
 ### Step 3: Deploy the function
 Dashboard deploys aren't practical for multi-file functions, so use the CLI.
 It needs `login` and `link` from Option B:
@@ -127,7 +175,17 @@ supabase functions deploy openai-proxy
 - In the app, Mattia tries a short recording (5 minutes or less), then checks the
   summary, title, actions, an Eve chat and the actions report.
 - Dashboard → Edge Functions → openai-proxy → Logs should show lines like
-  `/responses user=... status=200`.
+  `/responses task=summary model=gpt-6-luna user=... status=200`.
+- Optional: temporarily set one row's `model` to a bogus value such as `gpt-nope`, wait
+  60 seconds and generate that feature. The logs should show the rejection and a retry
+  with `gpt-6-luna`, and the app should still work. Then set the row back.
+
+### Step 5: Hand off to the VPS
+The VPS worker must be updated too (`jobs.py` reads the same table). Tell Mattia
+to open the Claude Code session on the VPS and point it at `AI_MODEL_CONFIG.md`
+in the `snipnote-transcription-service` repo (branch
+`claude/ios-api-key-security-8vxoc2`). That file has the deploy and verify steps.
+Deploy order: table (Step 2b), then function (Step 3), then VPS, then app build.
 
 ### Troubleshooting
 | Symptom | Cause / fix |
@@ -137,3 +195,6 @@ supabase functions deploy openai-proxy
 | 403 `Endpoint not allowed` | The app called a path that isn't in `ALLOWED_PATHS` in `index.ts`. Add it there if that's intended. |
 | 401 from OpenAI (`invalid_api_key`) | The secret value is wrong. Set it again. The new value is used on the next request, no redeploy needed. |
 | 404 on the function URL | Function isn't deployed. Run Step 3. |
+| Logs show `rejected (400) ... retrying with gpt-6-luna` | The configured model or parameter was refused (e.g. typo, or `minimal` effort on a GPT-6 model). Fix the row. |
+| Logs show `model=as-sent` | No `X-SnipNote-Task` header, or no row for that task, so the app's defaults were used. Check the task name matches a row. |
+| `Failed to load ai_model_config` | The table is missing (run Step 2b). The proxy keeps working with the app's defaults. |

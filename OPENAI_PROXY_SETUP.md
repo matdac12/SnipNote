@@ -4,7 +4,7 @@ The iOS app no longer ships an OpenAI API key. Every OpenAI call goes through
 `supabase/functions/openai-proxy`, which:
 
 1. Requires a signed-in Supabase user (JWT checked by the gateway and again with `auth.getUser()`).
-2. Only allows `POST` to `/audio/transcriptions`, `/responses`, `/conversations`, `/chat/completions`.
+2. Only allows `POST` to `/audio/transcriptions`, `/responses` and `/conversations`.
 3. Adds `Authorization: Bearer $OPENAI_API_KEY` from Supabase secrets and forwards the body unchanged.
 4. Returns OpenAI's status code and body as-is, so the app's error handling is unchanged.
 
@@ -31,7 +31,7 @@ The VPS worker reads the same rows for long-meeting summaries (see
 | `title` | iOS | gpt-6-luna / low / – |
 | `text_summary` | iOS (`summarizeText`) | gpt-6-luna / low / – |
 | `eve_chat` | iOS | gpt-6-luna / low / medium |
-| `actions_report` | iOS (Chat Completions) | gpt-6-luna / low / – |
+| `actions_report` | iOS | gpt-6-luna / low / – |
 | `transcription` | iOS (5 min or less) + VPS | gpt-transcribe / – / – |
 
 The LLM rows are seeded with `fallback_model = gpt-6-luna`. The `transcription` row uses
@@ -46,7 +46,6 @@ and ignores effort and verbosity.
 Rules the proxy applies:
 - NULL `reasoning_effort` / `verbosity` means the value the app sent is kept.
 - A non-`none` effort strips `temperature`, `top_p` and `logprobs`, which reasoning models reject.
-  On Chat Completions, `max_tokens` is renamed to `max_completion_tokens`.
 - If OpenAI answers 400/404, the proxy retries once with `fallback_model`, when it is set and
   differs from `model`. The Edge Function logs show the OpenAI error that triggered it.
 - If there's no header or no row, the body is forwarded as sent. The app's built-in defaults
@@ -86,8 +85,10 @@ Logs: Supabase Dashboard → Edge Functions → openai-proxy → Logs
 - `OpenAIService.baseURL` points to the proxy; requests carry the user's Supabase
   access token plus the public `apikey` header.
 - `Config.openAIAPIKey`, the Keychain fallback and the "API Key Required" alert are gone.
-  Delete `openAIAPIKey` from your local (gitignored) `Config.swift`.
-  `openAIResponsesModel` and `openAIPromptID` are still used.
+  Delete `openAIAPIKey` and `openAIResponsesModel` from your local (gitignored) `Config.swift`.
+  Only `openAIPromptID` (Eve's stored prompt) is still used.
+- Every call is built by `OpenAIService.proxyRequest(_:task:)`. A new AI call should use it
+  and pass its `AITask`, so it picks up the auth headers and the `ai_model_config` row.
 - A missing session throws `OpenAIError.notAuthenticated`.
 
 ## Key rotation (after the new build is live)
@@ -175,7 +176,7 @@ supabase functions deploy openai-proxy
 - Run the unauthenticated curl from the **Smoke test** section. It must return
   `401`. You can run this one yourself, since it contains no secrets.
 - Mattia builds the app in Xcode. You don't build; Mattia will report any errors.
-  Mattia deletes `openAIAPIKey` from the local `Config.swift` before building.
+  Mattia deletes `openAIAPIKey` and `openAIResponsesModel` from the local `Config.swift` before building.
 - In the app, Mattia tries a short recording (5 minutes or less), then checks the
   summary, title, actions, an Eve chat and the actions report.
 - Dashboard → Edge Functions → openai-proxy → Logs should show lines like

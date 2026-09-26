@@ -44,12 +44,10 @@ struct CreateMeetingView: View {
     var onActivityStateChanged: ((CreateMeetingActivityState) -> Void)?
     
     @StateObject private var audioRecorder = AudioRecorder()
-    @StateObject private var openAIService = OpenAIService.shared
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var minutesManager = MinutesManager.shared
     @StateObject private var backgroundTaskManager = BackgroundTaskManager.shared
     @StateObject private var localTranscriptionManager = LocalTranscriptionManager.shared
-    @StateObject private var meetingAnalysisManager = MeetingAnalysisManager.shared
     @Query private var allMeetings: [Meeting]
     
     @State private var meetingName = ""

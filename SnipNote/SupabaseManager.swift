@@ -17,7 +17,7 @@ class SupabaseManager {
     static let supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJuZGJucXR2aWN2eW56a3l5Z3RlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MTgyNDUsImV4cCI6MjA2Nzk5NDI0NX0.KJR2WxJBeTY4diMjXISBsFwFiYsniX1r0xjDIF0sgY8"
 
     let client: SupabaseClient
-    private let recordingsPublicBaseURL = "https://bndbnqtvicvynzkyygte.supabase.co/storage/v1/object/public/recordings"
+    private let recordingsPublicBaseURL = SupabaseManager.supabaseURL.appendingPathComponent("storage/v1/object/public/recordings").absoluteString
     
     private init() {
         client = SupabaseClient(supabaseURL: Self.supabaseURL, supabaseKey: Self.supabaseAnonKey)

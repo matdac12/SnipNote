@@ -8,7 +8,7 @@ import { corsHeaders } from '../_shared/cors.ts'
 // The iOS app calls  <SUPABASE_URL>/functions/v1/openai-proxy/<openai-path>
 // with the signed-in user's Supabase access token. This function verifies the
 // user, swaps the token for the OpenAI key stored in Supabase secrets and
-// forwards the request unchanged. The OpenAI key never leaves the server.
+// forwards the request. The OpenAI key never leaves the server.
 //
 // Required secret:  supabase secrets set OPENAI_API_KEY=sk-...
 //
@@ -19,18 +19,12 @@ import { corsHeaders } from '../_shared/cors.ts'
 // No header or no row = body forwarded as sent.
 
 const OPENAI_BASE_URL = 'https://api.openai.com/v1'
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
+
+const TRANSCRIPTION_PATH = '/audio/transcriptions'
 
 // Only the endpoints the app actually uses (all POST).
-const ALLOWED_PATHS = new Set([
-  '/audio/transcriptions',
-  '/responses',
-  '/conversations',
-  '/chat/completions',
-])
-
-// Endpoints whose body carries a model we may override
-const MODEL_PATHS = new Set(['/responses', '/chat/completions', '/audio/transcriptions'])
-const TRANSCRIPTION_PATH = '/audio/transcriptions'
+const ALLOWED_PATHS = new Set(['/responses', '/conversations', TRANSCRIPTION_PATH])
 
 // Sampling params reasoning models reject unless effort is "none"
 const SAMPLING_PARAMS = ['temperature', 'top_p', 'logprobs', 'top_logprobs']
@@ -45,52 +39,49 @@ interface ModelConfig {
   fallback_model: string | null
 }
 
-let configCache: { loadedAt: number; rows: Map<string, ModelConfig> } | null = null
-
+// Service role: verifies user tokens and reads ai_model_config (RLS, no policies)
 const serviceClient = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
 
-async function getModelConfig(task: string): Promise<ModelConfig | undefined> {
-  if (!configCache || Date.now() - configCache.loadedAt > CONFIG_TTL_MS) {
-    const { data, error } = await serviceClient
-      .from('ai_model_config')
-      .select('task, model, reasoning_effort, verbosity, fallback_model')
+let configRows = new Map<string, ModelConfig>()
+let configLoadedAt = 0
+let configLoading: Promise<void> | null = null
 
-    if (error) {
-      // Keep serving the last known config (or none) rather than failing the call
-      console.error('Failed to load ai_model_config:', error.message)
-    } else {
-      configCache = {
-        loadedAt: Date.now(),
-        rows: new Map((data as ModelConfig[]).map((row) => [row.task, row])),
-      }
-    }
+async function loadModelConfig(): Promise<void> {
+  const { data, error } = await serviceClient
+    .from('ai_model_config')
+    .select('task, model, reasoning_effort, verbosity, fallback_model')
+
+  if (error) {
+    // Keep serving the last known config (or none) rather than failing the call
+    console.error('Failed to load ai_model_config:', error.message)
+  } else {
+    configRows = new Map((data as ModelConfig[]).map((row) => [row.task, row]))
   }
-  return configCache?.rows.get(task)
+  // Also set on failure so an unreachable table is retried once per TTL, not per request
+  configLoadedAt = Date.now()
 }
 
-// Apply a config row to a request body. Responses API and Chat Completions
-// spell the reasoning/verbosity fields differently.
+async function getModelConfig(task: string): Promise<ModelConfig | undefined> {
+  if (Date.now() - configLoadedAt > CONFIG_TTL_MS) {
+    // Concurrent requests share one in-flight load
+    configLoading ??= loadModelConfig().finally(() => { configLoading = null })
+    await configLoading
+  }
+  return configRows.get(task)
+}
+
+// Apply a config row to a Responses API body
 // deno-lint-ignore no-explicit-any
-function applyModelConfig(body: any, path: string, config: ModelConfig, model: string) {
+function applyModelConfig(body: any, config: ModelConfig, model: string) {
   body.model = model
   const effort = config.reasoning_effort
 
-  if (path === '/responses') {
-    if (effort) body.reasoning = { ...(body.reasoning ?? {}), effort }
-    if (config.verbosity) body.text = { ...(body.text ?? {}), verbosity: config.verbosity }
-  } else {
-    if (effort) body.reasoning_effort = effort
-    if (config.verbosity) body.verbosity = config.verbosity
-    // Reasoning models only take max_completion_tokens
-    if ('max_tokens' in body) {
-      body.max_completion_tokens ??= body.max_tokens
-      delete body.max_tokens
-    }
-  }
+  if (effort) body.reasoning = { ...(body.reasoning ?? {}), effort }
+  if (config.verbosity) body.text = { ...(body.text ?? {}), verbosity: config.verbosity }
 
   if (effort && effort !== 'none') {
     for (const param of SAMPLING_PARAMS) delete body[param]
@@ -110,55 +101,42 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  const openAIKey = Deno.env.get('OPENAI_API_KEY')
-  if (!openAIKey) {
+  if (!OPENAI_API_KEY) {
     console.error('OPENAI_API_KEY secret is not set')
     return jsonResponse({ error: { message: 'Server misconfigured' } }, 500)
   }
 
-  // Verify the user token
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) {
     return jsonResponse({ error: { message: 'No authorization header' } }, 401)
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
+  // Resolve the OpenAI path: /openai-proxy/responses -> /responses
+  const { pathname } = new URL(req.url)
+  const openAIPath = pathname.replace(/^.*?\/openai-proxy/, '') || '/'
+  const task = req.headers.get('X-SnipNote-Task')
 
+  // Verify the user token and look up the task config in parallel
   const token = authHeader.replace('Bearer ', '')
-  const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+  const [{ data: { user }, error: authError }, config] = await Promise.all([
+    serviceClient.auth.getUser(token),
+    task ? getModelConfig(task) : Promise.resolve(undefined),
+  ])
 
   if (authError || !user) {
     return jsonResponse({ error: { message: 'Invalid token' } }, 401)
   }
-
-  // Resolve the OpenAI path: /openai-proxy/responses -> /responses
-  const { pathname } = new URL(req.url)
-  const openAIPath = pathname.replace(/^.*?\/openai-proxy/, '') || '/'
 
   if (req.method !== 'POST' || !ALLOWED_PATHS.has(openAIPath)) {
     console.warn(`Blocked ${req.method} ${openAIPath} for user ${user.id}`)
     return jsonResponse({ error: { message: 'Endpoint not allowed' } }, 403)
   }
 
-  const forwardHeaders = new Headers({ Authorization: `Bearer ${openAIKey}` })
-  const contentType = req.headers.get('Content-Type')
-  if (contentType) {
-    forwardHeaders.set('Content-Type', contentType)
-  }
-
-  const callOpenAI = (body: BodyInit) =>
-    fetch(`${OPENAI_BASE_URL}${openAIPath}`, { method: 'POST', headers: forwardHeaders, body })
-
-  // Resolve per-task model config
-  const task = req.headers.get('X-SnipNote-Task')
-  const config = task && MODEL_PATHS.has(openAIPath) ? await getModelConfig(task) : undefined
   const isTranscription = openAIPath === TRANSCRIPTION_PATH
+  const forwardHeaders = new Headers({ Authorization: `Bearer ${OPENAI_API_KEY}` })
 
-  // Parsed body when a config applies: FormData for transcription uploads, JSON otherwise
+  // Parsed body when a config applies: FormData for transcription uploads, JSON otherwise.
+  // Without a config the body is forwarded untouched.
   // deno-lint-ignore no-explicit-any
   let body: any
   if (config) {
@@ -167,21 +145,25 @@ Deno.serve(async (req) => {
     } catch {
       return jsonResponse({ error: { message: 'Invalid request body' } }, 400)
     }
-    if (isTranscription) {
-      // fetch() generates a new multipart boundary for the rebuilt form
-      forwardHeaders.delete('Content-Type')
-    }
+  }
+  // fetch() sets the multipart boundary itself when sending the rebuilt form
+  const contentType = req.headers.get('Content-Type')
+  if (contentType && !(config && isTranscription)) {
+    forwardHeaders.set('Content-Type', contentType)
   }
 
-  const setModel = (model: string): BodyInit => {
+  const bodyWithModel = (model: string): BodyInit => {
     if (isTranscription) {
       // Only the model applies to transcription; effort/verbosity are ignored
       body.set('model', model)
       return body
     }
-    applyModelConfig(body, openAIPath, config!, model)
+    applyModelConfig(body, config!, model)
     return JSON.stringify(body)
   }
+
+  const callOpenAI = (requestBody: BodyInit) =>
+    fetch(`${OPENAI_BASE_URL}${openAIPath}`, { method: 'POST', headers: forwardHeaders, body: requestBody })
 
   const startedAt = Date.now()
   let upstream: Response
@@ -190,7 +172,7 @@ Deno.serve(async (req) => {
   try {
     if (config) {
       usedModel = config.model
-      upstream = await callOpenAI(setModel(config.model))
+      upstream = await callOpenAI(bodyWithModel(config.model))
 
       // One retry on the fallback model if OpenAI rejected the request
       const fallback = config.fallback_model
@@ -198,10 +180,9 @@ Deno.serve(async (req) => {
         const errorText = await upstream.text()
         console.warn(`${openAIPath} task=${task} model=${config.model} rejected (${upstream.status}): ${errorText.slice(0, 300)} -> retrying with ${fallback}`)
         usedModel = fallback
-        upstream = await callOpenAI(setModel(fallback))
+        upstream = await callOpenAI(bodyWithModel(fallback))
       }
     } else {
-      // Forward the body untouched (JSON or multipart audio upload).
       upstream = await callOpenAI(await req.arrayBuffer())
     }
   } catch (error) {

@@ -1,7 +1,7 @@
 # Background upload for cloud transcriptions
 
 Date: 2026-09-30
-Status: Proposed for review
+Status: Approved in principle; TestFlight isolation clarified during planning
 
 ## Goal and agreed scope
 
@@ -25,7 +25,7 @@ Preserve existing network preferences; do not introduce a Wi-Fi-only restriction
 
 - A focused upload coordinator owns a background URLSession with a stable identifier and delegates; views initiate work and observe state.
 - Prepare chunks as files in an application-support upload directory, using the current time segmentation and encoding behavior. Avoid accumulating every chunk in memory. Small recordings also use a stable file-based transfer.
-- Persist an atomic manifest containing account ID, transcription ID, server job ID, captured provider/language/duration, file paths, chunk ordering, expected byte sizes, and transfer state. Never store account access tokens in that manifest.
+- Persist an atomic manifest containing environment ID, account ID, transcription ID, upload session ID, optional server job ID, captured provider/language/duration, file paths, chunk ordering, expected byte sizes, and transfer state. Never store account access tokens in that manifest.
 - Complete manifest persistence and server bootstrap before scheduling transfers. Recover safely if the process stops between these steps. Keep files protected in a way that permits background reads after the first device unlock.
 - AppDelegate reconnects the session on background-transfer events and calls the supplied system completion handler only after delegate events and durable state updates finish.
 - Reconcile persisted manifests with actual URLSession tasks at launch and after delegate events. Refresh expired signed upload URLs when execution and authentication are available. Retry only missing/failed files with bounded backoff; keep successfully uploaded files recorded.
@@ -35,11 +35,11 @@ Preserve existing network preferences; do not introduce a Wi-Fi-only restriction
 
 ## Server and storage responsibilities
 
-Introduce an authenticated background-upload bootstrap API alongside the existing job API. Its request is a manifest of ordered files with expected sizes and durations plus the selected provider/language. The server verifies the authenticated user owns the transcription, generates storage paths itself, and returns the job ID and per-file signed upload instructions. Existing clients continue using the existing API.
+Introduce an authenticated background-upload bootstrap API alongside the existing job API. Its request is a manifest of ordered files with expected sizes and durations plus the selected provider/language. The server verifies the authenticated user owns the transcription, generates storage paths itself, and returns an upload session ID and per-file signed upload instructions. Existing clients continue using the existing API.
 
-Bootstrap is idempotent for the same owner/transcription and manifest. Repeated calls return the same active job and refresh signed instructions for unfinished uploads. Conflicting manifests are rejected rather than silently changing a running job. URLs are short-lived credentials and must not be logged; file extensions and content types must match the recordings bucket's actual policy.
+Bootstrap is idempotent for the same owner/transcription and manifest. Repeated calls return the same upload session and refresh signed instructions for unfinished uploads. Conflicting manifests are rejected rather than silently changing a running job. URLs are short-lived credentials and must not be logged; file extensions and content types must match the recordings bucket's actual policy.
 
-The new job starts in **awaiting_upload**. A server reconciliation loop checks every expected object and its exact byte size, persists recordings/chunk metadata, and atomically advances the job to **pending** only after all files are verified. Metadata writes and promotion must tolerate retries and process restarts. Existing worker chunk processing then runs unchanged. The app may signal completion to accelerate this check, but server promotion never depends on that signal.
+Upload sessions start in **awaiting_upload** in separate upload tables; do not extend the existing transcription-job status enum. A server reconciliation loop checks every expected object and its exact byte size, then atomically persists recordings/chunk metadata, creates one ordinary **pending** transcription job, links it to the meeting and marks the session **queued**. Metadata writes and promotion must tolerate retries and process restarts. Existing worker chunk processing then runs unchanged. The app may signal completion to accelerate this check, but server promotion never depends on that signal.
 
 Run upload reconciliation independently of long transcription jobs. Bound work per pass fairly so older incomplete uploads cannot starve newer complete uploads. Use a 24-hour upload deadline, return it to the app, and expose an explicit recoverable expiration state. After expiration the app can bootstrap a fresh attempt on reopening; preserve verified files for reuse and never delete objects referenced by active/completed jobs. Cleanup of abandoned partial files must verify ownership and references before deleting them.
 
@@ -47,9 +47,11 @@ Do not introduce a 100 MB original-file limit. Validate each prepared file again
 
 ## Compatibility and rollout
 
-Implement the minimum authentication and ownership validation required for the new endpoint. Verify current Supabase signing/upload behavior before relying on it. Apply database additions and deploy the backward-compatible API/reconciler first, then enable the new iOS path. The legacy client upload path must still work during rollout.
+TestFlight alone does not isolate infrastructure. First test against a separate staging Supabase environment and staging API/reconciler/worker, using test accounts and audio. Explicit build configuration selects staging credentials and endpoints; the App Store Release configuration remains production with background upload disabled. Never route a production client to staging automatically based solely on its receipt. Namespaced local recovery data must not cross environments.
 
-Existing pushed background-upload backend code is reference material: it assumes a whole-file transfer, has a 300 MiB default, and is stacked on the rejected xAI change. Extract/adapt only relevant code; do not merge that branch wholesale. Assess older client handling of the new job state before enabling it across devices.
+Implement the minimum authentication and ownership validation required for the new endpoint. Verify current Supabase signing/upload behavior before relying on it. Rehearse additive migrations and rollback on staging. For eventual production rollout, add only new upload tables/functions, keep existing tables/statuses/contracts compatible, and deploy the API/reconciler disabled by default. Enable selected test accounts only after legacy-client smoke tests. Disabling bootstrap must still allow existing sessions to finish. Roll back code/flags without destructive database rollback. No production migration or deployment is part of the planning phase.
+
+Existing pushed background-upload backend code is reference material: it assumes a whole-file transfer, has a 300 MiB default, and is stacked on the rejected xAI change. Extract/adapt only relevant code; do not merge that branch wholesale. Keep shared meeting state values recognizable to old builds; new preparation/upload stages belong to the new session API and local manifest.
 
 ## Verification and acceptance
 

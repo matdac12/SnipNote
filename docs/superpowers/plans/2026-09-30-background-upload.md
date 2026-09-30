@@ -1,0 +1,147 @@
+# Background Upload Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Upload prepared audio chunks while SnipNote is suspended, automatically queue one transcription, and first verify the feature through isolated TestFlight staging.
+
+**Architecture:** Persist file-based upload manifests on iOS and use a background URLSession. New authenticated upload-session endpoints and an independent reconciler verify storage objects before transactionally creating a normal pending job. Staging infrastructure and explicit build configuration isolate the first tests from production.
+
+**Tech Stack:** Swift/SwiftUI, SwiftData, Foundation URLSession, AVFoundation, FastAPI, supabase-py, PostgreSQL, systemd, Swift Testing, Python unittest.
+
+**Spec:** `docs/superpowers/specs/2026-09-30-background-upload-design.md`
+
+## Global Constraints
+
+- Keep small upload chunks and the existing provider/chunk transcription behavior.
+- Support 150–400 MB originals through small chunks; do not introduce a 100 MB original-file limit.
+- Use a 24-hour upload deadline; preserve verified files for reuse after expiration.
+- Keep provider/language/duration fixed for an upload attempt; do not restore xAI single-request work.
+- Preparation is not guaranteed while suspended; the UI must distinguish preparation from registered background upload.
+- No APNs, Live Activities, pricing changes, or unrelated security-branch features.
+- No production migration or deployment during planning or initial staging tests.
+- The owner runs Xcode builds manually; provide commands/checklists, do not execute builds here.
+- Keep App Store Release on production with background upload disabled until an explicit rollout.
+- Use new upload tables; no new transcription-job enum values or incompatible shared meeting states.
+
+## Review Focus
+
+- TestFlight and App Store builds can share a device: manifests and local transcription data must not cross environments. Task 1/5 tests pin isolation.
+- A crash between registration and task creation must leave recoverable intent, not duplicate uploads. Task 5 tests cover each boundary.
+- Signed URLs can expire while iOS waits for connectivity: preserve successful files and refresh only unfinished credentials on wake. Task 2/5 tests pin this.
+- Two reconcilers can see the same complete upload: one transaction must create one job and all metadata. Task 3 database tests pin this.
+- A large original can fill local disk during preparation: stop clearly, retain the source, and avoid loading every chunk into RAM. Task 4 tests and Task 8 device checks pin this.
+
+## File map and contract
+
+App root: `/Users/mattia/Documents/Projects/Xcodestuff/SnipNote/SnipNote`.
+Service root: `/Users/mattia/Documents/Projects/Xcodestuff/SnipNote/snipnote-transcription-service`.
+All paths below are relative to their indicated root. Implement on isolated `codex/background-upload` branches after the worktree workflow; stage only task files, preserving unrelated local changes. The service's local revert commits remain intact. Do not merge stacked feature branches wholesale.
+
+New app files: `BackendEnvironment.swift` (configuration), `BackgroundUploadModels.swift` (wire/durable types), `BackgroundUploadStore.swift` (atomic persistence), `BackgroundUploadAPI.swift` (authenticated bootstrap/status), `BackgroundUploadCoordinator.swift` (session/delegates), `BackgroundUploadReconciler.swift` (SwiftData/status application).
+
+New service files: `upload_auth.py` (verified identity), `upload_models.py` (wire validation), `upload_sessions.py` (bootstrap/status/signing), `upload_reconciler.py` (object verification), `upload_worker.py` (independent loop), plus matching `tests/test_*.py` files and a separate deployment unit.
+
+`POST /upload-sessions`: Bearer authentication; body `{meeting_id, transcription_provider, language, duration, files:[{index, expected_bytes, duration, extension, content_type}]}`. Indexes must be consecutive from zero, sizes/durations positive and finite, and extensions/MIME allowed by the bucket. Server generates paths; reject client-supplied URLs/paths and conflicting repeat manifests with 409.
+
+Response: `{session_id, status, job_id?, upload_deadline, files:[{index, verified, upload_url?, method?, headers?, expires_at?}]}`. Never return signed instructions for verified files. `GET /upload-sessions/{id}` returns the same shape without signed credentials; repeat POST refreshes missing-file instructions. Session states: `awaiting_upload`, `queued`, `expired`, `cancelled`. A reserved job UUID is internal until promotion, then appears as `job_id`. Existing `/jobs` endpoints and response types remain unchanged.
+
+All HTTP signing details must be proved using the pinned Storage SDK and an isolated staging upload; do not assume a signed URL accepts a particular verb, body encoding, or headers. No credentials/URLs in logs.
+
+### Task 1: Explicit staging configuration and isolation
+
+**Files (app):** Create `SnipNote/BackendEnvironment.swift`, `Configuration/BackgroundUploadStaging.xcconfig`, `SnipNoteTests/BackendEnvironmentTests.swift`; modify `SnipNote/Info.plist`, `SnipNote.xcodeproj/project.pbxproj`, `SnipNote/SupabaseManager.swift`, `SnipNote/RenderTranscriptionService.swift`, and production URL consumers found by `rg`.
+
+**Interfaces:** `BackendEnvironment.load(bundle: Bundle) throws -> BackendEnvironment`; fields `id: String`, `supabaseURL: URL`, `publishableKey: String`, `transcriptionURL: URL`, `backgroundUploadEnabled: Bool`. `storagePublicURL(path: String) -> URL` derives from that environment. A dedicated archive configuration/scheme selects staging; receipt inspection never selects endpoints.
+
+- [ ] Write `stagingRequiresCompleteConfiguration`, `releaseDefaultsToProductionWithUploadDisabled`, `storageURLsUseSelectedEnvironment`, and `environmentChangeCannotOpenProductionLocalStore` tests. Assert missing staging values fail closed, Release remains `https://api.snipnote.app`, and staging uses a separate SwiftData/local-file namespace while the existing production store path stays unchanged.
+- [ ] Owner runs these Swift Testing tests in Xcode; record the initial failure.
+- [ ] Implement configuration and route all Supabase/API/storage URLs through it. Namespace session, model-store and upload directories by environment. Keep existing Keychain/app-group import behavior compatible; account tokens must never be reused across Supabase environments. Set app/share version and build consistently for every archive configuration.
+- [ ] Owner reruns tests and reviews resolved Release versus Staging archive settings; all tests pass and no service-role key enters the app.
+- [ ] Commit `Add isolated staging configuration`.
+
+### Task 2: Upload-session persistence and authenticated API
+
+**Files (service):** Create `upload_auth.py`, `upload_models.py`, `upload_sessions.py`, `tests/test_upload_sessions.py`, `tests/test_upload_auth.py`; modify `main.py`, `deploy/env.example` and pinned dependencies only if necessary.
+**Files (app schema source):** Generate the migration under `supabase/migrations/` using the installed CLI's documented `migration new` command. Capture its generated filename in this plan when executing; do not invent a timestamp or create a second divergent service migration.
+
+**Interfaces:** `verify_upload_user(authorization: str | None) -> str` returns a verified Supabase UUID; `bootstrap_upload(user_id: str, request: UploadBootstrapRequest) -> UploadSessionResponse`; `get_upload_session(user_id: str, session_id: str) -> UploadSessionResponse`. Supply a repository/storage adapter to tests instead of importing production clients.
+
+- [ ] Write unittest cases `test_repeated_bootstrap_returns_same_session`, `test_conflicting_manifest_returns_409`, `test_unverified_or_other_owner_rejected`, `test_disabled_bootstrap_does_not_affect_legacy_jobs`, `test_expired_refresh_preserves_verified_files`, and `test_signing_failure_leaves_retryable_session`. Assert a 24-hour deadline, captured provider/language, zero signed URLs for verified files, and no writes on authorization failure.
+- [ ] Run `python -m unittest discover -s tests -p 'test_upload*.py' -v` in the service environment; record expected failures.
+- [ ] Verify current Supabase changelog/Auth/Storage docs and CLI help, then implement only the new endpoints. Validate JWT remotely through the configured Supabase Auth service or use verified signing keys with issuer/audience/expiry checks; never trust decoded claims alone. Feature flags: `BACKGROUND_UPLOAD_ENABLED=false`, plus optional `BACKGROUND_UPLOAD_ALLOWED_USERS`; existing session reads/finishing stay available when bootstrap is disabled.
+- [ ] Create `public.background_upload_sessions` with UUID ID/owner/meeting/reserved job ID, manifest digest, captured options, text status CHECK, deadline and timestamps; unique owner/meeting and reserved job ID. Create `public.background_upload_files` with session/index composite key, generated path, byte size, duration, MIME, verification timestamps; unique path. Keep statuses internal to these tables. Index unfinished-session scanning by last-check time and ID.
+- [ ] Enable RLS; revoke client/anon table writes and direct function execution. Use service-role-only access through the new authenticated API. No new policies on existing tables/bucket. Verify permissions with ordinary authenticated and anonymous roles on a disposable/local database; document service ownership checks separately.
+- [ ] Rerun new tests and existing `python -m unittest discover -s tests -v`; all pass. Commit `Add authenticated upload sessions` with the generated migration.
+
+### Task 3: Verify chunks and promote atomically
+
+**Files (service):** Create `upload_reconciler.py`, `upload_worker.py`, `deploy/snipnote-upload-reconciler.service`, `tests/test_upload_reconciler.py`; modify `upload_sessions.py`, `DEPLOYMENT.md`, `deploy/env.example`.
+**Files (app schema source):** Generate a second migration for the promotion function through the documented CLI workflow.
+
+**Interfaces:** `reconcile_uploads(limit: int = 100) -> ReconcileReport`; `verify_upload_files(session_id: str) -> list[VerifiedUploadFile]`. RPC `promote_background_upload(p_session_id uuid) returns uuid` locks that session and returns the existing/new job UUID. `VerifiedUploadFile` contains index, path, bytes and duration.
+
+- [ ] Write tests `test_missing_or_wrong_size_never_queues`, `test_two_promotions_create_one_job`, `test_metadata_failure_rolls_back_promotion`, `test_busy_transcriber_does_not_delay_upload_checks`, `test_expiration_does_not_delete_referenced_audio`, and `test_existing_legacy_job_is_not_overwritten`. Assert completed metadata is present before the pending job is visible; use a real disposable PostgreSQL database for the transaction/concurrency tests.
+- [ ] Run the new unittest module and database tests; record failures before implementation.
+- [ ] Implement exact-byte verification outside database transactions; update only successfully checked files. A short service-only SECURITY INVOKER RPC atomically creates existing-format `audio_chunks` or `recordings` metadata, inserts one normal pending job, links the meeting, and marks the session queued. Reject a conflicting existing job rather than overwriting it. Do not extend the job enum or change the legacy worker's selection contract.
+- [ ] Run the reconciler in its own process every 20 seconds with bounded fair batches. Renew the same session/deadline on authenticated retry after expiry, preserving valid objects and paths. Cleanup checks session expiry plus active/completed references before deleting abandoned files; never delete queued session objects.
+- [ ] Verify signing/upload with tiny disposable staging files, wrong-size files and repeated promotion; remove test artifacts. No paid transcription call is needed for the transport proof. All new/legacy tests pass. Commit `Queue verified background uploads`.
+
+### Task 4: Durable file-based chunk preparation
+
+**Files (app):** Modify `SnipNote/AudioChunker.swift`; create `SnipNote/BackgroundUploadModels.swift`, `SnipNote/BackgroundUploadStore.swift`, `SnipNoteTests/BackgroundUploadPreparationTests.swift`, `SnipNoteTests/BackgroundUploadStoreTests.swift`.
+
+**Interfaces:** `PreparedUploadFile: Codable` has index, relative file path, expectedBytes: Int64, duration: Double, MIME and extension. `AudioChunker.prepareUploadFiles(from: URL, directory: URL) async throws -> [PreparedUploadFile]`. `BackgroundUploadManifest: Codable` has version, environment/account/meeting UUIDs, optional session/job IDs, source relative path, captured settings and per-file states. `BackgroundUploadStore.save(_:) throws`, `load(environmentID: String, userID: UUID) throws -> [BackgroundUploadManifest]` use atomic replacement.
+
+- [ ] Write tests `preparationPreservesOrderedAudioCoverage`, `smallAudioUsesStableFile`, `atomicSaveRetainsPreviousManifestOnFailure`, `diskFullRetainsSourceAndReportsPreparationFailure`, and `manifestPathsCannotEscapeUploadDirectory`. Assert no segment gaps/overlap are introduced and preserved files outlive the creating view.
+- [ ] Owner runs these tests and records initial failures.
+- [ ] Implement file exports using current segmentation/encoding, but split a prepared file further if necessary to meet the existing 15 MiB target. Do not retain a `[Data]` containing all chunks. Use protected application-support storage accessible after first unlock, check available capacity, retain the original and capture account/environment/options before preparation.
+- [ ] Owner reruns tests with deterministic audio fixtures; all pass. Commit `Prepare durable upload chunk files`.
+
+### Task 5: Background session and crash recovery
+
+**Files (app):** Create `SnipNote/BackgroundUploadAPI.swift`, `SnipNote/BackgroundUploadCoordinator.swift`, `SnipNoteTests/BackgroundUploadCoordinatorTests.swift`; modify `SnipNote/SnipNoteApp.swift`.
+
+**Interfaces:** `BackgroundUploadAPI.bootstrap(_ manifest: BackgroundUploadManifest) async throws -> UploadSessionResponse`; `status(sessionID: UUID) async throws -> UploadSessionResponse`. Coordinator `start(meetingID: UUID, source: URL, options: UploadOptions) async throws`, `recover(environmentID: String, userID: UUID) async`, `handleBackgroundEvents(identifier: String, completion: @escaping () -> Void)`. `UploadOptions` holds provider, language and duration. Inject transport/API/store seams for tests; use URLSession upload tasks from files in production.
+
+- [ ] Write tests `crashAfterBootstrapReschedulesMissingTasks`, `existingTasksAreReattachedWithoutDuplicateUpload`, `expiredURLRetriesOnlyUnverifiedChunk`, `duplicateCallbackCannotRegressState`, `accountOrEnvironmentMismatchNeverAppliesResult`, and `completionHandlerWaitsForDurableDelegateUpdates`. Assert task descriptions identify manifest/file and successful chunks never restart.
+- [ ] Owner runs tests and records the initial failures.
+- [ ] Implement stable per-environment background session identifiers, persisted intent before scheduling, task enumeration recovery, delegate updates and app-delegate reconnection. Use returned HTTP instructions exactly, `uploadTask(with:fromFile:)`, current cellular/network preferences and `waitsForConnectivity`. Persist failure and retry state; use at most three immediate retry attempts with 1/2/4-second backoff when execution is available, then expose recoverable retry. Refresh credentials on authenticated wake, not on an assumed permanent runtime.
+- [ ] Never interpret force quit as proof the server failed. Ask session status before replacing transfers, and retain files until remote verification. Owner reruns tests; all pass. Commit `Run uploads through background URLSession`.
+
+### Task 6: Integrate progress and result reconciliation
+
+**Files (app):** Create `SnipNote/BackgroundUploadReconciler.swift`, `SnipNoteTests/BackgroundUploadRoutingTests.swift`; modify `SnipNote/CreateMeetingView.swift`, `SnipNote/MeetingDetailView.swift`, `SnipNote/MeetingSyncService.swift`, `SnipNote/RenderTranscriptionService.swift`, `SnipNote/SnipNoteApp.swift` and existing localization resources.
+
+**Interfaces:** `BackgroundUploadReconciler.reconcile(context: ModelContext, environmentID: String, userID: UUID) async`; all SwiftData changes execute on the main actor. Coordinator exposes observable snapshots with preparing/uploading/retry state and byte progress; a queued session hands off its ordinary job ID to the existing polling/result path.
+
+- [ ] Write tests `flagOffKeepsLegacyBootstrap`, `flagOnStartsCoordinator`, `networkFailureDoesNotStartLocalFallback`, `reopeningRestoresJobAndResultWithoutDetailView`, and `queuedPromotionUsesLegacyMeetingStates`. Assert provider/language stay captured, a successful remote result is applied once, and cancelled/deleted/account-mismatched transcriptions are not recreated by late callbacks.
+- [ ] Owner runs tests and records initial failures.
+- [ ] Replace only the enabled cloud bootstrap with coordinator initiation; leave local transcription and disabled legacy upload intact. Persist/sync meeting ownership before server bootstrap and retry incomplete metadata sync without signing for nonexistent/foreign meetings. Show preparation until all file tasks are registered, then upload byte progress and clear permission to leave the app. Localize user-facing English/Italian messages.
+- [ ] Reconcile at launch/foreground/session events. Gate fallback on a confirmed remote failure with no active upload, not a polling timeout. Release source/chunk files only when safe for recovery and existing playback. Owner reruns relevant cloud-routing, meeting-state and new tests; all pass. Commit `Integrate recoverable background upload flow`.
+
+### Task 7: Stage the service and migration rehearsal
+
+**Files:** Service `DEPLOYMENT.md`, staging-only environment template and deployment units; app `docs/superpowers/reports/2026-09-30-background-upload-verification.md`.
+
+- [ ] Inventory existing staging resources read-only. Prepare a concrete provisioning/deployment manifest for any missing Supabase branch/project and dedicated API/reconciler/worker runtime, including cost and resource limits. Provision only after required resource approval; never share the production job queue or let test workers process production jobs.
+- [ ] Recreate required schema, Auth configuration, bucket MIME policy and app-used Edge Functions in staging from reviewed sources. Use synthetic accounts/audio and a deterministic test balance; do not copy production recordings or bill production accounts. Check the selected iOS environment covers every app dependency used in this flow.
+- [ ] Rehearse applying migrations while old API/worker contracts remain active; record before/after schema and legacy smoke-test results. Verify new objects add no required field/status changes to existing tables, no destructive DDL, and no unexpected access grants. Use bounded lock/statement timeouts; a blocked migration aborts instead of holding production-like traffic indefinitely.
+- [ ] Deploy the staging API/reconciler/worker, enable bootstrap only for test users, and exercise normal, duplicate and interrupted signed uploads. Confirm the independent loop operates while a long job runs. Record deployment revisions, schema migration IDs and evidence without secrets.
+- [ ] Rehearse disabling new bootstrap: existing sessions still finish, legacy `/jobs` still works, and rolling back new code leaves additive tables safely in place. Commit `Document staging upload verification`.
+
+### Task 8: TestFlight device acceptance and production release gate
+
+**Files:** App verification report from Task 7, plus a focused owner checklist; service `DEPLOYMENT.md` rollout section.
+
+- [ ] Give the owner Staging scheme/archive instructions and single-test selections. Owner builds and archives; verify both app/share extension versions match and resolved endpoints are staging. The archive must fail closed when staging configuration is incomplete.
+- [ ] Owner tests actual small audio and 150/400 MB originals on a physical iPhone: preparation, lock, switch apps, network drop/reconnect, expired signing credentials, force quit/reopen, low disk and account switch. Record expected-versus-observed results, failed-chunk retries, peak preparation memory/disk, server queueing while suspended and transcript arrival on reopen.
+- [ ] Smoke-test the currently shipped App Store build against unchanged production throughout the staging trial. Also run it against a staging compatibility account where feasible to verify ordinary promoted records decode correctly. Test installing/replacing builds on one device and verify environment-local state stays isolated.
+- [ ] Run all backend tests and the owner-run relevant Swift suite. Request an independent whole-change code review through the review skill; resolve substantive findings and repeat only affected checks.
+- [ ] Prepare the eventual production deployment as a separate reviewable step: schema diff, backup/rehearsal evidence, existing-client tests, flags initially off, allowlisted trial, resource limits and non-destructive rollback. Do not deploy until the owner approves that concrete rollout. Turning on new production bootstrap is separate from shipping TestFlight.
+- [ ] Commit the acceptance evidence and report remaining device/resource blockers honestly. No success claim without observed physical-device behavior.
+
+## Execution and review handoff
+
+Recommended execution: **Native** in this session, task by task, followed by an independent whole-change review. These tasks share a tight API/manifest contract across two repositories; keeping implementation context together reduces interface drift. The owner supplies Xcode/device evidence at the indicated checks.
+
+Written-plan approval and an execution-method selection are required before implementation. Staging provisioning/deployment approvals, if needed, concern the concrete resource/deployment result; they do not stop reversible code work that is already authorized.

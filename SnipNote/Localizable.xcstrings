@@ -1,16 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Clear names make transcriptions easy to find." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nomi chiari rendono le trascrizioni facili da trovare."
-          }
-        }
-      }
-    },
     "" : {
 
     },
@@ -502,6 +492,17 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Chunk %1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "Clear names make transcriptions easy to find." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nomi chiari rendono le trascrizioni facili da trovare."
           }
         }
       }
@@ -1118,70 +1119,6 @@
     "Mattia Da Campo" : {
 
     },
-    "Transcription Date" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Data trascrizione"
-          }
-        }
-      }
-    },
-    "Transcription Name" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nome trascrizione"
-          }
-        }
-      }
-    },
-    "Transcription Name Required" : {
-
-    },
-    "Recording Paused" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registrazione in pausa"
-          }
-        }
-      }
-    },
-    "RECORDING PAUSED" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "REGISTRAZIONE IN PAUSA"
-          }
-        }
-      }
-    },
-    "Transcription Summary" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riepilogo trascrizione"
-          }
-        }
-      }
-    },
-    "Transcriptions" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizioni"
-          }
-        }
-      }
-    },
     "Microphone Access Denied" : {
       "localizations" : {
         "it" : {
@@ -1282,10 +1219,10 @@
         }
       }
     },
-    "No transcriptions yet" : {
+    "No results found" : {
 
     },
-    "No results found" : {
+    "No transcriptions yet" : {
 
     },
     "OK" : {
@@ -1433,6 +1370,17 @@
     "Processing" : {
 
     },
+    "Processing on our servers..." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elaborazione sui nostri server..."
+          }
+        }
+      }
+    },
     "Processing transcription summary..." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1462,17 +1410,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ELABORAZIONE TRASCRIZIONE..."
-          }
-        }
-      }
-    },
-    "Processing on our servers..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elaborazione sui nostri server..."
           }
         }
       }
@@ -1547,6 +1484,37 @@
         }
       }
     },
+    "Recording Paused" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrazione in pausa"
+          }
+        }
+      }
+    },
+    "RECORDING PAUSED" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "REGISTRAZIONE IN PAUSA"
+          }
+        }
+      }
+    },
+    "Recording requires microphone access. Please enable it in Settings > Privacy & Security > Microphone > SnipNote." : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La registrazione richiede l'accesso al microfono. Abilitalo in Impostazioni > Privacy e Sicurezza > Microfono > SnipNote."
+          }
+        }
+      }
+    },
     "Recording..." : {
       "localizations" : {
         "it" : {
@@ -1564,16 +1532,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "REGISTRAZIONE..."
-          }
-        }
-      }
-    },
-    "Recording requires microphone access. Please enable it in Settings > Privacy & Security > Microphone > SnipNote." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La registrazione richiede l'accesso al microfono. Abilitalo in Impostazioni > Privacy e Sicurezza > Microfono > SnipNote."
           }
         }
       }
@@ -3253,8 +3211,41 @@
         }
       }
     },
+    "Transcription Date" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data trascrizione"
+          }
+        }
+      }
+    },
     "Transcription Failed" : {
 
+    },
+    "Transcription Name" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome trascrizione"
+          }
+        }
+      }
+    },
+    "Transcription Name Required" : {
+
+    },
+    "Transcription Summary" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riepilogo trascrizione"
+          }
+        }
+      }
     },
     "transcription.local.error.downloadIncomplete" : {
       "extractionState" : "manual",
@@ -3694,6 +3685,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Locale"
+          }
+        }
+      }
+    },
+    "Transcriptions" : {
+      "localizations" : {
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizioni"
           }
         }
       }

@@ -28,8 +28,8 @@ blanket `db push`: older local migrations may not match the remote history.
 supabase functions deploy openai-proxy --project-ref bndbnqtvicvynzkyygte --use-api
 ```
 
-For a fresh checkout, copy `Documentation/Config.swift.example` to
-`SnipNote/Config.swift` and set only the public Eve prompt ID. No API key is needed.
+The iOS app no longer needs `SnipNote/Config.swift` (it only held the Eve prompt
+ID, and Eve chat was removed from the app). No API key is needed on the device.
 The app deletes the OpenAI Keychain item left by older installations.
 
 The VPS at `api.snipnote.app` reads its own `OPENAI_API_KEY` from
@@ -68,6 +68,10 @@ UTC midnight. These budgets are separate from purchased minutes; audio limits
 measure bytes rather than duration. Slow/malformed uploads can consume Edge
 resources before quota admission.
 
+Note: the iOS app no longer sends the `eve_chat`, `actions` or `actions_report`
+tasks or calls `/conversations`; the proxy still accepts them for older app
+versions until they can be retired server-side.
+
 Eve conversation IDs must be registered to the caller. File/vector-store IDs,
 previous response IDs, item references, tools, and arbitrary templates are rejected.
 Each conversation allows 30 admitted turns. Legacy, unknown, or exhausted IDs
@@ -90,7 +94,7 @@ test database after the migrations, then roll back. It requires two test users.
 Do not run its fixture changes outside a transaction.
 
 Unauthenticated function requests must return 401. In the signed-in app, test a
-short cloud recording, summary/title/actions, Eve, and an actions report. Inspect
+short cloud recording and summary/title generation. Inspect
 Edge Function logs for endpoint/task/status. A 503 can indicate a missing secret,
 unavailable control tables, or upstream failure. Logs omit transcript bodies and keys.
 
@@ -106,7 +110,7 @@ from already-shipped binaries.
 
 Settings saves `openai` or `xai` locally under `cloudTranscription.provider`.
 Only new cloud transcriptions use the choice. On-device Whisper, purchased
-minutes, and text generation (including Eve) keep their existing behavior.
+minutes, and text generation keep their existing behavior.
 Short recordings still POST `/audio/transcriptions`, with
 `X-SnipNote-Task: transcription` and `X-SnipNote-Transcription-Provider: openai|xai`.
 The proxy's private xAI destination is fixed at `https://api.x.ai/v1/stt`.
@@ -161,7 +165,7 @@ Use a dedicated account and separately authorized paid API calls.
 For each route, change Settings during delayed upload and after a transient
 failure. The active operation must keep its initial provider; the next new
 operation (including manual retranscription) must use the new preference.
-Check summaries/actions/title/Eve, completion notifications, minutes debit and
+Check summaries/title, completion notifications, minutes debit and
 transcript quality with existing audio preprocessing. In staging, test missing
 xAI credentials, 401/403, 429 and 5xx; errors must preserve status information,
 release quota reservations, omit secrets/content and never contact OpenAI as an

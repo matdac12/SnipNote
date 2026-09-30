@@ -232,28 +232,6 @@
         }
       }
     },
-    "Actions" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Azioni"
-          }
-        }
-      }
-    },
-    "Actions Report" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Report Azioni"
-          }
-        }
-      }
-    },
     "AI analysis failed" : {
 
     },
@@ -274,16 +252,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Insight con AI"
-          }
-        }
-      }
-    },
-    "AI-powered voice note taking with smart action extraction. Turn your meetings into actionable insights." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Note vocali intelligenti con estrazione automatica di azioni. Trasforma le tue riunioni in insight utilizzabili."
           }
         }
       }
@@ -345,30 +313,6 @@
 
     },
     "Are you sure you want to cancel? All progress will be lost." : {
-
-    },
-    "Are you sure you want to start a new chat? Current conversation will be cleared." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sicuro di voler iniziare una nuova chat? Quella attuale andrà persa."
-          }
-        }
-      }
-    },
-    "Ask Eve..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chiedi a Eve.."
-          }
-        }
-      }
-    },
-    "Ask me anything about your meetings" : {
 
     },
     "Audio" : {
@@ -597,9 +541,6 @@
     "Cancel Transcription?" : {
 
     },
-    "Chat with Eve about this meeting" : {
-
-    },
     "Choose Your Pack" : {
 
     },
@@ -764,25 +705,11 @@
     "Enter meeting name" : {
 
     },
-    "Eve" : {
-
-    },
     "Everything" : {
 
     },
     "EXTRA MINUTES" : {
 
-    },
-    "Extracting action items from meeting..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estrazione azioni dalla riunione..."
-          }
-        }
-      }
     },
     "Extracting..." : {
       "extractionState" : "stale",
@@ -849,17 +776,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trascrizione completa"
-          }
-        }
-      }
-    },
-    "Get automatic summaries, action item extraction, and smart organization. Focus on the conversation while SnipNote handles the notes." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ottieni riepiloghi automatici, estrazione di azioni e organizzazione intelligente. Concentrati sulla conversazione mentre SnipNote gestisce le note."
           }
         }
       }
@@ -1149,9 +1065,6 @@
     "Insufficient Minutes" : {
 
     },
-    "Jot down talking points, decisions to make, or context for Eve." : {
-
-    },
     "Keep SnipNote open while uploading." : {
       "localizations" : {
         "it" : {
@@ -1314,9 +1227,6 @@
         }
       }
     },
-    "Message" : {
-
-    },
     "Microphone Access Denied" : {
       "localizations" : {
         "it" : {
@@ -1396,16 +1306,6 @@
     "NEED MORE MINUTES?" : {
 
     },
-    "New Chat" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nuova Chat"
-          }
-        }
-      }
-    },
     "New Meeting" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1426,9 +1326,6 @@
           }
         }
       }
-    },
-    "No action items found in this meeting" : {
-
     },
     "No meetings yet" : {
 
@@ -2686,23 +2583,6 @@
         }
       }
     },
-    "settings.notifications.permission.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Please enable notifications in Settings to receive daily reminders about your high priority actions."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abilita le notifiche in Impostazioni per ricevere i promemoria giornalieri delle azioni ad alta priorità."
-          }
-        }
-      }
-    },
     "settings.notifications.permission.settings" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3163,9 +3043,6 @@
 
     },
     "Start Meeting Recording" : {
-
-    },
-    "Start New Chat" : {
 
     },
     "Starting in..." : {
@@ -3858,16 +3735,6 @@
     "VERSION" : {
 
     },
-    "Welcome to Eve" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Benvenuto in Eve"
-          }
-        }
-      }
-    },
     "Welcome to SnipNote" : {
       "localizations" : {
         "it" : {
@@ -3895,17 +3762,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hai raggiunto il tuo limite gratuito di %lld riunioni. Passa a Pro per accesso illimitato."
-          }
-        }
-      }
-    },
-    "Your AI Assistant" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il tuo Assistente AI"
           }
         }
       }

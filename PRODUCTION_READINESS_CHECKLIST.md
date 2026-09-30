@@ -69,7 +69,6 @@
 - [ ] Test restore purchases
 - [ ] Test transcription with real audio
 - [ ] Test meeting creation (notes removed)
-- [ ] Test Eve AI chat
 - [ ] Test account deletion
 - [ ] Test deep links and audio import
 

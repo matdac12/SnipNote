@@ -681,7 +681,7 @@
 				CODE_SIGN_ENTITLEMENTS = SnipNoteShare/SnipNoteShare.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5K8R3X2322;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SnipNoteShare/Info.plist;
@@ -693,7 +693,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.6;
+				MARKETING_VERSION = 2.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.mattianalytics.snipnote.SnipNoteShare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -712,7 +712,7 @@
 				CODE_SIGN_ENTITLEMENTS = SnipNoteShare/SnipNoteShare.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5K8R3X2322;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SnipNoteShare/Info.plist;
@@ -724,7 +724,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.6;
+				MARKETING_VERSION = 2.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.mattianalytics.snipnote.SnipNoteShare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

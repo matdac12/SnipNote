@@ -44,12 +44,10 @@ struct CreateMeetingView: View {
     var onActivityStateChanged: ((CreateMeetingActivityState) -> Void)?
     
     @StateObject private var audioRecorder = AudioRecorder()
-    @StateObject private var openAIService = OpenAIService.shared
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var minutesManager = MinutesManager.shared
     @StateObject private var backgroundTaskManager = BackgroundTaskManager.shared
     @StateObject private var localTranscriptionManager = LocalTranscriptionManager.shared
-    @StateObject private var meetingAnalysisManager = MeetingAnalysisManager.shared
     @Query private var allMeetings: [Meeting]
     
     @State private var meetingName = ""
@@ -60,8 +58,6 @@ struct CreateMeetingView: View {
     @State private var currentRecordingURL: URL?
     @State private var createdMeeting: Meeting?
     @State private var createdMeetingId: UUID?
-    @State private var showingAPIKeyAlert = false
-    @State private var apiKeyInput = ""
     @State private var recordingStartTime: Date?
     @State private var hasFinishedRecording = false
     
@@ -1145,18 +1141,6 @@ struct CreateMeetingView: View {
                 .accessibilityLabel("Dismiss Keyboard")
             }
         }
-        .alert("API Key Required", isPresented: $showingAPIKeyAlert) {
-            TextField("OpenAI API Key", text: $apiKeyInput)
-            Button("Save") {
-                openAIService.apiKey = apiKeyInput
-                apiKeyInput = ""
-            }
-            Button("Cancel", role: .cancel) {
-                dismiss()
-            }
-        } message: {
-            Text("Enter your OpenAI API key to enable transcription and summarization.")
-        }
         .sheet(isPresented: $showingDatePicker) {
             meetingDatePickerSheet()
         }
@@ -1232,11 +1216,6 @@ struct CreateMeetingView: View {
     }
     
     private func startMeetingRecording() {
-        guard hasRequiredOpenAIKey else {
-            showingAPIKeyAlert = true
-            return
-        }
-        
         guard !meetingNameTrimmed.isEmpty else {
             return
         }
@@ -1295,11 +1274,6 @@ struct CreateMeetingView: View {
     private func analyzeImportedAudio() {
         guard let audioURL = importedAudioURL else {
             print("❌ No audio URL to analyze")
-            return
-        }
-
-        guard hasRequiredOpenAIKey else {
-            showingAPIKeyAlert = true
             return
         }
 
@@ -2385,11 +2359,6 @@ struct CreateMeetingView: View {
     }
     
     private func startCountdown() {
-        guard hasRequiredOpenAIKey else {
-            showingAPIKeyAlert = true
-            return
-        }
-
         guard validateLocalTranscriptionAvailability() else {
             return
         }
@@ -2421,12 +2390,6 @@ struct CreateMeetingView: View {
         }
 
         startCountdownAfterPermission()
-    }
-
-    private var hasRequiredOpenAIKey: Bool {
-        let requiresCloudTranscription = !localTranscriptionManager.isLocalModeEnabled
-        let requiresOpenAIAnalysis = meetingAnalysisManager.selectedProvider == .openAI
-        return !(requiresCloudTranscription || requiresOpenAIAnalysis) || openAIService.apiKey != nil
     }
 
     private func startCountdownAfterPermission() {

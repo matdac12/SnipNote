@@ -1,6 +1,6 @@
 This is a guide on some OpenAI commands we can use to set up the application. 
 
-The API key is saved under openAIAPIKey in the @Config file. 
+The OpenAI API key is NOT stored in the app. It lives in Supabase secrets (`OPENAI_API_KEY`) and is used by the `openai-proxy` Edge Function — see OPENAI_PROXY_SETUP.md.
 
 
 Upload a File: https://platform.openai.com/docs/api-reference/files/create

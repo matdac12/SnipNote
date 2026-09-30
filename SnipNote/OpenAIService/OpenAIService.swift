@@ -6,15 +6,17 @@
 //
 
 import Foundation
-import Security
+import Supabase
 import AVFoundation
 
 class OpenAIService: ObservableObject {
     static let shared = OpenAIService()
 
-    private let baseURL = "https://api.openai.com/v1"
-    private let keychainService = "com.mattia.snipnote.apikey"
-    private let keychainAccount = "openai_api_key"
+    /// All OpenAI calls go through the `openai-proxy` Supabase Edge Function, which
+    /// verifies the signed-in user and attaches the OpenAI key server-side.
+    private let baseURL = SupabaseManager.supabaseURL
+        .appendingPathComponent("functions/v1/openai-proxy")
+        .absoluteString
     private let urlSession: URLSession
 
     private init() {
@@ -22,75 +24,51 @@ class OpenAIService: ObservableObject {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 120  // 2 minutes per request
         configuration.timeoutIntervalForResource = 600 // 10 minutes total
+        // Supabase API gateway expects the public anon key on every request
+        configuration.httpAdditionalHeaders = ["apikey": SupabaseManager.supabaseAnonKey]
         self.urlSession = URLSession(configuration: configuration)
     }
-    
-    var apiKey: String? {
-        get {
-            // First check if API key is set in Config
-            if Config.openAIAPIKey != "YOUR_OPENAI_API_KEY_HERE" && !Config.openAIAPIKey.isEmpty {
-                return Config.openAIAPIKey
-                
-            }
-            // Fallback to keychain
-            if let key = getAPIKeyFromKeychain(), !key.isEmpty {
-                return key
-            }
-            return nil
+
+    /// Builds an authenticated POST to the proxy. The user's Supabase access token
+    /// (refreshed automatically by the SDK) authenticates the call; `task` tells the
+    /// proxy which `ai_model_config` row to apply.
+    private func proxyRequest(
+        _ path: String,
+        task: AITask?,
+        contentType: String = "application/json"
+    ) async throws -> URLRequest {
+        let accessToken: String
+        do {
+            accessToken = try await SupabaseManager.shared.client.auth.session.accessToken
+        } catch is AuthError {
+            throw OpenAIError.notAuthenticated
         }
-        set {
-            if let key = newValue {
-                saveAPIKeyToKeychain(key)
-            } else {
-                deleteAPIKeyFromKeychain()
-            }
+        // Other errors (e.g. URLError while refreshing an expired token) propagate
+        // unchanged so shouldRetry(error:) can retry them.
+
+        var request = URLRequest(url: URL(string: "\(baseURL)\(path)")!)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        if let task {
+            request.setValue(task.rawValue, forHTTPHeaderField: "X-SnipNote-Task")
         }
+        return request
     }
-    
-    private func saveAPIKeyToKeychain(_ key: String) {
-        let data = key.data(using: .utf8)!
-        
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount,
-            kSecValueData as String: data
-        ]
-        
-        SecItemDelete(query as CFDictionary)
-        SecItemAdd(query as CFDictionary, nil)
+
+    /// Identifies the call to the proxy, which looks up model / reasoning effort /
+    /// verbosity for it in the Supabase `ai_model_config` table (the source of truth).
+    /// The defaults below are only used when that table has no row or can't be read.
+    private enum AITask: String {
+        case overview, summary, actions, title, transcription
+        case textSummary = "text_summary"
+        case eveChat = "eve_chat"
+        case actionsReport = "actions_report"
     }
-    
-    private func getAPIKeyFromKeychain() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        
-        guard status == errSecSuccess,
-              let data = item as? Data,
-              let key = String(data: data, encoding: .utf8) else {
-            return nil
-        }
-        
-        return key
-    }
-    
-    private func deleteAPIKeyFromKeychain() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: keychainAccount
-        ]
-        
-        SecItemDelete(query as CFDictionary)
-    }
+
+    private static let defaultModel = "gpt-6-luna"
+    private static let defaultReasoningEffort = "low"
+    private static let defaultTranscriptionModel = "gpt-transcribe"
 
     // MARK: - Audio Processing
 
@@ -270,20 +248,15 @@ class OpenAIService: ObservableObject {
     }
 
     func transcribeAudio(audioData: Data, language: String? = nil) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-
         // Speed up audio by 1.5x to reduce costs by 33%
         let processedAudioData = try await speedUpAudio(audioData: audioData)
 
-        let url = URL(string: "\(baseURL)/audio/transcriptions")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-
         let boundary = UUID().uuidString
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        var request = try await proxyRequest(
+            "/audio/transcriptions",
+            task: .transcription,
+            contentType: "multipart/form-data; boundary=\(boundary)"
+        )
 
         var body = Data()
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
@@ -293,7 +266,7 @@ class OpenAIService: ObservableObject {
         body.append("\r\n".data(using: .utf8)!)
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
-        body.append("gpt-4o-transcribe\r\n".data(using: .utf8)!)
+        body.append("\(Self.defaultTranscriptionModel)\r\n".data(using: .utf8)!)
 
         // Add language field if specified
         if let language = language {
@@ -311,7 +284,8 @@ class OpenAIService: ObservableObject {
         if let httpResponse = urlResponse as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {
             if let apiError = try? JSONDecoder().decode(OpenAIAPIErrorResponse.self, from: data) {
-                throw OpenAIError.apiError(apiError.error.message)
+                // Keep the status code: shouldRetry(error:) decides on it
+                throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(apiError.error.message)")
             }
             let rawBody = String(data: data, encoding: .utf8) ?? "<binary>"
             throw OpenAIError.apiError("HTTP \(httpResponse.statusCode): \(rawBody)")
@@ -495,15 +469,7 @@ class OpenAIService: ObservableObject {
     }
 
     func summarizeText(_ text: String) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-        
-        let url = URL(string: "\(baseURL)/responses")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = try await proxyRequest("/responses", task: .textSummary)
 
         let prompt = """
         Please analyze the following transcript and provide:
@@ -517,13 +483,13 @@ class OpenAIService: ObservableObject {
         """
 
         let requestBody = ChatRequest(
-            model: "gpt-5-mini",
+            model: Self.defaultModel,
             input: [
                 ChatMessage(role: "system", content: "You are a helpful assistant that summarizes spoken notes into actionable insights."),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,
-            reasoning: ReasoningConfig(effort: "minimal"),
+            reasoning: ReasoningConfig(effort: Self.defaultReasoningEffort),
             text: nil
         )
 
@@ -550,15 +516,7 @@ class OpenAIService: ObservableObject {
     }
 
     func generateTitle(_ text: String) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-        
-        let url = URL(string: "\(baseURL)/responses")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = try await proxyRequest("/responses", task: .title)
 
         let prompt = """
         Identify the language spoken and always respond in the same language as the input transcript.
@@ -574,13 +532,13 @@ class OpenAIService: ObservableObject {
         """
 
         let requestBody = ChatRequest(
-            model: "gpt-5-mini",
+            model: Self.defaultModel,
             input: [
                 ChatMessage(role: "system", content: "You generate concise, descriptive titles for notes. Always respond with exactly 2-3 words, properly capitalized, in the same language as the input transcript."),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,
-            reasoning: ReasoningConfig(effort: "minimal"),
+            reasoning: ReasoningConfig(effort: Self.defaultReasoningEffort),
             text: nil
         )
 
@@ -607,26 +565,18 @@ class OpenAIService: ObservableObject {
     }
 
     func generateMeetingOverview(_ text: String, languageContext: AnalysisLanguageContext) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-
-        let url = URL(string: "\(baseURL)/responses")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = try await proxyRequest("/responses", task: .overview)
 
         let prompt = MeetingAnalysisPrompts.overviewPrompt(transcript: text, languageContext: languageContext)
 
         let requestBody = ChatRequest(
-            model: "gpt-5-mini",
+            model: Self.defaultModel,
             input: [
                 ChatMessage(role: "system", content: MeetingAnalysisPrompts.overviewInstructions),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,
-            reasoning: ReasoningConfig(effort: "minimal"),
+            reasoning: ReasoningConfig(effort: Self.defaultReasoningEffort),
             text: TextConfig(verbosity: "low")
         )
 
@@ -653,26 +603,18 @@ class OpenAIService: ObservableObject {
     }
 
     func summarizeMeeting(_ text: String, languageContext: AnalysisLanguageContext) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-
-        let url = URL(string: "\(baseURL)/responses")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = try await proxyRequest("/responses", task: .summary)
 
         let prompt = MeetingAnalysisPrompts.summaryPrompt(transcript: text, languageContext: languageContext)
 
         let requestBody = ChatRequest(
-            model: "gpt-5-mini",
+            model: Self.defaultModel,
             input: [
                 ChatMessage(role: "system", content: MeetingAnalysisPrompts.summaryInstructions),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,
-            reasoning: ReasoningConfig(effort: "minimal"),
+            reasoning: ReasoningConfig(effort: Self.defaultReasoningEffort),
             text: TextConfig(verbosity: "low")
         )
 
@@ -699,15 +641,7 @@ class OpenAIService: ObservableObject {
     }
 
     func extractActions(_ text: String) async throws -> [ActionItem] {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-
-        let url = URL(string: "\(baseURL)/responses")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = try await proxyRequest("/responses", task: .actions)
 
         let prompt = """
         Identify the language spoken and always respond in the same language as the input transcript.
@@ -724,13 +658,13 @@ class OpenAIService: ObservableObject {
         """
 
         let requestBody = ChatRequest(
-            model: "gpt-5-mini",
+            model: Self.defaultModel,
             input: [
                 ChatMessage(role: "system", content: "You extract actionable items from text and return them as JSON. Be precise and only return valid JSON. Always use the same language as the input transcript for action descriptions."),
                 ChatMessage(role: "user", content: prompt)
             ],
             maxTokens: nil,
-            reasoning: ReasoningConfig(effort: "minimal"),
+            reasoning: ReasoningConfig(effort: Self.defaultReasoningEffort),
             text: nil
         )
 
@@ -771,21 +705,18 @@ class OpenAIService: ObservableObject {
         promptVariables: EvePromptVariables,
         conversationId: String?
     ) async throws -> ChatWithEveResult {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
+        let activeConversationId: String
+        if let conversationId {
+            activeConversationId = conversationId
+        } else {
+            activeConversationId = try await createConversation()
         }
-
-        let activeConversationId = try await ensureConversationId(apiKey: apiKey, currentConversationId: conversationId)
         let sanitizedVariables = promptVariables.sanitized()
 
-        let url = URL(string: "\(baseURL)/responses")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = try await proxyRequest("/responses", task: .eveChat)
 
         var requestBody = ResponsesRequest(
-            model: Config.openAIResponsesModel,
+            model: Self.defaultModel,
             prompt: ResponsesPrompt(
                 id: Config.openAIPromptID,
                 variables: ResponsesPromptVariables(
@@ -800,7 +731,7 @@ class OpenAIService: ObservableObject {
                 format: ResponseTextFormat(type: "text"),
                 verbosity: "medium"
             ),
-            reasoning: ResponseReasoningConfig(effort: "medium")
+            reasoning: ResponseReasoningConfig(effort: Self.defaultReasoningEffort)
         )
 
         var contents: [ResponseInputContent] = []
@@ -833,27 +764,7 @@ class OpenAIService: ObservableObject {
     }
 
     func createConversation() async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-
-        return try await createConversation(apiKey: apiKey)
-    }
-
-    private func ensureConversationId(apiKey: String, currentConversationId: String?) async throws -> String {
-        if let existingId = currentConversationId {
-            return existingId
-        }
-
-        return try await createConversation(apiKey: apiKey)
-    }
-
-    private func createConversation(apiKey: String) async throws -> String {
-        let url = URL(string: "\(baseURL)/conversations")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = try await proxyRequest("/conversations", task: nil)
 
         let payload = ConversationCreateRequest(metadata: ["source": "SnipNote"])
         request.httpBody = try JSONEncoder().encode(payload)
@@ -871,15 +782,7 @@ class OpenAIService: ObservableObject {
     }
 
     func generateActionsReport(groupedActions: [String: [(action: String, priority: String, isCompleted: Bool)]]) async throws -> String {
-        guard let apiKey = apiKey else {
-            throw OpenAIError.noAPIKey
-        }
-
-        let url = URL(string: "\(baseURL)/chat/completions")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var request = try await proxyRequest("/responses", task: .actionsReport)
 
         // Format the actions data for the prompt
         var promptContent = "Generate a comprehensive report for the following actions grouped by their source (notes or meetings):\n\n"
@@ -904,31 +807,29 @@ class OpenAIService: ObservableObject {
         Finally, include a minimal action plan, where you might suggest the order of the tasks.
         """
 
-        let messages: [[String: String]] = [
-            ["role": "system", "content": systemPrompt],
-            ["role": "user", "content": promptContent]
-        ]
+        let requestBody = ChatRequest(
+            model: Self.defaultModel,
+            input: [
+                ChatMessage(role: "system", content: systemPrompt),
+                ChatMessage(role: "user", content: promptContent)
+            ],
+            maxTokens: nil,
+            reasoning: ReasoningConfig(effort: Self.defaultReasoningEffort),
+            text: nil
+        )
 
-        let requestBody: [String: Any] = [
-            "model": "gpt-4o-mini",
-            "messages": messages,
-            "temperature": 0.7,
-            "max_tokens": 1500
-        ]
+        request.httpBody = try JSONEncoder().encode(requestBody)
 
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        let (data, urlResponse) = try await urlSession.data(for: request)
 
-        let (data, _) = try await URLSession.shared.data(for: request)
-
-        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let choices = json["choices"] as? [[String: Any]],
-           let firstChoice = choices.first,
-           let message = firstChoice["message"] as? [String: Any],
-           let content = message["content"] as? String {
-            return stripMarkdown(content.trimmingCharacters(in: .whitespacesAndNewlines))
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            let body = String(data: data, encoding: .utf8) ?? "<binary>"
+            throw OpenAIError.apiError("Failed to generate report. HTTP \(httpResponse.statusCode): \(body)")
         }
 
-        throw OpenAIError.apiError("Failed to generate report")
+        let response = try JSONDecoder().decode(ChatResponse.self, from: data)
+        return stripMarkdown(response.outputText.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     private func stripMarkdown(_ text: String) -> String {

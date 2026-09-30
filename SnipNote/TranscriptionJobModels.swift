@@ -125,4 +125,3 @@ struct JobStatusResponse: Codable {
         case completedAt = "completed_at"
     }
 }
-

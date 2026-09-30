@@ -7,6 +7,7 @@ export interface ModelConfig {
 
 interface Dependencies {
   apiKey: string | undefined;
+  xaiApiKey?: string;
   promptID: string;
   corsHeaders: Record<string, string>;
   authenticate(token: string): Promise<string | null>;
@@ -23,6 +24,7 @@ interface Dependencies {
     path: string,
     body: BodyInit,
     signal: AbortSignal,
+    provider?: "openai" | "xai",
   ): Promise<Response>;
 }
 
@@ -48,6 +50,13 @@ const DEFAULT_AUDIO: ModelConfig = {
   reasoning_effort: null,
   verbosity: null,
   fallback_model: "gpt-4o-transcribe",
+};
+
+const DEFAULT_XAI: ModelConfig = {
+  model: "grok-voice-transcribe-2.0",
+  reasoning_effort: null,
+  verbosity: null,
+  fallback_model: null,
 };
 
 class RequestError extends Error {
@@ -218,9 +227,6 @@ export function createProxyHandler(
       if (!token) throw new RequestError(401, "Sign in to use AI");
       const userID = await deps.authenticate(token);
       if (!userID) throw new RequestError(401, "Invalid token");
-      if (!deps.apiKey) {
-        throw new RequestError(503, "AI service is not configured");
-      }
       const path = new URL(req.url).pathname.replace(/^.*?\/openai-proxy/, "");
       if (
         req.method !== "POST" ||
@@ -229,6 +235,26 @@ export function createProxyHandler(
         )
       ) throw new RequestError(403, "Endpoint not allowed");
       const audio = path === "/audio/transcriptions";
+      const providerHeader = req.headers.get(
+        "X-SnipNote-Transcription-Provider",
+      );
+      if (
+        providerHeader !== null &&
+        (!audio || !["openai", "xai"].includes(providerHeader))
+      ) {
+        throw new RequestError(400, "Invalid transcription provider");
+      }
+      const provider: "openai" | "xai" = providerHeader === "xai"
+        ? "xai"
+        : "openai";
+      if (provider === "xai" ? !deps.xaiApiKey : !deps.apiKey) {
+        throw new RequestError(
+          503,
+          provider === "xai"
+            ? "xAI transcription is not configured"
+            : "AI service is not configured",
+        );
+      }
       const task = req.headers.get("X-SnipNote-Task") ||
         (audio ? "transcription" : "text_summary");
       if (
@@ -302,12 +328,26 @@ export function createProxyHandler(
       }
       const config = path === "/conversations"
         ? undefined
-        : (await deps.modelConfig(task) ??
-          (audio ? DEFAULT_AUDIO : DEFAULT_TEXT));
+        : (await deps.modelConfig(
+          audio && provider === "xai" ? "transcription_xai" : task,
+        ) ??
+          (audio
+            ? (provider === "xai" ? DEFAULT_XAI : DEFAULT_AUDIO)
+            : DEFAULT_TEXT));
       const encoded = (model: string): BodyInit => {
         if (body instanceof FormData) {
-          body.set("model", model);
-          return body;
+          // Rebuild on every attempt: options must precede the file for xAI.
+          const form = new FormData();
+          form.set("model", model);
+          const language = body.get("language");
+          if (typeof language === "string") {
+            form.set("language", language);
+            if (provider === "xai") form.set("format", "true");
+          }
+          if (provider === "openai") form.set("response_format", "json");
+          const file = body.get("file") as File;
+          form.set("file", file, file.name);
+          return form;
         }
         const configured: Record<string, unknown> = {
           ...body,
@@ -325,10 +365,12 @@ export function createProxyHandler(
         return JSON.stringify(configured);
       };
       const signal = AbortSignal.timeout(120000);
+      const upstreamPath = audio && provider === "xai" ? "/stt" : path;
       let upstream = await deps.upstream(
-        path,
+        upstreamPath,
         config ? encoded(config.model) : JSON.stringify(body),
         signal,
+        provider,
       );
       if (
         config?.fallback_model && config.fallback_model !== config.model &&
@@ -336,9 +378,10 @@ export function createProxyHandler(
       ) {
         await upstream.body?.cancel();
         upstream = await deps.upstream(
-          path,
+          upstreamPath,
           encoded(config.fallback_model),
           signal,
+          provider,
         );
       }
       console.log(
@@ -352,6 +395,21 @@ export function createProxyHandler(
         }, upstream.status);
       }
       const output = await limitedBytes(upstream.body, 2 * 1024 * 1024);
+      if (audio && provider === "xai") {
+        let result: unknown;
+        try {
+          result = JSON.parse(new TextDecoder().decode(output));
+        } catch {
+          throw new RequestError(502, "Invalid transcription response");
+        }
+        if (
+          !object(result) || typeof result.text !== "string" ||
+          !result.text.trim()
+        ) {
+          throw new RequestError(502, "Invalid transcription response");
+        }
+        return json({ text: result.text }, 200);
+      }
       if (path === "/conversations") {
         const conversation = JSON.parse(new TextDecoder().decode(output));
         if (

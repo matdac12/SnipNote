@@ -30,6 +30,7 @@ async function modelConfig(task: string): Promise<ModelConfig | undefined> {
 
 Deno.serve(createProxyHandler({
   apiKey: Deno.env.get("OPENAI_API_KEY"),
+  xaiApiKey: Deno.env.get("XAI_API_KEY"),
   // Public stored prompt ID, locked server-side. Optional override for deployments.
   promptID: Deno.env.get("OPENAI_EVE_PROMPT_ID") ??
     "pmpt_68ca79b240b88194874ccf374b434f0e070faf1e10d483e1",
@@ -70,16 +71,23 @@ Deno.serve(createProxyHandler({
     });
     if (error) throw new Error("Conversation registration failed");
   },
-  upstream: (path, body, signal) =>
-    fetch(`https://api.openai.com/v1${path}`, {
-      method: "POST",
-      body,
-      signal,
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
-        ...(body instanceof FormData
-          ? {}
-          : { "Content-Type": "application/json" }),
+  upstream: (path, body, signal, provider = "openai") =>
+    fetch(
+      provider === "xai"
+        ? "https://api.x.ai/v1/stt"
+        : `https://api.openai.com/v1${path}`,
+      {
+        method: "POST",
+        body,
+        signal,
+        headers: {
+          Authorization: `Bearer ${
+            Deno.env.get(provider === "xai" ? "XAI_API_KEY" : "OPENAI_API_KEY")
+          }`,
+          ...(body instanceof FormData
+            ? {}
+            : { "Content-Type": "application/json" }),
+        },
       },
-    }),
+    ),
 }));

@@ -1,4 +1,4 @@
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-snipnote-task',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-snipnote-task, x-snipnote-transcription-provider',
 }

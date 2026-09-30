@@ -14,6 +14,6 @@ final class CloudTranscriptionSettings: ObservableObject {
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
     selectedProvider = defaults.string(forKey: Self.preferenceKey)
-      .flatMap(CloudTranscriptionProvider.init(rawValue:)) ?? .openai
+      .flatMap(CloudTranscriptionProvider.init(rawValue:)) ?? .xai
   }
 }

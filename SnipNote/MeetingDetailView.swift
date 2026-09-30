@@ -33,6 +33,10 @@ struct MeetingDetailView: View {
     // Force refresh for processing updates
     @State private var refreshTrigger = false
 
+    // PDF / Word export
+    @State private var isExporting = false
+    @State private var exportErrorMessage: String?
+
     // Async job tracking
     @State private var jobId: String?
     @State private var jobStatus: JobStatus?
@@ -86,6 +90,17 @@ struct MeetingDetailView: View {
         .navigationBarBackButtonHidden(false)
         .toolbar {
             toolbarContent
+        }
+        .alert(
+            LocalizedStringKey("export.error.title"),
+            isPresented: Binding(
+                get: { exportErrorMessage != nil },
+                set: { if !$0 { exportErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(exportErrorMessage ?? "")
         }
         .onAppear {
             tempName = meeting.name
@@ -769,24 +784,41 @@ struct MeetingDetailView: View {
                     }
                     .help("Chat with Eve about this meeting")
 
-                    // Share Menu
+                    // Export menu: Text (existing), PDF, Word
                     Menu {
-                        Button(action: shareSummary) {
-                            Label("Summary", systemImage: "doc.richtext")
+                        Menu {
+                            Button(action: shareSummary) {
+                                Label("Summary", systemImage: "doc.richtext")
+                            }
+
+                            Button(action: shareTranscript) {
+                                Label("Transcript", systemImage: "text.quote")
+                            }
+
+                            Button(action: shareEverything) {
+                                Label("Everything", systemImage: "doc.text")
+                            }
+                        } label: {
+                            Label(LocalizedStringKey("export.format.text"), systemImage: "doc.plaintext")
                         }
 
-                        Button(action: shareTranscript) {
-                            Label("Transcript", systemImage: "text.quote")
+                        Menu {
+                            exportContentButtons(format: .pdf)
+                        } label: {
+                            Label(LocalizedStringKey("export.format.pdf"), systemImage: "doc.richtext")
                         }
 
-                        Button(action: shareEverything) {
-                            Label("Everything", systemImage: "doc.text")
+                        Menu {
+                            exportContentButtons(format: .word)
+                        } label: {
+                            Label(LocalizedStringKey("export.format.word"), systemImage: "doc.text")
                         }
                     } label: {
                         Image(systemName: "square.and.arrow.down")
                             .font(.system(.body))
                             .foregroundColor(themeManager.currentTheme.accentColor)
                     }
+                    .disabled(isExporting)
                 }
             }
         }
@@ -1088,6 +1120,55 @@ struct MeetingDetailView: View {
             }
         } catch {
             print("Error sharing transcript: \(error)")
+        }
+    }
+
+    // MARK: - PDF / Word export
+
+    @ViewBuilder
+    private func exportContentButtons(format: ExportFormat) -> some View {
+        let hasSummary = !meeting.aiSummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasTranscript = meeting.hasTranscriptContent
+
+        if hasSummary {
+            Button {
+                exportMeeting(content: .summary, format: format)
+            } label: {
+                Label(LocalizedStringKey("export.content.summary"), systemImage: "doc.richtext")
+            }
+        }
+
+        if hasTranscript {
+            Button {
+                exportMeeting(content: .transcript, format: format)
+            } label: {
+                Label(LocalizedStringKey("export.content.transcript"), systemImage: "text.quote")
+            }
+        }
+
+        if hasSummary && hasTranscript {
+            Button {
+                exportMeeting(content: .everything, format: format)
+            } label: {
+                Label(LocalizedStringKey("export.content.everything"), systemImage: "doc.text")
+            }
+        }
+    }
+
+    private func exportMeeting(content: ExportContent, format: ExportFormat) {
+        guard !isExporting else { return }
+        isExporting = true
+        let snapshot = ExportService.snapshot(of: meeting, content: content)
+
+        Task {
+            do {
+                let url = try await ExportService.exportFile(snapshot, as: format)
+                isExporting = false
+                ExportSharePresenter.present(url)
+            } catch {
+                isExporting = false
+                exportErrorMessage = error.localizedDescription
+            }
         }
     }
 

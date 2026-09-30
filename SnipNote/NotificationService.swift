@@ -84,7 +84,7 @@ class NotificationService: ObservableObject {
 
             let content = UNMutableNotificationContent()
             content.title = "Meeting Ready!"
-            content.body = "'\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)' is ready with AI summary and actions"
+            content.body = "'\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)' is ready with its transcript and AI summary"
             content.sound = .default
             content.categoryIdentifier = "MEETING_COMPLETE_NOTIFICATION"
             content.userInfo = ["meetingId": meetingId.uuidString, "navigateTo": "meeting"]

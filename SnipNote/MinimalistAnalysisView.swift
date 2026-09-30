@@ -8,13 +8,13 @@
 import SwiftUI
 
 struct MinimalistAnalysisView: View {
-    let currentStep: Int  // 1=Overview, 2=Summary, 3=Actions, 4=Complete
+    let currentStep: Int  // 1=Overview, 2=Summary, 3=Complete
 
     @EnvironmentObject var themeManager: ThemeManager
 
     private var theme: AppTheme { themeManager.currentTheme }
 
-    private let steps = ["Generating overview", "Creating summary", "Extracting actions", "Complete"]
+    private let steps = ["Generating overview", "Creating summary", "Complete"]
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,7 +41,7 @@ struct MinimalistAnalysisView: View {
 
             // Step dots
             HStack(spacing: 12) {
-                ForEach(1...4, id: \.self) { step in
+                ForEach(1...steps.count, id: \.self) { step in
                     Circle()
                         .fill(step <= currentStep
                               ? theme.accentColor

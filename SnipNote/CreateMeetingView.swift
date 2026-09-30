@@ -73,7 +73,6 @@ struct CreateMeetingView: View {
         case transcribing
         case generatingOverview
         case generatingSummary
-        case extractingActions
         case complete
     }
     @State private var currentProcessingPhase: ProcessingPhase = .transcribing
@@ -230,7 +229,7 @@ struct CreateMeetingView: View {
     }
 
     private var meetingNameHelperText: String {
-        meetingNameTrimmed.isEmpty ? "Give this meeting a descriptive title." : "Clear names help Eve keep meetings organized."
+        meetingNameTrimmed.isEmpty ? "Give this meeting a descriptive title." : "Clear names make meetings easy to find."
     }
 
     private var meetingNotesHelperText: String {
@@ -477,7 +476,7 @@ struct CreateMeetingView: View {
                          contentPadding: EdgeInsets(top: 12, leading: 12, bottom: 12, trailing: 12)) {
             ZStack(alignment: .topLeading) {
                 if meetingNotesTrimmed.isEmpty {
-                    Text("Jot down talking points, decisions to make, or context for Eve.")
+                    Text("Jot down talking points, decisions to make, or context to remember.")
                         .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
                         .foregroundColor(theme.secondaryTextColor.opacity(0.6))
                         .padding(.horizontal, 6)
@@ -788,7 +787,7 @@ struct CreateMeetingView: View {
                     totalChunks: totalChunks > 1 ? totalChunks : nil,
                     partialTranscript: partialTranscripts.isEmpty ? nil : partialTranscripts.suffix(3).joined(separator: " ")
                 )
-            } else if isProcessingAudio && (currentProcessingPhase == .generatingOverview || currentProcessingPhase == .generatingSummary || currentProcessingPhase == .extractingActions) {
+            } else if isProcessingAudio && (currentProcessingPhase == .generatingOverview || currentProcessingPhase == .generatingSummary) {
                 // Minimalist analysis view
                 MinimalistAnalysisView(currentStep: analysisStepNumber())
             } else if hasImportedAudio {
@@ -827,8 +826,7 @@ struct CreateMeetingView: View {
         case .transcribing: return 0
         case .generatingOverview: return 1
         case .generatingSummary: return 2
-        case .extractingActions: return 3
-        case .complete: return 4
+        case .complete: return 3
         }
     }
 
@@ -1484,29 +1482,17 @@ struct CreateMeetingView: View {
                     liveSummary = summary
                 }
 
-                var actionItems: [ActionItem]?
-                if let extractedItems = try await MeetingAnalysisRouter.shared.extractActionsIfEnabled(transcript) {
-                    await MainActor.run {
-                        currentProcessingPhase = .extractingActions
-                    }
-                    print("✅ [CreateMeeting][Imported] Extracted \(extractedItems.count) action items")
-                    actionItems = extractedItems
-                }
                 await MainActor.run {
                     currentProcessingPhase = .complete
                 }
                 
                 // Track AI usage
-                await UsageTracker.shared.trackAIUsage(
-                    summaries: 1,
-                    actionsExtracted: actionItems?.count ?? 0
-                )
+                await UsageTracker.shared.trackAIUsage(summaries: 1)
                 
                 await MainActor.run {
                     updateMeetingWithAI(
                         overview: overview,
                         summary: summary,
-                        actionItems: actionItems,
                         debitResult: debitResult,
                         duration: cachedAudioDuration,
                         audioStoragePath: uploadedAudioPath
@@ -2069,22 +2055,14 @@ struct CreateMeetingView: View {
                     explicitLanguageCode: selectedLanguage
                 )
                 print("✅ [CreateMeeting][Recorded] Summary generated (chars: \(summary.count))")
-                let actionItems = try await MeetingAnalysisRouter.shared.extractActionsIfEnabled(transcript)
-                if let actionItems {
-                    print("✅ [CreateMeeting][Recorded] Extracted \(actionItems.count) action items")
-                }
                 
                 // Track AI usage
-                await UsageTracker.shared.trackAIUsage(
-                    summaries: 1,
-                    actionsExtracted: actionItems?.count ?? 0
-                )
+                await UsageTracker.shared.trackAIUsage(summaries: 1)
                 
                 await MainActor.run {
                     updateMeetingWithAI(
                         overview: overview,
                         summary: summary,
-                        actionItems: actionItems,
                         debitResult: debitResult,
                         duration: recordingDuration,
                         audioStoragePath: uploadedAudioPath
@@ -2265,7 +2243,6 @@ struct CreateMeetingView: View {
     private func updateMeetingWithAI(
         overview: String,
         summary: String,
-        actionItems: [ActionItem]?,
         debitResult: MinutesManager.DebitMinutesResult,
         duration: TimeInterval,
         audioStoragePath: String?
@@ -2307,31 +2284,6 @@ struct CreateMeetingView: View {
                 )
             }
             
-            // Create Action entities from extracted action items
-            if let actionItems {
-                for actionItem in actionItems {
-                    let priority: ActionPriority
-                    switch actionItem.priority.uppercased() {
-                    case "HIGH":
-                        priority = .high
-                    case "MED", "MEDIUM":
-                        priority = .medium
-                    case "LOW":
-                        priority = .low
-                    default:
-                        priority = .medium
-                    }
-
-                    let action = Action(
-                        title: actionItem.action,
-                        priority: priority,
-                        sourceNoteId: meeting.id // Reusing the same field for meetings
-                    )
-
-                    modelContext.insert(action)
-                }
-            }
-
             try modelContext.save()
 
             // Sync updated meeting to Supabase
@@ -2345,21 +2297,14 @@ struct CreateMeetingView: View {
                         duration: duration,
                         transcript: meeting.audioTranscript,
                         overview: overview,
-                        summary: summary,
-                        actions: actionItems ?? []
+                        summary: summary
                     )
                 } catch {
                     print("⚠️ Failed to sync updated meeting to Supabase: \(error)")
                 }
             }
 
-            // Track action creation
-            if let actionItems, !actionItems.isEmpty {
-                Task {
-                    await UsageTracker.shared.trackActionsCreated(count: actionItems.count)
-                }
-            }
-            
+
         } catch {
             print("Error updating meeting with AI: \(error)")
         }

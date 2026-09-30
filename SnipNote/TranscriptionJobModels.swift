@@ -98,7 +98,7 @@ struct JobStatusResponse: Codable {
     let transcript: String?
     let overview: String?       // 1-sentence overview
     let summary: String?         // Full summary
-    let actions: [ActionItemJSON]?  // Action items from backend
+    // Note: the backend may still send an `actions` key; it is intentionally not decoded.
     let duration: Double?
     let errorMessage: String?
     let progressPercentage: Int?    // Progress from 0-100
@@ -116,7 +116,6 @@ struct JobStatusResponse: Codable {
         case transcript
         case overview
         case summary
-        case actions
         case duration
         case errorMessage = "error_message"
         case progressPercentage = "progress_percentage"
@@ -127,8 +126,3 @@ struct JobStatusResponse: Codable {
     }
 }
 
-// Action item model matching Python backend JSON format
-struct ActionItemJSON: Codable {
-    let action: String
-    let priority: String
-}

@@ -117,7 +117,7 @@ struct WelcomeScreen: View {
                     .themedTitle()
                     .multilineTextAlignment(.center)
 
-                Text("AI-powered voice note taking with smart action extraction. Turn your meetings into actionable insights.")
+                Text("AI-powered voice note taking. Turn your recordings into clear transcripts and summaries.")
                     .themedBody()
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
@@ -250,7 +250,6 @@ struct AIFeaturesScreen: View {
             VStack(alignment: .leading, spacing: 12) {
                 OnboardingFeatureRow(icon: "doc.text", title: "Auto Transcription", description: "Accurate speech-to-text")
                 OnboardingFeatureRow(icon: "sparkles", title: "AI Summaries", description: "Key points extracted")
-                OnboardingFeatureRow(icon: "checklist", title: "Action Items", description: "Tasks identified automatically")
                 OnboardingFeatureRow(icon: "magnifyingglass", title: "Smart Search", description: "Find content instantly")
             }
             .padding(.horizontal, 20)

@@ -137,7 +137,8 @@ final class SmartTranscriptionTests: XCTestCase {
         XCTAssertEqual(response.createdAt, "2025-01-04T12:00:00Z")
     }
 
-    /// Test JobStatusResponse decoding with all fields
+    /// Test JobStatusResponse decoding with all fields.
+    /// The payload still carries a legacy `actions` key (older workers send it); it must be ignored.
     func testJobStatusResponseFullDecoding() throws {
         let json = """
         {
@@ -173,9 +174,6 @@ final class SmartTranscriptionTests: XCTestCase {
         XCTAssertEqual(response.transcript, "Test transcript")
         XCTAssertEqual(response.overview, "Test overview")
         XCTAssertEqual(response.summary, "Test summary")
-        XCTAssertEqual(response.actions?.count, 2)
-        XCTAssertEqual(response.actions?[0].action, "Follow up")
-        XCTAssertEqual(response.actions?[0].priority, "high")
         XCTAssertEqual(response.duration, 300.5)
         XCTAssertEqual(response.progressPercentage, 100)
         XCTAssertEqual(response.currentStage, "Completed")
@@ -203,7 +201,6 @@ final class SmartTranscriptionTests: XCTestCase {
         XCTAssertNil(response.transcript)
         XCTAssertNil(response.overview)
         XCTAssertNil(response.summary)
-        XCTAssertNil(response.actions)
         XCTAssertNil(response.duration)
         XCTAssertNil(response.errorMessage)
         XCTAssertNil(response.progressPercentage)
@@ -231,41 +228,6 @@ final class SmartTranscriptionTests: XCTestCase {
 
         XCTAssertEqual(response.status, .failed)
         XCTAssertEqual(response.errorMessage, "Transcription service unavailable")
-    }
-
-    /// Test ActionItemJSON decoding
-    func testActionItemJSONDecoding() throws {
-        let json = """
-        {
-            "action": "Schedule follow-up meeting",
-            "priority": "high"
-        }
-        """
-
-        let data = json.data(using: .utf8)!
-        let action = try JSONDecoder().decode(ActionItemJSON.self, from: data)
-
-        XCTAssertEqual(action.action, "Schedule follow-up meeting")
-        XCTAssertEqual(action.priority, "high")
-    }
-
-    /// Test ActionItemJSON array decoding
-    func testActionItemJSONArrayDecoding() throws {
-        let json = """
-        [
-            {"action": "Review budget", "priority": "high"},
-            {"action": "Update timeline", "priority": "medium"},
-            {"action": "Send summary", "priority": "low"}
-        ]
-        """
-
-        let data = json.data(using: .utf8)!
-        let actions = try JSONDecoder().decode([ActionItemJSON].self, from: data)
-
-        XCTAssertEqual(actions.count, 3)
-        XCTAssertEqual(actions[0].priority, "high")
-        XCTAssertEqual(actions[1].priority, "medium")
-        XCTAssertEqual(actions[2].priority, "low")
     }
 
     // MARK: - Audio Duration Threshold Tests (Task 1.0)

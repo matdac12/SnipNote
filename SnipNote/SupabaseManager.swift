@@ -251,8 +251,7 @@ class SupabaseManager {
         duration: TimeInterval,
         transcript: String,
         overview: String,
-        summary: String,
-        actions: [ActionItem]
+        summary: String
     ) async throws {
         guard let userId = client.auth.currentUser?.id else {
             throw SupabaseError.authRequired
@@ -279,7 +278,6 @@ class SupabaseManager {
             completedAt: Date(),
             overview: overview,
             summary: summary,
-            actions: actions,
             progressPercentage: 100,
             currentStage: "Completed"
         )
@@ -702,10 +700,7 @@ struct UserUsage: Codable {
     let totalMeetings: Int
     let totalMeetingsTranscribed: Int
     let totalMeetingSeconds: Int
-    let totalActionsCreated: Int
-    let totalActionsCompleted: Int
     let totalAiSummaries: Int
-    let totalAiActionsExtracted: Int
     let totalAiTokensUsed: Int
     let usageCost: Decimal?
     let createdAt: Date?
@@ -719,10 +714,7 @@ struct UserUsage: Codable {
         case totalMeetings = "total_meetings"
         case totalMeetingsTranscribed = "total_meetings_transcribed"
         case totalMeetingSeconds = "total_meeting_seconds"
-        case totalActionsCreated = "total_actions_created"
-        case totalActionsCompleted = "total_actions_completed"
         case totalAiSummaries = "total_ai_summaries"
-        case totalAiActionsExtracted = "total_ai_actions_extracted"
         case totalAiTokensUsed = "total_ai_tokens_used"
         case usageCost = "usage_cost"
         case createdAt = "created_at"
@@ -884,7 +876,6 @@ struct CompletedTranscriptionJobPayload: Codable {
     let completedAt: Date
     let overview: String
     let summary: String
-    let actions: [ActionItem]
     let progressPercentage: Int
     let currentStage: String
 
@@ -899,7 +890,6 @@ struct CompletedTranscriptionJobPayload: Codable {
         case completedAt = "completed_at"
         case overview
         case summary
-        case actions
         case progressPercentage = "progress_percentage"
         case currentStage = "current_stage"
     }
@@ -920,7 +910,6 @@ struct CompletedTranscriptionJobPayload: Codable {
         try container.encode(completedAt, forKey: .completedAt)
         try container.encode(overview, forKey: .overview)
         try container.encode(summary, forKey: .summary)
-        try container.encode(actions, forKey: .actions)
         try container.encode(progressPercentage, forKey: .progressPercentage)
         try container.encode(currentStage, forKey: .currentStage)
     }

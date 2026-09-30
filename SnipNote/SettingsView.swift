@@ -1188,7 +1188,7 @@ struct LocalModelCard: View {
 
 #Preview {
     SettingsView()
-        .modelContainer(for: [Action.self], inMemory: true)
+        .modelContainer(for: [Meeting.self], inMemory: true)
         .environmentObject(ThemeManager.shared)
         .environmentObject(AuthenticationManager())
         .environmentObject(LocalizationManager.shared)

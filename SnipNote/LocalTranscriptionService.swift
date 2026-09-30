@@ -505,9 +505,6 @@ actor LocalTranscriptionService {
     private func makeModelContainer() throws -> ModelContainer {
         let schema = Schema([
             Meeting.self,
-            Action.self,
-            EveMessage.self,
-            ChatConversation.self,
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         return try ModelContainer(for: schema, configurations: [configuration])

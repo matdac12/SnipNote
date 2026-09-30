@@ -20,10 +20,18 @@ enum MeetingProcessingPhase: String, Codable, CaseIterable {
     case transcribing
     case generatingOverview = "generating_overview"
     case generatingSummary = "generating_summary"
-    case extractingActions = "extracting_actions"
     case paused
     case failed
     case completed
+
+    /// Decodes a persisted raw value. Stores written by older builds may contain
+    /// "extracting_actions" (removed phase); it maps to the summary phase, which is
+    /// the closest still-existing step, so an interrupted job resumes safely.
+    static func fromPersisted(_ rawValue: String?) -> MeetingProcessingPhase? {
+        guard let rawValue else { return nil }
+        if rawValue == "extracting_actions" { return .generatingSummary }
+        return MeetingProcessingPhase(rawValue: rawValue)
+    }
 
     var displayName: String {
         switch self {
@@ -39,8 +47,6 @@ enum MeetingProcessingPhase: String, Codable, CaseIterable {
             return "Generating Overview"
         case .generatingSummary:
             return "Generating Summary"
-        case .extractingActions:
-            return "Extracting Actions"
         case .paused:
             return "Paused"
         case .failed:
@@ -142,7 +148,7 @@ final class Meeting {
 
     var processingPhase: MeetingProcessingPhase {
         get {
-            MeetingProcessingPhase(rawValue: processingPhaseRaw) ?? .idle
+            MeetingProcessingPhase.fromPersisted(processingPhaseRaw) ?? .idle
         }
         set {
             processingPhaseRaw = newValue.rawValue
@@ -151,7 +157,7 @@ final class Meeting {
 
     var resumePhase: MeetingProcessingPhase {
         get {
-            resumePhaseRaw.flatMap(MeetingProcessingPhase.init(rawValue:)) ?? .transcribing
+            MeetingProcessingPhase.fromPersisted(resumePhaseRaw) ?? .transcribing
         }
         set {
             resumePhaseRaw = newValue.rawValue

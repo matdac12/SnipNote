@@ -93,11 +93,6 @@ actor LocalTranscriptionJobManager {
             }
 
             if deleteMeeting {
-                let actionDescriptor = FetchDescriptor<Action>(predicate: #Predicate { $0.sourceNoteId == meetingId })
-                let actions = try context.fetch(actionDescriptor)
-                for action in actions {
-                    context.delete(action)
-                }
                 context.delete(meeting)
             } else {
                 meeting.markLocalJobFailed("Transcription cancelled.")
@@ -175,21 +170,14 @@ actor LocalTranscriptionJobManager {
             let summary = try await ensureSummary(for: context, transcript: transcript)
             try Task.checkCancellation()
 
-            let actionItems = try await ensureActions(for: context, transcript: transcript)
-            try Task.checkCancellation()
-
-            await UsageTracker.shared.trackAIUsage(
-                summaries: 1,
-                actionsExtracted: actionItems?.count ?? 0
-            )
+            await UsageTracker.shared.trackAIUsage(summaries: 1)
 
             try await finalizeSuccess(
                 for: context,
                 transcript: transcript,
                 debitSucceeded: debitSucceeded,
                 overview: overview,
-                summary: summary,
-                actionItems: actionItems
+                summary: summary
             )
         } catch is CancellationError {
             if pauseRequestedMeetingIDs.contains(context.meetingId) || cancelRequestedMeetingIDs.contains(context.meetingId) {
@@ -363,7 +351,7 @@ actor LocalTranscriptionJobManager {
     }
 
     private func ensureOverview(for context: JobContext, transcript: String) async throws -> String {
-        if context.resumePhase == .generatingSummary || context.resumePhase == .extractingActions || context.resumePhase == .completed {
+        if context.resumePhase == .generatingSummary || context.resumePhase == .completed {
             if let overview = await readMeetingValue(context.meetingId, value: { $0.shortSummary }),
                !overview.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                overview != Self.overviewPlaceholder {
@@ -392,7 +380,7 @@ actor LocalTranscriptionJobManager {
     }
 
     private func ensureSummary(for context: JobContext, transcript: String) async throws -> String {
-        if context.resumePhase == .extractingActions || context.resumePhase == .completed {
+        if context.resumePhase == .completed {
             if let summary = await readMeetingValue(context.meetingId, value: { $0.aiSummary }),
                !summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                summary != Self.summaryPlaceholder {
@@ -413,30 +401,13 @@ actor LocalTranscriptionJobManager {
         )
         try Task.checkCancellation()
 
-        let actionsEnabled = await MeetingAnalysisRouter.shared.actionsEnabled()
-
         try await updateMeeting(context.meetingId) { meeting, _ in
             meeting.aiSummary = summary
             meeting.updateProcessingState(.generatingSummary)
-            if actionsEnabled {
-                meeting.updateProcessingPhase(.extractingActions, stage: "Extracting action items...", progressPercent: max(meeting.displayedProgressPercent, 98))
-            } else {
-                meeting.updateProcessingPhase(.generatingSummary, stage: "Finalizing analysis...", progressPercent: max(meeting.displayedProgressPercent, 99))
-            }
+            meeting.updateProcessingPhase(.generatingSummary, stage: "Finalizing analysis...", progressPercent: max(meeting.displayedProgressPercent, 99))
         }
 
         return summary
-    }
-
-    private func ensureActions(for context: JobContext, transcript: String) async throws -> [ActionItem]? {
-        if context.resumePhase == .extractingActions {
-            try await updateMeeting(context.meetingId) { meeting, _ in
-                meeting.updateProcessingState(.generatingSummary)
-                meeting.updateProcessingPhase(.extractingActions, stage: "Extracting action items...", progressPercent: max(meeting.displayedProgressPercent, 98))
-            }
-        }
-
-        return try await MeetingAnalysisRouter.shared.extractActionsIfEnabled(transcript)
     }
 
     private func persistTranscript(
@@ -492,11 +463,10 @@ actor LocalTranscriptionJobManager {
         transcript: String,
         debitSucceeded: Bool,
         overview: String,
-        summary: String,
-        actionItems: [ActionItem]?
+        summary: String
     ) async throws {
         let meetingID = context.meetingId
-        try await updateMeeting(meetingID) { meeting, modelContext in
+        try await updateMeeting(meetingID) { meeting, _ in
             meeting.shortSummary = overview
             meeting.aiSummary = summary
             meeting.markLocalJobCompleted()
@@ -506,36 +476,6 @@ actor LocalTranscriptionJobManager {
                 meeting.markMinutesDebitPending(
                     message: "Meeting completed. We’re retrying the minutes sync in the background."
                 )
-            }
-
-            if let actionItems {
-                let actionDescriptor = FetchDescriptor<Action>(predicate: #Predicate { $0.sourceNoteId == meetingID })
-                let existingActions = try modelContext.fetch(actionDescriptor)
-                for action in existingActions {
-                    modelContext.delete(action)
-                }
-
-                for actionItem in actionItems {
-                    let priority: ActionPriority
-                    switch actionItem.priority.uppercased() {
-                    case "HIGH":
-                        priority = .high
-                    case "LOW":
-                        priority = .low
-                    case "MED", "MEDIUM":
-                        priority = .medium
-                    default:
-                        priority = .medium
-                    }
-
-                    modelContext.insert(
-                        Action(
-                            title: actionItem.action,
-                            priority: priority,
-                            sourceNoteId: meetingID
-                        )
-                    )
-                }
             }
 
             if debitSucceeded,
@@ -551,7 +491,6 @@ actor LocalTranscriptionJobManager {
             transcript: transcript,
             overview: overview,
             summary: summary,
-            actions: actionItems,
             duration: context.sourceAudioDuration
         )
 
@@ -607,7 +546,6 @@ actor LocalTranscriptionJobManager {
         transcript: String,
         overview: String,
         summary: String,
-        actions: [ActionItem]?,
         duration: TimeInterval
     ) async throws {
         let container = try makeModelContainer()
@@ -626,8 +564,7 @@ actor LocalTranscriptionJobManager {
                 duration: duration,
                 transcript: transcript,
                 overview: overview,
-                summary: summary,
-                actions: actions ?? []
+                summary: summary
             )
         } catch {
             print("⚠️ [LocalJobManager] Failed to sync meeting \(meetingId): \(error)")
@@ -752,9 +689,6 @@ actor LocalTranscriptionJobManager {
     private func makeModelContainer() throws -> ModelContainer {
         let schema = Schema([
             Meeting.self,
-            Action.self,
-            EveMessage.self,
-            ChatConversation.self,
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         return try ModelContainer(for: schema, configurations: [configuration])

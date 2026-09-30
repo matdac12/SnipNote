@@ -14,15 +14,12 @@ struct MeetingDetailView: View {
     @Bindable var meeting: Meeting
     @EnvironmentObject var themeManager: ThemeManager
 
-    @Query private var allActions: [Action]
-
     @State private var isEditingName = false
     @State private var tempName = ""
     @State private var showingNotes = true
     @State private var showingOverview = true
     @State private var showingTranscript = false
     @State private var showingSummary = true
-    @State private var showingActions = true
     @State private var showingFullScreenSummary = false
     @State private var showingFullScreenTranscript = false
 
@@ -41,10 +38,6 @@ struct MeetingDetailView: View {
     @State private var jobStage: String = ""
     @State private var jobPollingTask: Task<Void, Never>?
     @StateObject private var transcriptionService = RenderTranscriptionService()
-
-    private var relatedActions: [Action] {
-        allActions.filter { $0.sourceNoteId == meeting.id }
-    }
 
     private var theme: AppTheme {
         themeManager.currentTheme
@@ -71,7 +64,6 @@ struct MeetingDetailView: View {
                         overviewSection
                         summarySection
                         transcriptSection
-                        actionsSection
                     }
                     .padding()
                 }
@@ -345,7 +337,7 @@ struct MeetingDetailView: View {
 
     private var localMinimalistPhase: MinimalistPhase {
         switch meeting.processingPhase {
-        case .generatingOverview, .generatingSummary, .extractingActions:
+        case .generatingOverview, .generatingSummary:
             return .analyzing
         default:
             return .transcribing
@@ -605,40 +597,6 @@ struct MeetingDetailView: View {
         }
     }
     
-    private var actionsSection: some View {
-        editorialSection(title: "Actions", isExpanded: $showingActions) {
-            if !relatedActions.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(relatedActions.sorted(by: { !$0.isCompleted && $1.isCompleted })) { action in
-                        HStack(alignment: .top, spacing: 12) {
-                            Circle()
-                                .fill(priorityColor(for: action))
-                                .frame(width: 8, height: 8)
-                                .padding(.top, 6)
-
-                            Text(action.title)
-                                .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
-                                .foregroundColor(action.isCompleted ? theme.secondaryTextColor : theme.textColor)
-                                .strikethrough(action.isCompleted)
-                                .lineLimit(2)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            if action.isCompleted {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(theme.accentColor)
-                            }
-                        }
-                    }
-                }
-            } else {
-                Text("No action items found in this meeting")
-                    .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
-                    .foregroundColor(theme.secondaryTextColor)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-    
     // MARK: - Helper Views
     
     private func editorialSection<Content: View>(
@@ -761,14 +719,6 @@ struct MeetingDetailView: View {
         if !meeting.isProcessing && !meeting.audioTranscript.isEmpty {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 16) {
-                    // Eve Chat Button - navigates to Eve with this meeting pre-selected
-                    NavigationLink(destination: EveView(preSelectedMeetingId: meeting.id)) {
-                        Image(systemName: "wand.and.stars")
-                            .font(.system(.body))
-                            .foregroundColor(themeManager.currentTheme.accentColor)
-                    }
-                    .help("Chat with Eve about this meeting")
-
                     // Share Menu
                     Menu {
                         Button(action: shareSummary) {
@@ -953,14 +903,6 @@ struct MeetingDetailView: View {
         return String(trimmed.prefix(700)).trimmingCharacters(in: .whitespacesAndNewlines) + "..."
     }
     
-    private func priorityColor(for action: Action) -> Color {
-        switch action.priority {
-        case .high: return themeManager.currentTheme.destructiveColor
-        case .medium: return themeManager.currentTheme.warningColor
-        case .low: return themeManager.currentTheme.accentColor
-        }
-    }
-    
     private func startEditingName() {
         tempName = meeting.name
         isEditingName = true
@@ -1002,9 +944,6 @@ struct MeetingDetailView: View {
         
         Transcript:
         \(meeting.audioTranscript.isEmpty ? "N/A" : meeting.audioTranscript)
-        
-        Actions:
-        \(relatedActions.isEmpty ? "No actions" : relatedActions.map { action in "- [\(action.priority.rawValue)] \(action.title)" }.joined(separator: "\n"))
         """
         
         do {
@@ -1176,19 +1115,6 @@ struct MeetingDetailView: View {
             if let summary = status.summary {
                 meeting.aiSummary = summary
                 print("✅ [MeetingDetail] Summary: \(summary.count) chars")
-            }
-
-            if let backendActions = status.actions, !backendActions.isEmpty {
-                for backendAction in backendActions {
-                    let priority = ActionPriority(rawValue: backendAction.priority) ?? .medium
-                    let action = Action(
-                        title: backendAction.action,
-                        priority: priority,
-                        sourceNoteId: meeting.id
-                    )
-                    modelContext.insert(action)
-                }
-                print("✅ [MeetingDetail] Created \(backendActions.count) action items")
             }
 
             meeting.markCompleted()
@@ -1475,8 +1401,6 @@ struct MeetingDetailView: View {
                 transcript: transcript,
                 explicitLanguageCode: meeting.transcriptionLanguage
             )
-            let actionItems = try await MeetingAnalysisRouter.shared.extractActionsIfEnabled(transcript)
-            let actionsForSync = actionItems ?? existingActionItems()
 
             meeting.shortSummary = overview
             meeting.aiSummary = summary
@@ -1489,33 +1413,6 @@ struct MeetingDetailView: View {
                 )
             }
             HapticService.shared.success()
-
-            if let actionItems {
-                for action in relatedActions {
-                    modelContext.delete(action)
-                }
-
-                for actionItem in actionItems {
-                    let priority: ActionPriority
-                    switch actionItem.priority.uppercased() {
-                    case "HIGH":
-                        priority = .high
-                    case "MED", "MEDIUM":
-                        priority = .medium
-                    case "LOW":
-                        priority = .low
-                    default:
-                        priority = .medium
-                    }
-
-                    let action = Action(
-                        title: actionItem.action,
-                        priority: priority,
-                        sourceNoteId: meeting.id
-                    )
-                    modelContext.insert(action)
-                }
-            }
 
             let shouldDeleteLocalAudio = meeting.hasRecording || !shouldUploadAudio
 
@@ -1540,8 +1437,7 @@ struct MeetingDetailView: View {
                             duration: meeting.billingDuration,
                             transcript: meeting.audioTranscript,
                             overview: overview,
-                            summary: summary,
-                            actions: actionsForSync
+                            summary: summary
                         )
                     } catch {
                         print("⚠️ Failed to sync retry results to Supabase: \(error)")
@@ -1608,43 +1504,10 @@ struct MeetingDetailView: View {
                 explicitLanguageCode: meeting.transcriptionLanguage
             )
             print("✅ [MeetingDetail][AI Retry] Summary generated (chars: \(summary.count))")
-            let actionItems = try await MeetingAnalysisRouter.shared.extractActionsIfEnabled(transcript)
-            let actionsForSync = actionItems ?? existingActionItems()
-            if let actionItems {
-                print("✅ [MeetingDetail][AI Retry] Extracted \(actionItems.count) action items")
-            }
 
             meeting.shortSummary = overview
             meeting.aiSummary = summary
             meeting.markCompleted()
-
-            if let actionItems {
-                for action in relatedActions {
-                    modelContext.delete(action)
-                }
-
-                for actionItem in actionItems {
-                    let priority: ActionPriority
-                    switch actionItem.priority.uppercased() {
-                    case "HIGH":
-                        priority = .high
-                    case "MED", "MEDIUM":
-                        priority = .medium
-                    case "LOW":
-                        priority = .low
-                    default:
-                        priority = .medium
-                    }
-
-                    modelContext.insert(
-                        Action(
-                            title: actionItem.action,
-                            priority: priority,
-                            sourceNoteId: meeting.id
-                        )
-                    )
-                }
-            }
 
             do {
                 try modelContext.save()
@@ -1658,8 +1521,7 @@ struct MeetingDetailView: View {
                             duration: meeting.billingDuration,
                             transcript: meeting.audioTranscript,
                             overview: overview,
-                            summary: summary,
-                            actions: actionsForSync
+                            summary: summary
                         )
                     } catch {
                         print("⚠️ Failed to sync AI retry results to Supabase: \(error)")
@@ -1727,11 +1589,6 @@ struct MeetingDetailView: View {
         await performRetryTranscription()
     }
 
-    private func existingActionItems() -> [ActionItem] {
-        relatedActions.map {
-            ActionItem(action: $0.title, priority: $0.priority.rawValue)
-        }
-    }
 }
 
 private enum SummaryBlock {

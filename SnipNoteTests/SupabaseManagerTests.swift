@@ -14,7 +14,6 @@ final class SupabaseManagerTests: XCTestCase {
             completedAt: Date(timeIntervalSince1970: 1_700_000_000),
             overview: "Overview",
             summary: "Summary",
-            actions: [ActionItem(action: "Follow up", priority: "high")],
             progressPercentage: 100,
             currentStage: "Completed"
         )
@@ -42,7 +41,6 @@ final class SupabaseManagerTests: XCTestCase {
             completedAt: Date(timeIntervalSince1970: 1_700_000_000),
             overview: "Overview",
             summary: "Summary",
-            actions: [],
             progressPercentage: 100,
             currentStage: "Completed"
         )

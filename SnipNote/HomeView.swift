@@ -433,7 +433,7 @@ private struct HomeMeetingRow: View {
 
 #Preview {
     HomeView(selectedTab: .constant(.home))
-        .modelContainer(for: [Action.self, Meeting.self, EveMessage.self, ChatConversation.self], inMemory: true)
+        .modelContainer(for: [Meeting.self], inMemory: true)
         .environmentObject(ThemeManager.shared)
         .environmentObject(LocalizationManager.shared)
 }

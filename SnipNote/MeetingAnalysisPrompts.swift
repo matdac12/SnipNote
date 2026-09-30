@@ -25,7 +25,7 @@ enum MeetingAnalysisPrompts {
         """
     }
 
-    static let summaryInstructions = "You are a professional meeting summarizer. Create structured, comprehensive summaries that capture key decisions, action items, and next steps. Always respond in the same language as the input transcript."
+    static let summaryInstructions = "You are a professional meeting summarizer. Create structured, comprehensive summaries that capture key decisions and next steps. Always respond in the same language as the input transcript."
 
     static func summaryPrompt(transcript: String, languageContext: AnalysisLanguageContext) -> String {
         """
@@ -39,10 +39,6 @@ enum MeetingAnalysisPrompts {
         ## Decisions Made
         - Key decisions reached during the meeting
         - Who is responsible for what
-
-        ## Action Items
-        - Tasks assigned with responsible parties
-        - Deadlines mentioned
 
         ## Next Steps
         - Follow-up actions

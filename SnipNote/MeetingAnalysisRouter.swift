@@ -43,21 +43,6 @@ final class MeetingAnalysisRouter {
         )
     }
 
-    func extractActionsIfEnabled(_ transcript: String) async throws -> [ActionItem]? {
-        let providerType = await selectedProviderType()
-        guard providerType == .openAI else {
-            print("🧠 [AnalysisRouter] Skipping action extraction for \(providerType.displayName)")
-            return nil
-        }
-
-        print("🧠 [AnalysisRouter] Extracting actions with OpenAI")
-        return try await OpenAIService.shared.extractActions(transcript)
-    }
-
-    func actionsEnabled() async -> Bool {
-        (await selectedProviderType()) == .openAI
-    }
-
     func selectedProviderType() async -> MeetingAnalysisProviderType {
         await MainActor.run { MeetingAnalysisManager.shared.selectedProvider }
     }

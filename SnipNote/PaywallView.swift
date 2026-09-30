@@ -118,7 +118,7 @@ struct PaywallView: View {
                 .foregroundColor(themeManager.currentTheme.textColor)
             
             FeatureRow(icon: "clock.fill", title: "Generous Minutes Included", description: "200-9,600 minutes depending on plan")
-            FeatureRow(icon: "sparkles", title: "AI Features", description: "Eve chat, smart summaries & action extraction")
+            FeatureRow(icon: "sparkles", title: "AI Features", description: "Transcripts & smart summaries")
             FeatureRow(icon: "icloud.fill", title: "Cloud Sync", description: "Access your data across all devices")
         }
         .padding(12)

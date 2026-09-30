@@ -563,9 +563,6 @@ extension MinutesManager {
         do {
             let schema = Schema([
                 Meeting.self,
-                Action.self,
-                EveMessage.self,
-                ChatConversation.self,
             ])
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             let container = try ModelContainer(for: schema, configurations: [configuration])

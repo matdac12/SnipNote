@@ -44,10 +44,7 @@ struct SnipNoteApp: App {
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Action.self,
             Meeting.self,
-            EveMessage.self,
-            ChatConversation.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

@@ -70,7 +70,7 @@ struct ContentView: View {
 
 #Preview {
     ContentView(sharedAudioImportRequest: .constant(nil))
-        .modelContainer(for: [Action.self, Meeting.self, EveMessage.self, ChatConversation.self], inMemory: true)
+        .modelContainer(for: [Meeting.self], inMemory: true)
         .environmentObject(ThemeManager.shared)
         .environmentObject(LocalizationManager.shared)
 }

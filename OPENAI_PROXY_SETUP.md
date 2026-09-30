@@ -81,7 +81,7 @@ ownership RPCs are executable only by service role.
 ## Verification and rotation
 
 ```bash
-deno test supabase/functions/openai-proxy/handler_test.ts
+deno test supabase/functions/openai-proxy/handler_test.ts supabase/functions/openai-proxy/transcription_test.ts
 deno check --config supabase/functions/openai-proxy/deno.json supabase/functions/openai-proxy/index.ts
 ```
 
@@ -101,3 +101,68 @@ Treat the key embedded in older releases as exposed. After the proxy app is live
 and the VPS has a valid replacement key, revoke the old key in OpenAI. Older builds
 will lose AI features. Removing a local literal does not revoke a key or remove it
 from already-shipped binaries.
+
+## Saved cloud transcription provider rollout
+
+Settings saves `openai` or `xai` locally under `cloudTranscription.provider`.
+Only new cloud transcriptions use the choice. On-device Whisper, purchased
+minutes, and text generation (including Eve) keep their existing behavior.
+Short recordings still POST `/audio/transcriptions`, with
+`X-SnipNote-Task: transcription` and `X-SnipNote-Transcription-Provider: openai|xai`.
+The proxy's private xAI destination is fixed at `https://api.x.ai/v1/stt`.
+Missing provider headers default to OpenAI; unknown values and provider headers
+on text endpoints return 400. Authentication, quotas and upload limits apply to
+both providers.
+
+OpenAI uses `ai_model_config.task = transcription`; xAI uses `transcription_xai`,
+seeded with `grok-voice-transcribe-2.0` and NULL effort, verbosity and fallback.
+Model edits are cached for 60 seconds. Keep credentials out of this table.
+Fallback models are always within the selected provider, only for 400/404;
+xAI failures never switch to OpenAI. Missing xAI credentials return an actionable
+503. Empty or malformed xAI transcript responses return sanitized 502 errors.
+Explicit language enables xAI formatting; auto language omits language/format.
+
+Deployment is a separate, authorized operation. Perform these steps in order:
+
+1. Check remote migration history and schema, then apply **only**
+   `supabase/migrations/20260930105323_add_transcription_provider.sql` through
+   the reviewed migration workflow. It adds the job column/default/check and
+   inserts the xAI row without replacing administrator changes. Do not blindly
+   apply historical migrations or run blanket `supabase db push`.
+2. Configure `XAI_API_KEY` in Supabase Edge Function secrets and independently
+   in `/etc/snipnote-transcription/env` on the VPS (root-owned, mode 600).
+   Keep `OPENAI_API_KEY` for OpenAI transcription and unchanged text generation.
+   Supabase secrets do not populate the VPS environment. Never print keys.
+3. Deploy the reviewed `openai-proxy` with JWT verification enabled and the
+   service API **and worker** changes; restart both VPS units in the deployment
+   window. The service release must include local main's configuration commits
+   through `5176d6b`, plus the provider feature commits. Nothing was pushed by
+   the implementation task.
+4. Run the authorized staging smoke matrix below, then release the iOS app last.
+   Legacy clients and jobs remain OpenAI throughout rollout.
+
+For rollback, stop new xAI submissions and coordinate app/backend rollback.
+Retain the additive column and config row. Drain or explicitly fail queued xAI
+jobs before rolling back to workers that do not understand providers; never let
+an old worker process a queued xAI job as OpenAI. Keep the xAI credential until
+those jobs are handled. Users can select OpenAI for new operations.
+
+### Manual staging matrix (prepared, not executed)
+
+Use a dedicated account and separately authorized paid API calls.
+
+| Provider | Route | Language cases | Expected |
+| --- | --- | --- | --- |
+| OpenAI | Short proxy recording | English, Italian, auto | Usable transcript; existing progress/minutes behavior |
+| xAI | Short proxy recording | English, Italian, auto | Usable transcript; existing progress/minutes behavior |
+| OpenAI | Long regular and chunked VPS jobs | English, Italian, auto | Stored provider retained through all chunks/retries |
+| xAI | Long regular and chunked VPS jobs | English, Italian, auto | Stored provider retained through all chunks/retries |
+
+For each route, change Settings during delayed upload and after a transient
+failure. The active operation must keep its initial provider; the next new
+operation (including manual retranscription) must use the new preference.
+Check summaries/actions/title/Eve, completion notifications, minutes debit and
+transcript quality with existing audio preprocessing. In staging, test missing
+xAI credentials, 401/403, 429 and 5xx; errors must preserve status information,
+release quota reservations, omit secrets/content and never contact OpenAI as an
+xAI fallback. Do not remove a production key to simulate these failures.

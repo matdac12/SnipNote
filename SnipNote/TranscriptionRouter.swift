@@ -11,9 +11,11 @@ final class TranscriptionRouter {
     static let shared = TranscriptionRouter()
 
     private let localService = LocalTranscriptionService.shared
-    private let openAIService = OpenAIService.shared
+    private let openAIService: OpenAIService
 
-    private init() {}
+    init(openAIService: OpenAIService = .shared) {
+        self.openAIService = openAIService
+    }
 
     func transcribeAudioFromURL(
         audioURL: URL,
@@ -29,12 +31,14 @@ final class TranscriptionRouter {
 
         switch mode {
         case .cloud:
+            let provider = await MainActor.run { CloudTranscriptionSettings.shared.selectedProvider }
             return try await openAIService.transcribeAudioFromURL(
                 audioURL: audioURL,
                 progressCallback: progressCallback,
                 meetingName: meetingName,
                 meetingId: meetingId,
-                language: language
+                language: language,
+                provider: provider
             )
         case .local:
             let model: LocalTranscriptionModel

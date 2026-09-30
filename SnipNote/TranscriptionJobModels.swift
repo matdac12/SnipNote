@@ -28,12 +28,22 @@ struct CreateJobRequest: Codable {
     let meetingId: String
     let audioUrl: String
     let language: String?
+    let transcriptionProvider: CloudTranscriptionProvider
+
+    init(userId: String, meetingId: String, audioUrl: String, language: String?, transcriptionProvider: CloudTranscriptionProvider = .openai) {
+        self.userId = userId
+        self.meetingId = meetingId
+        self.audioUrl = audioUrl
+        self.language = language
+        self.transcriptionProvider = transcriptionProvider
+    }
 
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
         case meetingId = "meeting_id"
         case audioUrl = "audio_url"
         case language
+        case transcriptionProvider = "transcription_provider"
     }
 }
 
@@ -44,6 +54,17 @@ struct CreateChunkedJobRequest: Codable {
     let totalChunks: Int
     let duration: Double
     let language: String?
+    let transcriptionProvider: CloudTranscriptionProvider
+
+    init(userId: String, meetingId: String, isChunked: Bool, totalChunks: Int, duration: Double, language: String?, transcriptionProvider: CloudTranscriptionProvider = .openai) {
+        self.userId = userId
+        self.meetingId = meetingId
+        self.isChunked = isChunked
+        self.totalChunks = totalChunks
+        self.duration = duration
+        self.language = language
+        self.transcriptionProvider = transcriptionProvider
+    }
 
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
@@ -52,6 +73,7 @@ struct CreateChunkedJobRequest: Codable {
         case totalChunks = "total_chunks"
         case duration
         case language
+        case transcriptionProvider = "transcription_provider"
     }
 }
 

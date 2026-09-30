@@ -1631,6 +1631,7 @@ struct CreateMeetingView: View {
         // Capture values needed for the background upload
         let audioDuration = cachedAudioDuration
         let language = selectedLanguage
+        let provider = CloudTranscriptionSettings.shared.selectedProvider
 
         // Start a background task to ensure upload continues even if app goes to background
         let backgroundTaskId = backgroundTaskManager.startBackgroundTask(
@@ -1711,7 +1712,8 @@ struct CreateMeetingView: View {
                         meetingId: meetingId,
                         totalChunks: totalChunks,
                         duration: audioDuration,
-                        language: language
+                        language: language,
+                        provider: provider
                     )
                 } else {
                     let publicAudioURL = "https://bndbnqtvicvynzkyygte.supabase.co/storage/v1/object/public/recordings/\(audioPath!)"
@@ -1721,7 +1723,8 @@ struct CreateMeetingView: View {
                         userId: userId,
                         meetingId: meetingId,
                         publicAudioURL: publicAudioURL,
-                        language: language
+                        language: language,
+                        provider: provider
                     )
                 }
 
@@ -1778,7 +1781,8 @@ struct CreateMeetingView: View {
         meetingId: UUID,
         totalChunks: Int,
         duration: TimeInterval,
-        language: String?
+        language: String?,
+        provider: CloudTranscriptionProvider
     ) async throws -> CreateJobResponse {
         let maxAttempts = 3
         var lastError: Error?
@@ -1790,7 +1794,8 @@ struct CreateMeetingView: View {
                     meetingId: meetingId,
                     totalChunks: totalChunks,
                     duration: duration,
-                    language: language
+                    language: language,
+                    provider: provider
                 )
             } catch {
                 lastError = error
@@ -1815,7 +1820,8 @@ struct CreateMeetingView: View {
         userId: UUID,
         meetingId: UUID,
         publicAudioURL: String,
-        language: String?
+        language: String?,
+        provider: CloudTranscriptionProvider
     ) async throws -> CreateJobResponse {
         let maxAttempts = 3
         var lastError: Error?
@@ -1826,7 +1832,8 @@ struct CreateMeetingView: View {
                     userId: userId,
                     meetingId: meetingId,
                     audioURL: publicAudioURL,
-                    language: language
+                    language: language,
+                    provider: provider
                 )
             } catch {
                 lastError = error

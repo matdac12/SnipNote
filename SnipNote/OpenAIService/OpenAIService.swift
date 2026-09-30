@@ -19,6 +19,7 @@ class OpenAIService: ObservableObject {
         .appendingPathComponent("functions/v1/openai-proxy")
         .absoluteString
     private let urlSession: URLSession
+    private let accessTokenProvider: @Sendable () async throws -> String
 
     private init() {
         // Remove the credential persisted by older app versions. Never read it.
@@ -34,6 +35,14 @@ class OpenAIService: ObservableObject {
         // Supabase API gateway expects the public anon key on every request
         configuration.httpAdditionalHeaders = ["apikey": SupabaseManager.supabaseAnonKey]
         self.urlSession = URLSession(configuration: configuration)
+        self.accessTokenProvider = {
+            try await SupabaseManager.shared.client.auth.session.accessToken
+        }
+    }
+
+    init(urlSession: URLSession, accessTokenProvider: @escaping @Sendable () async throws -> String) {
+        self.urlSession = urlSession
+        self.accessTokenProvider = accessTokenProvider
     }
 
     /// Builds an authenticated POST to the proxy. The user's Supabase access token
@@ -46,7 +55,7 @@ class OpenAIService: ObservableObject {
     ) async throws -> URLRequest {
         let accessToken: String
         do {
-            accessToken = try await SupabaseManager.shared.client.auth.session.accessToken
+            accessToken = try await accessTokenProvider()
         } catch is AuthError {
             throw OpenAIError.notAuthenticated
         }
@@ -75,7 +84,6 @@ class OpenAIService: ObservableObject {
 
     private static let defaultModel = "gpt-6-luna"
     private static let defaultReasoningEffort = "low"
-    private static let defaultTranscriptionModel = "gpt-transcribe"
 
     // MARK: - Audio Processing
 
@@ -254,37 +262,22 @@ class OpenAIService: ObservableObject {
         return optimizedURL
     }
 
-    func transcribeAudio(audioData: Data, language: String? = nil) async throws -> String {
+    func transcribeAudio(audioData: Data, language: String? = nil, provider: CloudTranscriptionProvider = .openai) async throws -> String {
         // Speed up audio by 1.5x to reduce costs by 33%
         let processedAudioData = try await speedUpAudio(audioData: audioData)
 
         let boundary = UUID().uuidString
-        var request = try await proxyRequest(
+        let baseRequest = try await proxyRequest(
             "/audio/transcriptions",
-            task: .transcription,
-            contentType: "multipart/form-data; boundary=\(boundary)"
+            task: .transcription
         )
-
-        var body = Data()
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.m4a\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
-        body.append(processedAudioData)
-        body.append("\r\n".data(using: .utf8)!)
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
-        body.append("\(Self.defaultTranscriptionModel)\r\n".data(using: .utf8)!)
-
-        // Add language field if specified
-        if let language = language {
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
-            body.append("\(language)\r\n".data(using: .utf8)!)
-        }
-
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
-        
-        request.httpBody = body
+        let request = CloudTranscriptionRequest.make(
+            baseRequest: baseRequest,
+            audioData: processedAudioData,
+            language: language,
+            provider: provider,
+            boundary: boundary
+        )
 
         let (data, urlResponse) = try await urlSession.data(for: request)
 
@@ -312,7 +305,8 @@ class OpenAIService: ObservableObject {
         progressCallback: @escaping (AudioChunkerProgress) -> Void,
         meetingName: String = "",
         meetingId: UUID? = nil,
-        language: String? = nil
+        language: String? = nil,
+        provider: CloudTranscriptionProvider = .openai
     ) async throws -> String {
         // Validate audio file first
         try AudioChunker.validateAudioFile(url: audioURL)
@@ -342,7 +336,7 @@ class OpenAIService: ObservableObject {
             let audioFile = try AVAudioFile(forReading: audioURL)
             let durationSeconds = Double(audioFile.length) / audioFile.fileFormat.sampleRate
             let audioData = try Data(contentsOf: audioURL)
-            let transcript = try await transcribeAudioWithRetry(audioData: audioData, duration: durationSeconds, language: language)
+            let transcript = try await transcribeAudioWithRetry(audioData: audioData, duration: durationSeconds, language: language, provider: provider)
 
             progressCallback(AudioChunkerProgress(
                 currentChunk: 1,
@@ -360,7 +354,8 @@ class OpenAIService: ObservableObject {
                 progressCallback: progressCallback,
                 meetingName: meetingName,
                 meetingId: meetingId,
-                language: language
+                language: language,
+                provider: provider
             )
         }
     }
@@ -370,7 +365,8 @@ class OpenAIService: ObservableObject {
         progressCallback: @escaping (AudioChunkerProgress) -> Void,
         meetingName: String = "",
         meetingId: UUID? = nil,
-        language: String? = nil
+        language: String? = nil,
+        provider: CloudTranscriptionProvider = .openai
     ) async throws -> String {
 
         // Check for cancellation before starting
@@ -414,7 +410,7 @@ class OpenAIService: ObservableObject {
 
             do {
                 // Use new retry logic with exponential backoff
-                let chunkTranscript = try await transcribeChunkWithRetry(chunk: chunk, language: language)
+                let chunkTranscript = try await transcribeChunkWithRetry(chunk: chunk, language: language, provider: provider)
                 transcripts.append(chunkTranscript)
 
                 // Calculate progress percentage
@@ -1012,7 +1008,7 @@ class OpenAIService: ObservableObject {
 
     // MARK: - Enhanced Retry Logic for Transcription
 
-    func transcribeAudioWithRetry(audioData: Data, duration: TimeInterval? = nil, language: String? = nil, maxRetries: Int = 3) async throws -> String {
+    func transcribeAudioWithRetry(audioData: Data, duration: TimeInterval? = nil, language: String? = nil, maxRetries: Int = 3, provider: CloudTranscriptionProvider = .openai) async throws -> String {
         var lastError: Error?
 
         for attempt in 0..<maxRetries {
@@ -1022,7 +1018,7 @@ class OpenAIService: ObservableObject {
                 // Add timeout protection to each transcription attempt (duration-aware)
                 let timeout = timeoutForAudio(duration: duration)
                 let transcript = try await withTimeout(seconds: timeout) {
-                    try await self.transcribeAudio(audioData: audioData, language: language)
+                    try await self.transcribeAudio(audioData: audioData, language: language, provider: provider)
                 }
 
                 print("🎵 Audio transcribed successfully (timeout window: \(Int(timeout))s)")
@@ -1050,7 +1046,7 @@ class OpenAIService: ObservableObject {
         throw lastError ?? OpenAIError.transcriptionFailed
     }
 
-    private func transcribeChunkWithRetry(chunk: AudioChunk, language: String? = nil, maxRetries: Int = 3) async throws -> String {
+    private func transcribeChunkWithRetry(chunk: AudioChunk, language: String? = nil, maxRetries: Int = 3, provider: CloudTranscriptionProvider = .openai) async throws -> String {
         var lastError: Error?
 
         for attempt in 0..<maxRetries {
@@ -1060,7 +1056,7 @@ class OpenAIService: ObservableObject {
                 // Add timeout protection to each chunk based on duration
                 let timeout = timeoutForAudio(duration: chunk.duration)
                 let transcript = try await withTimeout(seconds: timeout) {
-                    try await self.transcribeAudio(audioData: chunk.data, language: language)
+                    try await self.transcribeAudio(audioData: chunk.data, language: language, provider: provider)
                 }
 
                 print("🎵 Chunk \(chunk.chunkIndex + 1) transcribed successfully (timeout window: \(Int(timeout))s)")

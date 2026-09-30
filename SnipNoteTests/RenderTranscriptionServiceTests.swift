@@ -55,6 +55,7 @@ final class RenderTranscriptionServiceTests: XCTestCase {
         XCTAssertEqual(decoded?["user_id"] as? String, userId.uuidString)
         XCTAssertEqual(decoded?["meeting_id"] as? String, meetingId.uuidString)
         XCTAssertEqual(decoded?["audio_url"] as? String, audioURL)
+        XCTAssertEqual(decoded?["transcription_provider"] as? String, "openai")
     }
 
     func testCreateJobSurfaceServerErrorMessage() async {
@@ -96,4 +97,24 @@ final class RenderTranscriptionServiceTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
     }
+    func testRegularAndChunkedJobsCarryXAI() async throws {
+        for chunked in [false, true] {
+            TestURLProtocol.reset()
+            TestURLProtocol.addStub(response: .success(body: Data(#"{"job_id":"job","status":"pending","created_at":"2026-09-30"}"#.utf8)))
+            if chunked {
+                _ = try await service.createChunkedJob(userId: UUID(), meetingId: UUID(), totalChunks: 2, duration: 65, provider: .xai)
+            } else {
+                _ = try await service.createJob(userId: UUID(), meetingId: UUID(), audioURL: "https://test.invalid/audio", provider: .xai)
+            }
+            let body = try XCTUnwrap(TestURLProtocol.recordedRequests().first?.body)
+            let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            XCTAssertEqual(json["transcription_provider"] as? String, "xai")
+        }
+    }
+
+    func testLegacyStatusDecodesWithoutProvider() throws {
+        let data = Data(#"{"id":"job","user_id":"user","meeting_id":"meeting","status":"pending","created_at":"2026-09-30","updated_at":"2026-09-30"}"#.utf8)
+        XCTAssertEqual(try JSONDecoder().decode(JobStatusResponse.self, from: data).status, .pending)
+    }
+
 }

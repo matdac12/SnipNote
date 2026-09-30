@@ -33,6 +33,7 @@ struct SettingsView: View {
     @EnvironmentObject var authManager: AuthenticationManager
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var minutesManager = MinutesManager.shared
+    @StateObject private var cloudTranscriptionSettings = CloudTranscriptionSettings.shared
     @StateObject private var localTranscriptionManager = LocalTranscriptionManager.shared
     @StateObject private var meetingAnalysisManager = MeetingAnalysisManager.shared
     @Query private var meetings: [Meeting]
@@ -232,7 +233,21 @@ struct SettingsView: View {
                                      }
                                  }
                                  .pickerStyle(.segmented)
+                                 .accessibilityIdentifier("settings.transcription.mode")
                                  .frame(width: 150)
+                             }
+
+                             if !localTranscriptionManager.isLocalModeEnabled {
+                                 VStack(alignment: .leading, spacing: 4) {
+                                     Picker(localized("settings.cloudTranscription.provider.title"), selection: $cloudTranscriptionSettings.selectedProvider) {
+                                         ForEach(CloudTranscriptionProvider.allCases) { provider in
+                                             Text(provider.displayName).tag(provider)
+                                         }
+                                     }
+                                     .accessibilityIdentifier("settings.cloudTranscription.provider")
+                                     Text(localized("settings.cloudTranscription.provider.description"))
+                                         .themedCaption()
+                                 }
                              }
 
                              if localTranscriptionManager.isLocalModeEnabled {

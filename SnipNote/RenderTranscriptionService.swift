@@ -36,7 +36,7 @@ class RenderTranscriptionService: ObservableObject {
 
     // MARK: - Async Job Methods
 
-    func createJob(userId: UUID, meetingId: UUID, audioURL: String, language: String? = nil) async throws -> CreateJobResponse {
+    func createJob(userId: UUID, meetingId: UUID, audioURL: String, language: String? = nil, provider: CloudTranscriptionProvider = .openai) async throws -> CreateJobResponse {
         guard let endpoint = URL(string: "\(baseURL)/jobs") else {
             throw TranscriptionError.invalidURL
         }
@@ -54,7 +54,8 @@ class RenderTranscriptionService: ObservableObject {
             userId: userId.uuidString,
             meetingId: meetingId.uuidString,
             audioUrl: audioURL,
-            language: language
+            language: language,
+            transcriptionProvider: provider
         )
 
         do {
@@ -94,7 +95,7 @@ class RenderTranscriptionService: ObservableObject {
         }
     }
 
-    func createChunkedJob(userId: UUID, meetingId: UUID, totalChunks: Int, duration: TimeInterval, language: String? = nil) async throws -> CreateJobResponse {
+    func createChunkedJob(userId: UUID, meetingId: UUID, totalChunks: Int, duration: TimeInterval, language: String? = nil, provider: CloudTranscriptionProvider = .openai) async throws -> CreateJobResponse {
         guard let endpoint = URL(string: "\(baseURL)/jobs") else {
             throw TranscriptionError.invalidURL
         }
@@ -114,7 +115,8 @@ class RenderTranscriptionService: ObservableObject {
             isChunked: true,
             totalChunks: totalChunks,
             duration: duration,
-            language: language
+            language: language,
+            transcriptionProvider: provider
         )
 
         do {

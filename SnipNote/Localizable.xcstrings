@@ -278,12 +278,12 @@
         }
       }
     },
-    "AI-powered voice note taking with smart action extraction. Turn your meetings into actionable insights." : {
+    "AI-powered voice note taking with smart action extraction. Turn your recordings into actionable insights." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Note vocali intelligenti con estrazione automatica di azioni. Trasforma le tue riunioni in insight utilizzabili."
+            "value" : "Note vocali intelligenti con estrazione automatica di azioni. Trasforma le tue registrazioni in insight utilizzabili."
           }
         }
       }
@@ -320,23 +320,23 @@
         }
       }
     },
-    "Analyze Meeting" : {
+    "Analyze Audio" : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Analizza Meeting"
+            "value" : "Analizza audio"
           }
         }
       }
     },
-    "ANALYZE MEETING" : {
+    "ANALYZE AUDIO" : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ANALIZZA MEETING"
+            "value" : "ANALIZZA AUDIO"
           }
         }
       }
@@ -538,13 +538,13 @@
         }
       }
     },
-    "Best for long meetings (1+ hour) - just share!" : {
+    "Best for long recordings (1+ hour) - just share!" : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ideale per riunioni lunghe (1+ ora) - condividi!"
+            "value" : "Ideale per registrazioni lunghe (1+ ora) - condividi!"
           }
         }
       }
@@ -758,10 +758,10 @@
         }
       }
     },
-    "Enter meeting location" : {
+    "Enter location" : {
 
     },
-    "Enter meeting name" : {
+    "Enter transcription name" : {
 
     },
     "Eve" : {
@@ -830,12 +830,12 @@
         }
       }
     },
-    "For long meetings (1+ hour), record with Voice Memos and share to SnipNote for better results." : {
+    "For long recordings (1+ hour), record with Voice Memos and share to SnipNote for better results." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per riunioni lunghe (1+ ora), registra con Memo Vocali e condividi su SnipNote per risultati migliori."
+            "value" : "Per registrazioni lunghe (1+ ora), registra con Memo Vocali e condividi su SnipNote per risultati migliori."
           }
         }
       }
@@ -914,13 +914,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Record Meeting"
+            "value" : "Record Audio"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Registra Riunione"
+            "value" : "Registra audio"
           }
         }
       }
@@ -999,13 +999,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Meeting Time"
+            "value" : "Audio Time"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tempo Riunioni"
+            "value" : "Tempo audio"
           }
         }
       }
@@ -1050,13 +1050,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Total Meetings"
+            "value" : "Total Transcriptions"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riunioni Totali"
+            "value" : "Trascrizioni Totali"
           }
         }
       }
@@ -1084,13 +1084,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No meetings yet"
+            "value" : "No transcriptions yet"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nessuna riunione"
+            "value" : "Nessuna trascrizione"
           }
         }
       }
@@ -1118,13 +1118,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Recent Meetings"
+            "value" : "Recent Transcriptions"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riunioni Recenti"
+            "value" : "Trascrizioni Recenti"
           }
         }
       }
@@ -1250,66 +1250,66 @@
     "Mattia Da Campo" : {
 
     },
-    "Meeting Date" : {
+    "Transcription Date" : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Data riunione"
+            "value" : "Data trascrizione"
           }
         }
       }
     },
-    "Meeting Name" : {
+    "Transcription Name" : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nome riunione"
+            "value" : "Nome trascrizione"
           }
         }
       }
     },
-    "Meeting Name Required" : {
+    "Transcription Name Required" : {
 
     },
-    "Meeting Paused" : {
+    "Recording Paused" : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riunione in pausa"
+            "value" : "Registrazione in pausa"
           }
         }
       }
     },
-    "MEETING PAUSED" : {
+    "RECORDING PAUSED" : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "RIUNIONE IN PAUSA"
+            "value" : "REGISTRAZIONE IN PAUSA"
           }
         }
       }
     },
-    "Meeting Summary" : {
+    "Transcription Summary" : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riepilogo riunione"
+            "value" : "Riepilogo trascrizione"
           }
         }
       }
     },
-    "Meetings" : {
+    "Transcriptions" : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riunioni"
+            "value" : "Trascrizioni"
           }
         }
       }
@@ -1406,13 +1406,13 @@
         }
       }
     },
-    "New Meeting" : {
+    "New Transcription" : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nuovo Meeting"
+            "value" : "Nuova trascrizione"
           }
         }
       }
@@ -1430,7 +1430,7 @@
     "No action items found in this meeting" : {
 
     },
-    "No meetings yet" : {
+    "No transcriptions yet" : {
 
     },
     "No results found" : {
@@ -1503,13 +1503,13 @@
     "Perfect for %@" : {
 
     },
-    "Perfect for quick meetings and voice notes" : {
+    "Perfect for quick recordings and voice notes" : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Perfetto per riunioni brevi e note vocali"
+            "value" : "Perfetto per registrazioni brevi e note vocali"
           }
         }
       }
@@ -1524,19 +1524,19 @@
         }
       }
     },
-    "Please enter the name of the meeting" : {
+    "Please enter the name of the transcription" : {
 
     },
     "Premium Features" : {
 
     },
-    "Preparing your meeting for transcription..." : {
+    "Preparing your audio for transcription..." : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Preparazione della riunione per la trascrizione..."
+            "value" : "Preparazione dell'audio per la trascrizione..."
           }
         }
       }
@@ -1581,35 +1581,35 @@
     "Processing" : {
 
     },
-    "Processing meeting summary..." : {
+    "Processing transcription summary..." : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elaborazione riepilogo riunione..."
+            "value" : "Elaborazione riepilogo trascrizione..."
           }
         }
       }
     },
-    "Processing meeting..." : {
+    "Processing transcription..." : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elaborazione riunione..."
+            "value" : "Elaborazione trascrizione..."
           }
         }
       }
     },
-    "PROCESSING MEETING..." : {
+    "PROCESSING TRANSCRIPTION..." : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ELABORAZIONE RIUNIONE..."
+            "value" : "ELABORAZIONE TRASCRIZIONE..."
           }
         }
       }
@@ -1695,23 +1695,23 @@
         }
       }
     },
-    "Recording Meeting..." : {
+    "Recording..." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Registrazione riunione..."
+            "value" : "Registrazione..."
           }
         }
       }
     },
-    "RECORDING MEETING..." : {
+    "RECORDING..." : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "REGISTRAZIONE RIUNIONE..."
+            "value" : "REGISTRAZIONE..."
           }
         }
       }
@@ -1750,7 +1750,7 @@
         }
       }
     },
-    "Resume from this meeting when you're ready." : {
+    "Resume from this transcription when you're ready." : {
 
     },
     "Retry" : {
@@ -1784,15 +1784,15 @@
         }
       }
     },
-    "Search meetings, transcripts..." : {
+    "Search transcriptions..." : {
 
     },
-    "Select meeting date" : {
+    "Select transcription date" : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seleziona data riunione"
+            "value" : "Seleziona data trascrizione"
           }
         }
       }
@@ -1825,13 +1825,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hi! I'm Mattia, the developer behind SnipNote. I created this app to help professionals capture and organize their meeting insights more effectively using AI technology."
+            "value" : "Hi! I'm Mattia, the developer behind SnipNote. I created this app to help professionals capture and organize insights from their recordings more effectively using AI technology."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ciao! Sono Mattia, lo sviluppatore di SnipNote. Ho creato questa app per aiutare i professionisti a catturare e organizzare le intuizioni dalle riunioni in modo più efficace usando la tecnologia AI."
+            "value" : "Ciao! Sono Mattia, lo sviluppatore di SnipNote. Ho creato questa app per aiutare i professionisti a catturare e organizzare le intuizioni dalle loro registrazioni in modo più efficace usando la tecnologia AI."
           }
         }
       }
@@ -1859,13 +1859,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AI-Powered Meeting Assistant"
+            "value" : "AI-Powered Transcription Assistant"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Assistente Meeting con AI"
+            "value" : "Assistente Trascrizioni con AI"
           }
         }
       }
@@ -2267,13 +2267,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose which provider generates meeting overviews and summaries."
+            "value" : "Choose which provider generates transcription overviews and summaries."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli quale provider genera panoramiche e riassunti delle riunioni."
+            "value" : "Scegli quale provider genera panoramiche e riassunti delle trascrizioni."
           }
         }
       }
@@ -2947,13 +2947,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$d/%2$d meetings used"
+            "value" : "%1$d/%2$d transcriptions used"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$d/%2$d riunioni utilizzate"
+            "value" : "%1$d/%2$d trascrizioni utilizzate"
           }
         }
       }
@@ -3032,13 +3032,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Meetings Created"
+            "value" : "Transcriptions Created"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riunioni create"
+            "value" : "Trascrizioni create"
           }
         }
       }
@@ -3049,13 +3049,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Meetings Transcribed"
+            "value" : "Transcriptions Completed"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riunioni trascritte"
+            "value" : "Trascrizioni completate"
           }
         }
       }
@@ -3162,7 +3162,7 @@
     "Something went wrong" : {
 
     },
-    "Start Meeting Recording" : {
+    "Start Recording" : {
 
     },
     "Start New Chat" : {
@@ -3192,7 +3192,7 @@
     "Stop Job" : {
 
     },
-    "Stop Meeting" : {
+    "Stop Recording" : {
 
     },
     "Subscribe Now" : {
@@ -3231,13 +3231,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Meetings"
+            "value" : "Transcriptions"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Riunioni"
+            "value" : "Trascrizioni"
           }
         }
       }
@@ -3259,7 +3259,7 @@
         }
       }
     },
-    "Tap + to create your first meeting" : {
+    "Tap + to create your first transcription" : {
 
     },
     "Tap the record button to capture audio from meetings, calls, or voice notes. SnipNote will automatically transcribe and analyze your content." : {
@@ -3309,13 +3309,13 @@
         }
       }
     },
-    "Tip: Use Voice Memos for long meetings (1+ hour) and share to SnipNote." : {
+    "Tip: Use Voice Memos for long recordings (1+ hour) and share to SnipNote." : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Suggerimento: Usa Memo Vocali per riunioni lunghe (1+ ora) e condividi su SnipNote."
+            "value" : "Suggerimento: Usa Memo Vocali per registrazioni lunghe (1+ ora) e condividi su SnipNote."
           }
         }
       }
@@ -3330,12 +3330,12 @@
         }
       }
     },
-    "To record meetings, SnipNote needs access to your microphone. Tap the record button and grant permission when prompted." : {
+    "To record audio, SnipNote needs access to your microphone. Tap the record button and grant permission when prompted." : {
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per registrare le riunioni, SnipNote necessita l'accesso al microfono. Premi il pulsante di registrazione e concedi il permesso quando richiesto."
+            "value" : "Per registrare l'audio, SnipNote necessita l'accesso al microfono. Premi il pulsante di registrazione e concedi il permesso quando richiesto."
           }
         }
       }
@@ -3888,13 +3888,13 @@
         }
       }
     },
-    "You've reached your free tier limit of %lld total meetings. Upgrade to Pro for unlimited meetings." : {
+    "You've reached your free tier limit of %lld total transcriptions. Upgrade to Pro for unlimited transcriptions." : {
       "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hai raggiunto il tuo limite gratuito di %lld riunioni. Passa a Pro per accesso illimitato."
+            "value" : "Hai raggiunto il tuo limite gratuito di %lld trascrizioni. Passa a Pro per accesso illimitato."
           }
         }
       }

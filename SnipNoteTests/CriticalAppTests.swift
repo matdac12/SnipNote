@@ -14,10 +14,12 @@ struct CriticalAppTests {
 
     // MARK: - Test 1: Revenue Protection - Minutes Debit Accuracy
 
-    @Test("Minutes debit should be accurate and prevent revenue loss")
+    @Test("Minutes debit should be accurate and prevent revenue loss",
+          .enabled(if: ProcessInfo.processInfo.environment["SNIPNOTE_RUN_LIVE_TESTS"] == "1"))
     @MainActor
     func testMinutesDebitAccuracy() async throws {
-        // This test ensures users are charged correctly for transcription time
+        // Opt-in integration test: this debits real backend minutes and needs a
+        // signed-in test account. Ordinary unit test runs must not mutate Supabase.
 
         // Given: User with refreshed balance
         let manager = MinutesManager.shared
@@ -31,7 +33,7 @@ struct CriticalAppTests {
         let success = await manager.debitMinutes(seconds: 90, meetingID: testMeetingID)
 
         // Then: With sufficient balance, debit should succeed
-        #expect(success == true, "Debit should succeed with sufficient balance (had \(initialBalance) minutes)")
+        #expect(success.didDebitImmediately, "Debit should succeed with sufficient balance (had \(initialBalance) minutes)")
 
         let expectedNewBalance = initialBalance - 2
         #expect(manager.currentBalance == expectedNewBalance, "90 seconds should cost exactly 2 minutes (rounded up). Expected: \(expectedNewBalance), Got: \(manager.currentBalance)")
@@ -49,7 +51,7 @@ struct CriticalAppTests {
         // This test prevents users from getting double credits for same purchase
 
         // Given: Mock transaction
-        let mockTransactionID = "test-transaction-123"
+        let mockTransactionID = "test-transaction-\(UUID().uuidString)"
         let processedTransactions = ProcessedTransactions.shared
 
         // When: Same transaction is processed twice
@@ -97,7 +99,7 @@ struct CriticalAppTests {
         let processedTransactions = ProcessedTransactions.shared
 
         // When: Testing various operations that previously could crash
-        let testTransactionID = "error-test-transaction"
+        let testTransactionID = "error-test-transaction-\(UUID().uuidString)"
 
         // Test duplicate prevention system
         let firstCheck = processedTransactions.isProcessedOrInFlight(testTransactionID)

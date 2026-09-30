@@ -1,0 +1,7 @@
+import Foundation
+
+struct Config {
+  // Public stored-prompt ID only. OpenAI credentials belong in Supabase secrets.
+  // Use the same ID configured by OPENAI_EVE_PROMPT_ID in the Edge Function.
+  static let openAIPromptID = "YOUR_EVE_PROMPT_ID"
+}

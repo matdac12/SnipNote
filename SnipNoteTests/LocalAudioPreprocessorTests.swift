@@ -7,7 +7,8 @@ final class LocalAudioPreprocessorTests: XCTestCase {
             [
                 (startIndex: 1_600, endIndex: 3_200),
                 (startIndex: 3_600, endIndex: 5_000),
-                (startIndex: 20_000, endIndex: 20_800)
+                // Keep this span beyond the merge gap after padding is applied.
+                (startIndex: 30_000, endIndex: 30_800)
             ],
             totalSampleCount: 40_000,
             sampleRate: 16_000,
@@ -19,7 +20,7 @@ final class LocalAudioPreprocessorTests: XCTestCase {
 
         XCTAssertEqual(merged.count, 2)
         XCTAssertEqual(merged[0], LocalSpeechChunk(startSample: 0, endSample: 10_600))
-        XCTAssertEqual(merged[1], LocalSpeechChunk(startSample: 16_800, endSample: 26_400))
+        XCTAssertEqual(merged[1], LocalSpeechChunk(startSample: 26_800, endSample: 36_400))
     }
 
     func testMergeActiveRangesDropsTinySegments() {

@@ -22,19 +22,20 @@ CREATE TABLE IF NOT EXISTS public.ai_model_config (
 -- Service role only (Edge Function + VPS). No policies = no client access.
 ALTER TABLE public.ai_model_config ENABLE ROW LEVEL SECURITY;
 
--- Same helper as transcription_jobs / meetings (redefined identically there)
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- Dedicated helper; do not replace triggers used by existing tables.
+CREATE OR REPLACE FUNCTION public.update_ai_model_config_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = now();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY INVOKER SET search_path = '';
+REVOKE ALL ON FUNCTION public.update_ai_model_config_timestamp() FROM PUBLIC, anon, authenticated;
 
 DROP TRIGGER IF EXISTS update_ai_model_config_updated_at ON public.ai_model_config;
 CREATE TRIGGER update_ai_model_config_updated_at
 BEFORE UPDATE ON public.ai_model_config
-FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+FOR EACH ROW EXECUTE FUNCTION public.update_ai_model_config_timestamp();
 
 INSERT INTO public.ai_model_config (task, model, reasoning_effort, verbosity, fallback_model, notes) VALUES
     ('overview',       'gpt-6-luna', 'low', 'low',    'gpt-6-luna', 'One-sentence meeting overview (iOS + VPS)'),

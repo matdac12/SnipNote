@@ -8,6 +8,7 @@
 import Foundation
 import Supabase
 import AVFoundation
+import Security
 
 class OpenAIService: ObservableObject {
     static let shared = OpenAIService()
@@ -20,6 +21,12 @@ class OpenAIService: ObservableObject {
     private let urlSession: URLSession
 
     private init() {
+        // Remove the credential persisted by older app versions. Never read it.
+        SecItemDelete([
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "com.mattia.snipnote.apikey",
+            kSecAttrAccount as String: "openai_api_key"
+        ] as CFDictionary)
         // Configure URLSession with custom timeout values
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 120  // 2 minutes per request
@@ -705,6 +712,20 @@ class OpenAIService: ObservableObject {
         promptVariables: EvePromptVariables,
         conversationId: String?
     ) async throws -> ChatWithEveResult {
+        try await chatWithEve(
+            message: message,
+            promptVariables: promptVariables,
+            conversationId: conversationId,
+            mayResetConversation: true
+        )
+    }
+
+    private func chatWithEve(
+        message: String,
+        promptVariables: EvePromptVariables,
+        conversationId: String?,
+        mayResetConversation: Bool
+    ) async throws -> ChatWithEveResult {
         let activeConversationId: String
         if let conversationId {
             activeConversationId = conversationId
@@ -745,6 +766,21 @@ class OpenAIService: ObservableObject {
         request.httpBody = try encoder.encode(requestBody)
 
         let (data, urlResponse) = try await urlSession.data(for: request)
+
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+           httpResponse.statusCode == 403,
+           mayResetConversation,
+           let proxyError = try? JSONDecoder().decode(OpenAIAPIErrorResponse.self, from: data),
+           proxyError.error.code == "conversation_not_owned" {
+            // Legacy/unregistered or exhausted conversations cannot be claimed by
+            // the client. Start a server-owned one; saved local messages remain.
+            return try await chatWithEve(
+                message: message,
+                promptVariables: promptVariables,
+                conversationId: nil,
+                mayResetConversation: false
+            )
+        }
 
         if let httpResponse = urlResponse as? HTTPURLResponse,
            !(200...299).contains(httpResponse.statusCode) {

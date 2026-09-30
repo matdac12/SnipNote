@@ -1,5 +1,16 @@
 # Supabase Setup Instructions
 
+## OpenAI proxy and model configuration
+
+OpenAI credentials are stored only in Edge Function secrets as `OPENAI_API_KEY`.
+Never put an OpenAI key in `Config.swift` or the app Keychain. The public Supabase
+anon key below authenticates the project and is safe to ship; it is not a service key.
+
+See `../OPENAI_PROXY_SETUP.md` for deployment order, model configuration, server
+quotas, conversation ownership, verification, and key rotation. Apply the model
+configuration migration and the proxy security migration before deploying `openai-proxy`.
+The proxy safety budgets are separate from purchased transcription minutes.
+
 ## Add Supabase Package Dependency
 
 1. Open SnipNote.xcodeproj in Xcode

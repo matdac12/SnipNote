@@ -276,9 +276,6 @@
     "ANALYZING" : {
 
     },
-    "API Key Required" : {
-
-    },
     "Are you sure you want to cancel? All progress will be lost." : {
 
     },
@@ -697,9 +694,6 @@
 
     },
     "Enter meeting name" : {
-
-    },
-    "Enter your OpenAI API key to enable transcription and summarization." : {
 
     },
     "Eve" : {
@@ -1390,9 +1384,6 @@
     "Open full transcript" : {
 
     },
-    "OpenAI API Key" : {
-
-    },
     "Password" : {
       "localizations" : {
         "it" : {
@@ -1704,6 +1695,7 @@
 
     },
     "Save" : {
+      "extractionState" : "stale",
       "localizations" : {
         "it" : {
           "stringUnit" : {

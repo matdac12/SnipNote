@@ -186,7 +186,7 @@ class MinutesManager: ObservableObject {
 
         guard minutes > 0 else {
             print("❌ [MinutesManager] Invalid debit amount: \(minutes)")
-            return .failed(message: "Unable to calculate minutes for this meeting.")
+            return .failed(message: "Unable to calculate minutes for this transcription.")
         }
 
         let immediateRetryCount = 3
@@ -547,14 +547,14 @@ extension MinutesManager {
 
     private func userFriendlyDebitFailureMessage(for error: Error?) -> String {
         guard let error else {
-            return "Meeting completed. We’re retrying the minutes sync in the background."
+            return "Transcription completed. We’re retrying the minutes sync in the background."
         }
 
         if shouldRetryDebit(error) {
-            return "Meeting completed. We’re retrying the minutes sync in the background."
+            return "Transcription completed. We’re retrying the minutes sync in the background."
         }
 
-        return "Meeting completed, but your minutes balance could not be updated yet."
+        return "Transcription completed, but your minutes balance could not be updated yet."
     }
 
     private func updateMeetingDebitState(meetingID: String, pending: Bool, message: String?) async {

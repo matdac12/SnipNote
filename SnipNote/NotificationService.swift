@@ -48,7 +48,7 @@ class NotificationService: ObservableObject {
 
             let content = UNMutableNotificationContent()
             content.title = "Recording Started"
-            content.body = "Processing '\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)'..."
+            content.body = "Processing '\(meetingName.isEmpty ? "Untitled Transcription" : meetingName)'..."
             content.sound = .default
             content.categoryIdentifier = "PROCESSING_NOTIFICATION"
 
@@ -83,8 +83,8 @@ class NotificationService: ObservableObject {
             let identifier = "meeting-complete-\(meetingId.uuidString)"
 
             let content = UNMutableNotificationContent()
-            content.title = "Meeting Ready!"
-            content.body = "'\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)' is ready with its transcript and AI summary"
+            content.title = "Transcription Ready!"
+            content.body = "'\(meetingName.isEmpty ? "Untitled Transcription" : meetingName)' is ready with its transcript and AI summary"
             content.sound = .default
             content.categoryIdentifier = "MEETING_COMPLETE_NOTIFICATION"
             content.userInfo = ["meetingId": meetingId.uuidString, "navigateTo": "meeting"]
@@ -122,7 +122,7 @@ class NotificationService: ObservableObject {
 
             let content = UNMutableNotificationContent()
             content.title = "Transcription Failed"
-            content.body = "'\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)' failed to process: \(errorMessage)"
+            content.body = "'\(meetingName.isEmpty ? "Untitled Transcription" : meetingName)' failed to process: \(errorMessage)"
             content.sound = .default
             content.categoryIdentifier = "MEETING_FAILED_NOTIFICATION"
             content.userInfo = ["meetingId": meetingId.uuidString, "navigateTo": "meeting"]
@@ -159,7 +159,7 @@ class NotificationService: ObservableObject {
 
             let content = UNMutableNotificationContent()
             content.title = "Transcription Paused"
-            content.body = "Open SnipNote to continue transcribing '\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)'"
+            content.body = "Open SnipNote to continue transcribing '\(meetingName.isEmpty ? "Untitled Transcription" : meetingName)'"
             content.sound = .default
             content.categoryIdentifier = "TRANSCRIPTION_PAUSED_NOTIFICATION"
             content.userInfo = [
@@ -197,7 +197,7 @@ class NotificationService: ObservableObject {
 
             let content = UNMutableNotificationContent()
             content.title = "Processing Update"
-            content.body = "'\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)' is \(progress)% complete"
+            content.body = "'\(meetingName.isEmpty ? "Untitled Transcription" : meetingName)' is \(progress)% complete"
             content.sound = .default
             content.categoryIdentifier = "PROGRESS_NOTIFICATION"
 
@@ -256,7 +256,7 @@ class NotificationService: ObservableObject {
 
             let content = UNMutableNotificationContent()
             content.title = "Processing Update"
-            content.body = "Your transcript for '\(meetingName.isEmpty ? "Untitled Meeting" : meetingName)' should be ready! Check back to see your results."
+            content.body = "Your transcript for '\(meetingName.isEmpty ? "Untitled Transcription" : meetingName)' should be ready! Check back to see your results."
             content.sound = .default
             content.categoryIdentifier = "ESTIMATED_COMPLETE_NOTIFICATION"
             content.userInfo = ["meetingId": meetingId.uuidString, "navigateTo": "meeting"]

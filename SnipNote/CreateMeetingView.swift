@@ -225,11 +225,11 @@ struct CreateMeetingView: View {
 
     private var meetingNameValidationMessage: String? {
         guard meetingNameTouched else { return nil }
-        return meetingNameTrimmed.isEmpty ? "Meeting name is required." : nil
+        return meetingNameTrimmed.isEmpty ? "Transcription name is required." : nil
     }
 
     private var meetingNameHelperText: String {
-        meetingNameTrimmed.isEmpty ? "Give this meeting a descriptive title." : "Clear names make meetings easy to find."
+        meetingNameTrimmed.isEmpty ? "Give this transcription a descriptive title." : "Clear names make transcriptions easy to find."
     }
 
     private var meetingNotesHelperText: String {
@@ -282,7 +282,7 @@ struct CreateMeetingView: View {
     private func headerView() -> some View {
         let theme = themeManager.currentTheme
 
-        let localizedNewMeeting = localized("New Meeting")
+        let localizedNewMeeting = localized("New Transcription")
         let defaultTitle = localizedNewMeeting
         let headerTitle = meetingNameTrimmed.isEmpty ? defaultTitle : meetingNameTrimmed
 
@@ -313,7 +313,7 @@ struct CreateMeetingView: View {
                 )
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Select meeting date")
+            .accessibilityLabel("Select transcription date")
 
             Spacer()
 
@@ -351,11 +351,11 @@ struct CreateMeetingView: View {
 
         VStack(alignment: .leading, spacing: 16) {
             VStack(spacing: 16) {
-                MeetingInputCard(title: "Meeting Name",
+                MeetingInputCard(title: "Transcription Name",
                                   helper: meetingNameValidationMessage == nil ? meetingNameHelperText : nil,
                                   error: meetingNameValidationMessage,
                                   iconSystemName: "textformat") {
-                    TextField("Enter meeting name", text: $meetingName)
+                    TextField("Enter transcription name", text: $meetingName)
                         .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
                         .textInputAutocapitalization(.words)
                         .disableAutocorrection(true)
@@ -447,7 +447,7 @@ struct CreateMeetingView: View {
         MeetingInputCard(title: "Location",
                          helper: meetingLocationTrimmed.isEmpty ? "Optional — include room, link, or dial-in." : nil,
                          iconSystemName: "mappin.and.ellipse") {
-            TextField("Enter meeting location", text: $meetingLocation)
+            TextField("Enter location", text: $meetingLocation)
                 .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
                 .textInputAutocapitalization(.words)
                 .focused($focusedField, equals: .location)
@@ -628,7 +628,7 @@ struct CreateMeetingView: View {
         NavigationView {
             VStack(spacing: 0) {
                 DatePicker(
-                    "Meeting Date",
+                    "Transcription Date",
                     selection: $pendingMeetingDate,
                     displayedComponents: .date
                 )
@@ -640,7 +640,7 @@ struct CreateMeetingView: View {
                 Spacer()
             }
             .background(theme.backgroundColor.ignoresSafeArea())
-            .navigationTitle("Meeting Date")
+            .navigationTitle("Transcription Date")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -696,7 +696,7 @@ struct CreateMeetingView: View {
 
                 Text(isPermissionDenied(microphonePermissionStatus) ?
                      "Recording requires microphone access. Please enable it in Settings > Privacy & Security > Microphone > SnipNote." :
-                     "To record meetings, SnipNote needs access to your microphone. Tap the record button and grant permission when prompted.")
+                     "To record audio, SnipNote needs access to your microphone. Tap the record button and grant permission when prompted.")
                     .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
                     .foregroundColor(theme.secondaryTextColor)
 
@@ -867,7 +867,7 @@ struct CreateMeetingView: View {
                 .frame(width: 200, height: 4)
                 .opacity(0.7)
 
-            Button("Analyze Meeting") {
+            Button("Analyze Audio") {
                 analyzeImportedAudio()
             }
             .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
@@ -899,7 +899,7 @@ struct CreateMeetingView: View {
                         }
                 }
 
-                Text(audioRecorder.isPaused ? "Meeting Paused" : "Recording Meeting...")
+                Text(audioRecorder.isPaused ? "Recording Paused" : "Recording...")
                     .font(.system(.title2, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(audioRecorder.isPaused ? theme.warningColor : theme.destructiveColor)
             }
@@ -925,7 +925,7 @@ struct CreateMeetingView: View {
             }
 
             VStack(spacing: 8) {
-                Button("Stop Meeting") {
+                Button("Stop Recording") {
                     stopMeetingRecording()
                 }
                 .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
@@ -1041,7 +1041,7 @@ struct CreateMeetingView: View {
                 }
             }
 
-            Text("For long meetings (1+ hour), record with Voice Memos and share to SnipNote for better results.")
+            Text("For long recordings (1+ hour), record with Voice Memos and share to SnipNote for better results.")
                 .font(.subheadline)
                 .foregroundColor(theme.secondaryTextColor)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1070,7 +1070,7 @@ struct CreateMeetingView: View {
     @ViewBuilder
     private func idleRecordingCard(theme: AppTheme) -> some View {
         VStack(spacing: 16) {
-            Button("Start Meeting Recording") {
+            Button("Start Recording") {
                 startCountdown()
             }
             .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .bold))
@@ -1162,10 +1162,10 @@ struct CreateMeetingView: View {
                 Text("You don't have enough minutes to start recording. Purchase minute packs to continue.")
             }
         }
-        .alert("Meeting Name Required", isPresented: $showingNameRequiredAlert) {
+        .alert("Transcription Name Required", isPresented: $showingNameRequiredAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Please enter the name of the meeting")
+            Text("Please enter the name of the transcription")
         }
         .alert(localized("createMeeting.localTranscription.missingModelAlert.title"), isPresented: $showingLocalTranscriptionAlert) {
             Button("OK", role: .cancel) {}
@@ -1411,7 +1411,7 @@ struct CreateMeetingView: View {
                             }
                         }
                     },
-                    meetingName: meetingNameTrimmed.isEmpty ? "Untitled Meeting" : meetingNameTrimmed,
+                    meetingName: meetingNameTrimmed.isEmpty ? "Untitled Transcription" : meetingNameTrimmed,
                     meetingId: createdMeetingId,
                     language: selectedLanguage
                 )
@@ -1426,7 +1426,7 @@ struct CreateMeetingView: View {
                         print("⚠️ [CreateMeeting] Minutes debit delayed for imported audio transcription (meeting: \(meetingId)): \(debitResult.userMessage ?? "unknown")")
                     }
                 } else {
-                    debitResult = .failed(message: "Unable to associate the meeting with a minutes debit.")
+                    debitResult = .failed(message: "Unable to associate the transcription with a minutes debit.")
                 }
 
                 // Track successful transcription
@@ -1562,7 +1562,7 @@ struct CreateMeetingView: View {
                             meeting.setProcessingError("Transcription failed. Please try again.")
                             meeting.audioTranscript = "Transcription failed"
                             meeting.shortSummary = "Processing failed"
-                            meeting.aiSummary = "This meeting could not be processed. You can try again using the retry button."
+                            meeting.aiSummary = "This transcription could not be processed. You can try again using the retry button."
                         }
 
                         // Save the audio file path for retry
@@ -1882,7 +1882,7 @@ struct CreateMeetingView: View {
 
     private func serverBootstrapErrorMessage(for error: Error) -> String {
         if shouldRetryServerBootstrap(error) {
-            return "We couldn't finish starting cloud transcription because the connection dropped. The meeting is saved and you can retry from the meeting screen."
+            return "We couldn't finish starting cloud transcription because the connection dropped. The transcription is saved and you can retry from the transcription screen."
         }
 
         return "Cloud transcription couldn’t be started. Please try again."
@@ -1994,7 +1994,7 @@ struct CreateMeetingView: View {
                             }
                         }
                     },
-                    meetingName: meetingNameTrimmed.isEmpty ? "Untitled Meeting" : meetingNameTrimmed,
+                    meetingName: meetingNameTrimmed.isEmpty ? "Untitled Transcription" : meetingNameTrimmed,
                     meetingId: createdMeetingId,
                     language: selectedLanguage
                 )
@@ -2009,7 +2009,7 @@ struct CreateMeetingView: View {
                         print("⚠️ [CreateMeeting] Minutes debit delayed for recorded audio transcription (meeting: \(meetingId)): \(debitResult.userMessage ?? "unknown")")
                     }
                 } else {
-                    debitResult = .failed(message: "Unable to associate the meeting with a minutes debit.")
+                    debitResult = .failed(message: "Unable to associate the transcription with a minutes debit.")
                 }
 
                 // Track successful transcription
@@ -2101,7 +2101,7 @@ struct CreateMeetingView: View {
                             meeting.setProcessingError("Transcription failed. Please try again.")
                             meeting.audioTranscript = "Transcription failed"
                             meeting.shortSummary = "Processing failed"
-                            meeting.aiSummary = "This meeting could not be processed. You can try again using the retry button."
+                            meeting.aiSummary = "This transcription could not be processed. You can try again using the retry button."
                         }
 
                         // Save the recorded audio file path for retry
@@ -2165,7 +2165,7 @@ struct CreateMeetingView: View {
         transcriptionBackend: TranscriptionBackend
     ) {
         let meeting = Meeting(
-            name: meetingNameTrimmed.isEmpty ? "Untitled Meeting" : meetingNameTrimmed,
+            name: meetingNameTrimmed.isEmpty ? "Untitled Transcription" : meetingNameTrimmed,
             location: meetingLocation,
             meetingNotes: meetingNotes,
             audioTranscript: "Transcribing meeting audio...",

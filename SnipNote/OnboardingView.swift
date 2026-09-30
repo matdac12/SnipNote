@@ -147,7 +147,7 @@ struct TwoWaysCaptureScreen: View {
                 CaptureOptionCard(
                     icon: "mic.fill",
                     title: "Record in App",
-                    description: "Perfect for quick meetings and voice notes",
+                    description: "Perfect for quick recordings and voice notes",
                     isAnimating: $micAnimating,
                     animationType: .pulse
                 )
@@ -156,7 +156,7 @@ struct TwoWaysCaptureScreen: View {
                 CaptureOptionCard(
                     icon: "square.and.arrow.up.fill",
                     title: "Import from Voice Memos",
-                    description: "Best for long meetings (1+ hour) - just share!",
+                    description: "Best for long recordings (1+ hour) - just share!",
                     isAnimating: $shareAnimating,
                     animationType: .bounce
                 )
@@ -315,7 +315,7 @@ struct PermissionsScreen: View {
                 PermissionCard(
                     icon: "mic.fill",
                     title: "Microphone Access",
-                    description: "Required for recording meetings and voice notes",
+                    description: "Required for recording audio and voice notes",
                     isGranted: microphoneGranted,
                     action: requestMicrophonePermission
                 )

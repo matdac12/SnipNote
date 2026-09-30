@@ -56,7 +56,7 @@ struct MeetingsView: View {
             VStack(spacing: 0) {
                 
                  HStack(alignment: .center, spacing: 12) {
-                     Text("Meetings")
+                     Text("Transcriptions")
                          .themedTitle()
 
                      Spacer()
@@ -92,7 +92,7 @@ struct MeetingsView: View {
                              .foregroundColor(themeManager.currentTheme.secondaryTextColor)
                              .font(.system(size: 16))
 
-                         TextField("Search meetings, transcripts...", text: $searchText)
+                         TextField("Search transcriptions...", text: $searchText)
                              .textFieldStyle(PlainTextFieldStyle())
                              .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
                              .foregroundColor(themeManager.currentTheme.textColor)
@@ -136,10 +136,10 @@ struct MeetingsView: View {
                                 }
                             }
 
-                        Text("No meetings yet")
+                        Text("No transcriptions yet")
                             .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                        Text("Tap + to create your first meeting")
+                        Text("Tap + to create your first transcription")
                             .themedCaption()
                         Spacer()
                     }
@@ -417,7 +417,7 @@ struct MeetingRowView: View {
     }
 
     private var displayTitle: String {
-        meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
+        meeting.name.isEmpty ? "Untitled Transcription" : meeting.name
     }
 
     private var shortDate: String {

@@ -65,7 +65,7 @@ struct AudioPlayerSheet: View {
                         
                         // Meeting title and info
                         VStack(spacing: 8) {
-                            Text(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
+                            Text(meeting.name.isEmpty ? "Untitled Transcription" : meeting.name)
                                 .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                                 .multilineTextAlignment(.center)
 

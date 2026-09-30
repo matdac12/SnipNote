@@ -211,7 +211,7 @@ struct MeetingDetailView: View {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
                     if isEditingName {
-                        TextField("Meeting Name", text: $tempName)
+                        TextField("Transcription Name", text: $tempName)
                             .font(.system(.title2, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                             .textFieldStyle(PlainTextFieldStyle())
                             .onSubmit {
@@ -276,7 +276,7 @@ struct MeetingDetailView: View {
                     progress: meeting.displayedProgressPercent,
                     stageDescription: meeting.effectiveStageDescription,
                     showPercentage: true,
-                    infoMessage: meeting.isPausedLocalJob ? "Resume from this meeting when you're ready." : "Local processing continues while SnipNote stays open.",
+                    infoMessage: meeting.isPausedLocalJob ? "Resume from this transcription when you're ready." : "Local processing continues while SnipNote stays open.",
                     estimatedTimeRemaining: meeting.displayedProgressPercent >= 25 && !meeting.isPausedLocalJob ? localEstimatedTimeRemaining() : nil,
                     currentChunk: meeting.totalChunks > 1 ? meeting.lastProcessedChunk : nil,
                     totalChunks: meeting.totalChunks > 1 ? meeting.totalChunks : nil,
@@ -403,7 +403,7 @@ struct MeetingDetailView: View {
     }
 
     private var meetingNotesSection: some View {
-        editorialSection(title: "Meeting Notes", isExpanded: $showingNotes) {
+        editorialSection(title: "Notes", isExpanded: $showingNotes) {
             Text(meeting.meetingNotes)
                 .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default))
                 .foregroundColor(theme.textColor)
@@ -425,7 +425,7 @@ struct MeetingDetailView: View {
                     .foregroundColor(theme.textColor)
             }
 
-            Text(meeting.pendingMinutesDebitError ?? "This meeting finished successfully. We’re updating your minutes balance in the background.")
+            Text(meeting.pendingMinutesDebitError ?? "This transcription finished successfully. We’re updating your minutes balance in the background.")
                 .font(.system(.subheadline, design: theme.useMonospacedFont ? .monospaced : .default))
                 .foregroundColor(theme.secondaryTextColor)
         }
@@ -460,7 +460,7 @@ struct MeetingDetailView: View {
         let primaryRetryTitle = showsAnalysisRetry
             ? "Retry AI Analysis"
             : (meeting.canResumeLocalJob ? "Resume Processing" : "Retry Processing")
-        let subtitle = meeting.processingError ?? "We couldn't process this meeting. Please try again."
+        let subtitle = meeting.processingError ?? "We couldn't process this transcription. Please try again."
 
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
@@ -670,7 +670,7 @@ struct MeetingDetailView: View {
                 .padding()
             }
             .themedBackground()
-            .navigationTitle("Meeting Summary")
+            .navigationTitle("Transcription Summary")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(false)
             .toolbar {
@@ -886,7 +886,7 @@ struct MeetingDetailView: View {
     }
 
     private func getMeetingTitle() -> String {
-        return meeting.name.isEmpty ? "Untitled Meeting" : meeting.name
+        return meeting.name.isEmpty ? "Untitled Transcription" : meeting.name
     }
 
     private var transcriptPreviewText: String {
@@ -931,7 +931,7 @@ struct MeetingDetailView: View {
     
     private func shareEverything() {
         let content = """
-        Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
+        Transcription: \(meeting.name.isEmpty ? "Untitled Transcription" : meeting.name)
         Date: \(meeting.dateCreated.formatted())
         Location: \(meeting.location.isEmpty ? "N/A" : meeting.location)
         Duration: \(meeting.durationFormatted)
@@ -947,7 +947,7 @@ struct MeetingDetailView: View {
         """
         
         do {
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent("meeting-\(meeting.name.isEmpty ? "untitled" : meeting.name).txt")
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("transcription-\(meeting.name.isEmpty ? "untitled" : meeting.name).txt")
             try content.write(to: url, atomically: true, encoding: String.Encoding.utf8)
             
             let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
@@ -970,7 +970,7 @@ struct MeetingDetailView: View {
         let dateString = dateFormatter.string(from: meeting.dateCreated)
         
         let content = """
-        Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
+        Transcription: \(meeting.name.isEmpty ? "Untitled Transcription" : meeting.name)
         Date: \(meeting.dateCreated.formatted())
         Location: \(meeting.location.isEmpty ? "N/A" : meeting.location)
         Duration: \(meeting.durationFormatted)
@@ -980,7 +980,7 @@ struct MeetingDetailView: View {
         """
         
         do {
-            let filename = "\(meeting.name.isEmpty ? "Meeting" : meeting.name.replacingOccurrences(of: " ", with: "_"))_Summary_\(dateString).txt"
+            let filename = "\(meeting.name.isEmpty ? "Transcription" : meeting.name.replacingOccurrences(of: " ", with: "_"))_Summary_\(dateString).txt"
             let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
             try content.write(to: url, atomically: true, encoding: String.Encoding.utf8)
             
@@ -1004,7 +1004,7 @@ struct MeetingDetailView: View {
         let dateString = dateFormatter.string(from: meeting.dateCreated)
         
         let content = """
-        Meeting: \(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
+        Transcription: \(meeting.name.isEmpty ? "Untitled Transcription" : meeting.name)
         Date: \(meeting.dateCreated.formatted())
         
         Transcript:
@@ -1012,7 +1012,7 @@ struct MeetingDetailView: View {
         """
         
         do {
-            let filename = "\(meeting.name.isEmpty ? "Meeting" : meeting.name.replacingOccurrences(of: " ", with: "_"))_Transcript_\(dateString).txt"
+            let filename = "\(meeting.name.isEmpty ? "Transcription" : meeting.name.replacingOccurrences(of: " ", with: "_"))_Transcript_\(dateString).txt"
             let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
             try content.write(to: url, atomically: true, encoding: String.Encoding.utf8)
             
@@ -1409,7 +1409,7 @@ struct MeetingDetailView: View {
                 meeting.markMinutesDebitSettled()
             } else {
                 meeting.markMinutesDebitPending(
-                    message: "Meeting completed. We’re retrying the minutes sync in the background."
+                    message: "Transcription completed. We’re retrying the minutes sync in the background."
                 )
             }
             HapticService.shared.success()

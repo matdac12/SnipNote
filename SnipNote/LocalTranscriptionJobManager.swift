@@ -471,7 +471,7 @@ actor LocalTranscriptionJobManager {
                     meeting.markMinutesDebitSettled()
                 } else {
                     meeting.markMinutesDebitPending(
-                        message: "Meeting completed. We’re retrying the minutes sync in the background."
+                        message: "Transcription completed. We’re retrying the minutes sync in the background."
                     )
                 }
             }
@@ -504,7 +504,7 @@ actor LocalTranscriptionJobManager {
                 meeting.markMinutesDebitSettled()
             } else {
                 meeting.markMinutesDebitPending(
-                    message: "Meeting completed. We’re retrying the minutes sync in the background."
+                    message: "Transcription completed. We’re retrying the minutes sync in the background."
                 )
             }
 
@@ -669,7 +669,7 @@ actor LocalTranscriptionJobManager {
         let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingId })
 
         guard let meeting = try context.fetch(descriptor).first else {
-            throw NSError(domain: "LocalTranscriptionJobManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "Meeting not found"])
+            throw NSError(domain: "LocalTranscriptionJobManager", code: 404, userInfo: [NSLocalizedDescriptionKey: "Transcription not found"])
         }
 
         try updates(meeting, context)

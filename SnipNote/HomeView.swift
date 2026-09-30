@@ -368,7 +368,7 @@ private struct HomeMeetingRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(meeting.name.isEmpty ? "Untitled Meeting" : meeting.name)
+                Text(meeting.name.isEmpty ? "Untitled Transcription" : meeting.name)
                     .font(.system(.body, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(theme.textColor)
                     .lineLimit(1)

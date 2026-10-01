@@ -416,3 +416,16 @@ UTC, last verification 09:06:30.969 UTC; queued 09:06:31.071 UTC while owner
 reported remaining outside. Transcription processing with no retries at the latest
 observation. Terminal result and owner phone application pending. Both branches
 remain unmerged, following owner's request to finish this trial first.
+
+
+### Long trial terminal server result
+
+Job `3f04b1e2-1fe6-4606-83ba-1a4d3ab3439c` completed at 09:10:19.376 UTC
+(11:10:19 Europe/Rome), six of six prepared files processed, retry count zero.
+Saved transcript 66,364 characters, summary 5,238 characters; exactly one ordinary
+job for the meeting. Owner had confirmed remaining on Home Screen since before
+upload completion. Independent upload reconciler remained active alongside this
+long ordinary job (recent scans zero errors), API/worker/reconciler all active.
+Owner instructed to reopen and check actual phone transcript/summary. That result
+application remains unverified; the tested media duration was 1h26m29s, so a literal
+two-hour recording remains untested. No merge or wider activation performed.

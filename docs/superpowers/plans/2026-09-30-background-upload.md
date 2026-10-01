@@ -181,3 +181,5 @@ Implementation started 2026-10-01 inline on isolated codex/background-upload bra
 - Owner confirmed fresh recording transcript/summary on physical phone. Main end-to-end Home Screen transfer and result application now observed. Remaining device stress/recovery matrix, independent review and longer release trial remain pending. Pre-merge backend 52/52; merge not yet performed.
 
 - Owner requested resolving DOCX and a long recording before main. Diagnosed false failure from XML run boundaries; corrected semantic text assertion without exporter changes. Full app unit suite 108 passed / 0 failed / 1 skipped; prior DOCX blocker resolved. Long trial six files / 84.9 MB verified and queued while owner confirmed Home Screen; manifest 1h26m29s, terminal result pending. Branches remain unmerged.
+
+- Long trial server success: six of six files processed, zero retries, transcript 66,364 chars and summary 5,238 chars saved 09:10:19 UTC / 11:10:19 Europe/Rome. Exactly one job; independent reconciler active during long worker run. Owner instructed to reopen; phone result confirmation pending. Actual recording 1h26m29s, literal two-hour trial still untested; no merge.

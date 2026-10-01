@@ -447,3 +447,18 @@ is part of integration. Preserve unrelated app-main local metadata/installed
 skills; retain feature workspaces with execution notes for remaining trial work.
 Latest verified checks: backend 52/52 including six disposable PostgreSQL tests;
 app unit 108 passed, zero failed, one skipped after semantic DOCX test correction.
+
+
+### Main integration completed
+
+Both main branches fast-forwarded after owner approval: app to `c0e440b` (code
+includes DOCX test correction `83de57b`), service to `471ae67` (runtime code
+`62dd6f9`; later service changes documentation only). Checks rerun from original
+main checkouts: backend 52/52 including six real disposable PostgreSQL checks,
+app unit 108 passed / zero failed / one skipped on iPhone 17. Evidence
+`/private/tmp/upload-merged-backend.log`, `/private/tmp/upload-merged-main.log`,
+`/private/tmp/upload-merged-main.xcresult`. Unrelated app dirty metadata/installed
+skills preserved; service main clean. Feature workspaces/ignored execution notes
+retained for remaining trial work. No production changes accompany this merge.
+Owner-only gate remains enabled for the verified account; no broader activation
+or App Store submission. Main publication follows this evidence commit.

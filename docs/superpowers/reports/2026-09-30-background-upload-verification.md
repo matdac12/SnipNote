@@ -351,3 +351,26 @@ installed app, and to check previous results first. Actual phone application of
 these successful results remains owner-unverified; fresh trial not yet observed.
 The failed first transcription is retained as acceptance history rather than
 rewritten as an uninterrupted pass. No merge/push or wider release performed.
+
+
+## Fresh physical-phone background trial — 2026-10-01
+
+Owner selected an approximately 15-minute recording and reported exiting to Home
+Screen while upload was still in progress. Server manifest duration was 796.416
+seconds; file size 12,953,848 bytes. Session
+`842fcca6-a5d5-4652-9e15-6fa7eb15756b`, meeting
+`113f7c67-600a-4863-b050-9e6ea6b53fe6`, created 08:57:54.647 UTC; exact bytes
+verified 08:58:05.836 UTC and session queued 08:58:05.929 UTC.
+
+Ordinary job `3dbae20b-d0da-452c-9d5e-520dfe726098` completed at 08:59:31.807 UTC
+(10:59:31 Europe/Rome), retry count zero. All nine internal chunks transcribed,
+including the legitimate final 0.17 MB chunk. Saved transcript 11,663 characters,
+summary 3,755 characters; exactly one job exists for this meeting. Only status/
+length metadata inspected. Owner was told to reopen and check transcript/summary;
+phone result application is still awaiting owner confirmation.
+
+This fresh trial verifies background transfer after reported Home Screen departure,
+server verification, single promotion and successful ordinary transcription after
+the deployed tail fix. Exact OS suspension timing, network interruption, force-quit,
+large originals, TestFlight replacement and longer trial acceptance remain pending.
+No additional deployment or account/configuration change made during this check.

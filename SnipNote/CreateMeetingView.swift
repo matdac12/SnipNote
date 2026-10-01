@@ -1270,6 +1270,7 @@ struct CreateMeetingView: View {
     }
     
     private func analyzeImportedAudio() {
+        guard !isProcessingAudio, createdMeeting == nil else { return }
         guard let audioURL = importedAudioURL else {
             print("❌ No audio URL to analyze")
             return
@@ -1353,7 +1354,7 @@ struct CreateMeetingView: View {
         liveSummary = ""
 
         // Create meeting immediately with form data
-        createProcessingMeeting(sourceAudioDuration: cachedAudioDuration, transcriptionBackend: .cloud)
+        createProcessingMeeting(sourceAudioDuration: cachedAudioDuration, transcriptionBackend: .cloud, initialPhase: .transcribing)
 
         // FIXED: Start background task AFTER meeting is created (so meetingId is available)
         if let meetingId = createdMeetingId {
@@ -1586,6 +1587,7 @@ struct CreateMeetingView: View {
     // MARK: - Server-Side Transcription
 
     private func processServerSide(audioURL: URL) {
+        guard !isProcessingAudio, createdMeeting == nil else { return }
         // Check if user has sufficient minutes for server-side transcription
         let requiredMinutes = max(1, Int(ceil(cachedAudioDuration / 60.0)))
         if minutesManager.currentBalance < requiredMinutes {
@@ -1598,7 +1600,7 @@ struct CreateMeetingView: View {
         print("☁️ Starting server-side transcription: \(audioURL)")
 
         // Create meeting immediately
-        createProcessingMeeting(sourceAudioDuration: cachedAudioDuration, transcriptionBackend: .cloud)
+        createProcessingMeeting(sourceAudioDuration: cachedAudioDuration, transcriptionBackend: .cloud, initialPhase: .preparing)
 
         guard let meeting = createdMeeting, let meetingId = createdMeetingId else {
             print("❌ Failed to create meeting for server transcription")
@@ -1661,6 +1663,11 @@ struct CreateMeetingView: View {
                     },
                     recover: {
                         if let user = try? await SupabaseManager.shared.client.auth.session.user.id { await coordinator.recover(userID: user) }
+                    },
+                    onLegacySelected: {
+                        meeting.updateProcessingPhase(.transcribing, stage: "Transcribing audio...", progressPercent: 0)
+                        do { try modelContext.save() }
+                        catch { print("Error saving legacy processing phase: \(error)") }
                     }
                 )
                 if try await routing.start() == .background {
@@ -1957,7 +1964,8 @@ struct CreateMeetingView: View {
         // Create meeting immediately with form data
         createProcessingMeeting(
             sourceAudioDuration: recordingDuration,
-            transcriptionBackend: localTranscriptionManager.isLocalModeEnabled ? .local : .cloud
+            transcriptionBackend: localTranscriptionManager.isLocalModeEnabled ? .local : .cloud,
+            initialPhase: .transcribing
         )
 
         // FIXED: Store recording path immediately for retry capability
@@ -2206,7 +2214,8 @@ struct CreateMeetingView: View {
 
     private func createProcessingMeeting(
         sourceAudioDuration: TimeInterval,
-        transcriptionBackend: TranscriptionBackend
+        transcriptionBackend: TranscriptionBackend,
+        initialPhase: MeetingProcessingPhase = .queued
     ) {
         let meeting = Meeting(
             name: meetingNameTrimmed.isEmpty ? "Untitled Transcription" : meetingNameTrimmed,
@@ -2223,7 +2232,7 @@ struct CreateMeetingView: View {
         meeting.transcriptionBackend = transcriptionBackend
         meeting.transcriptionLanguage = selectedLanguage
         meeting.sourceAudioDurationSeconds = sourceAudioDuration
-        meeting.updateProcessingPhase(.queued, stage: "Starting transcription...", progressPercent: 0)
+        meeting.updateProcessingPhase(initialPhase, stage: "Starting transcription...", progressPercent: 0)
         meeting.clearProcessingError()
 
         // Set local audio path for imported audio

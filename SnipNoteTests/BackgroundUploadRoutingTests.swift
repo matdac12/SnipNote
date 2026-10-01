@@ -145,4 +145,89 @@ import Testing
     try context.save()
     #expect(try context.fetch(FetchDescriptor<Meeting>()).isEmpty)
   }
+  @Test(arguments: ["off", "opt-out", "unavailable", "disabled"])
+  func legacyCallbackPrecedesForegroundWork(reason: String) async throws {
+    let defaults = try #require(UserDefaults(suiteName: UUID().uuidString))
+    let settings = BackgroundUploadSettings(defaults: defaults)
+    settings.useLegacyUpload = reason == "opt-out"
+    var events: [String] = []
+    let route = BackgroundUploadRouting(settings: settings, capabilities: {
+      if reason == "unavailable" { throw BackgroundUploadFailure.unavailable }
+      return .init(backgroundUploadEnabled: reason != "off")
+    }, hasExisting: { false }, startBackground: {
+      if reason == "disabled" { throw BackgroundUploadFailure.disabled }
+    }, recover: {}, onLegacySelected: { events.append("legacy") })
+    #expect(try await route.start() == .legacy)
+    events.append("foreground")
+    #expect(events == ["legacy", "foreground"])
+  }
+  @Test func ambiguousFailureDoesNotReportLegacy() async throws {
+    let settings = BackgroundUploadSettings(defaults: try #require(UserDefaults(suiteName: UUID().uuidString)))
+    for failure in [BackgroundUploadFailure.unavailable, .accountMismatch] {
+      var legacy = 0
+      let route = BackgroundUploadRouting(settings: settings, capabilities: { .init(backgroundUploadEnabled: true) }, hasExisting: { false }, startBackground: { throw failure }, recover: {}, onLegacySelected: { legacy += 1 })
+      await #expect(throws: BackgroundUploadFailure.self) { try await route.start() }
+      #expect(legacy == 0)
+    }
+  }
+  @Test func existingSessionNeverReportsLegacy() async throws {
+    let settings = BackgroundUploadSettings(defaults: try #require(UserDefaults(suiteName: UUID().uuidString)))
+    var recoveries = 0, legacy = 0
+    let route = BackgroundUploadRouting(settings: settings, capabilities: { .init(backgroundUploadEnabled: false) }, hasExisting: { true }, startBackground: {}, recover: { recoveries += 1 }, onLegacySelected: { legacy += 1 })
+    #expect(try await route.start() == .background)
+    #expect(recoveries == 1 && legacy == 0)
+  }
+  private func progress(user: UUID, meeting: UUID, job: UUID, status: JobStatus = .processing) -> JobStatusResponse {
+    .init(id: job.uuidString, userId: user.uuidString, meetingId: meeting.uuidString, audioUrl: nil, status: status, transcript: nil, overview: nil, summary: nil, duration: nil, errorMessage: nil, progressPercentage: 70, currentStage: "Generating summary...", createdAt: "", updatedAt: "", completedAt: nil)
+  }
+  @Test func nonterminalMetadataRestoresProcessing() {
+    let meeting = Meeting(name: "Processing"), user = UUID(), job = UUID()
+    meeting.updateProcessingState(.transcribing)
+    BackgroundUploadReconciler.applyQueued(jobID: job, to: meeting)
+    #expect(!BackgroundUploadReconciler.applyResult(progress(user: user, meeting: meeting.id, job: job), to: meeting, userID: user, jobID: job))
+    #expect(meeting.processingPhase == .generatingSummary)
+    let value = AnalysisPresentationResolver.resolve(.init(meeting: meeting, upload: nil, serverStatus: nil, serverStage: nil))
+    #expect(value.phase == .analyzing && value.guidance == .safeServer)
+  }
+  @Test func pendingMetadataRestoresQueue() {
+    let meeting = Meeting(name: "Queue"), user = UUID(), job = UUID()
+    meeting.updateProcessingState(.transcribing); meeting.processingPhase = .generatingSummary
+    #expect(!BackgroundUploadReconciler.applyResult(progress(user: user, meeting: meeting.id, job: job, status: .pending), to: meeting, userID: user, jobID: job))
+    #expect(meeting.processingPhase == .queued)
+  }
+  @Test func foreignProgressDoesNotMutateMeeting() {
+    let meeting = Meeting(name: "Foreign"), user = UUID(), job = UUID()
+    meeting.updateProcessingState(.transcribing); meeting.processingPhase = .preparing
+    for foreign in [progress(user: UUID(), meeting: meeting.id, job: job), progress(user: user, meeting: UUID(), job: job), progress(user: user, meeting: meeting.id, job: UUID())] {
+      #expect(!BackgroundUploadReconciler.applyResult(foreign, to: meeting, userID: user, jobID: job))
+      #expect(meeting.processingPhase == .preparing && meeting.progressPercent == 0)
+    }
+  }
+  @Test func progressDoesNotOverwriteResults() {
+    let meeting = Meeting(name: "Edited", audioTranscript: "My edits"), user = UUID(), job = UUID()
+    meeting.markCompleted()
+    #expect(!BackgroundUploadReconciler.applyResult(progress(user: user, meeting: meeting.id, job: job), to: meeting, userID: user, jobID: job))
+    #expect(meeting.processingState == .completed && meeting.processingPhase == .idle && meeting.audioTranscript == "My edits")
+  }
+  @Test func repeatedQueuedPromotionPreservesProcessingPhase() {
+    let meeting = Meeting(name: "Retained"), job = UUID()
+    BackgroundUploadReconciler.applyQueued(jobID: job, to: meeting)
+    meeting.processingPhase = .generatingSummary
+    BackgroundUploadReconciler.applyQueued(jobID: job, to: meeting)
+    #expect(meeting.processingPhase == .generatingSummary)
+  }
+  @Test func persistedMetadataResolvesWithoutViewState() throws {
+    let container = try ModelContainer(for: Meeting.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let context = container.mainContext, meeting = Meeting(name: "Persisted"), user = UUID(), job = UUID()
+    meeting.updateProcessingState(.transcribing)
+    context.insert(meeting)
+    BackgroundUploadReconciler.applyQueued(jobID: job, to: meeting)
+    _ = BackgroundUploadReconciler.applyResult(progress(user: user, meeting: meeting.id, job: job), to: meeting, userID: user, jobID: job)
+    try context.save()
+    let fresh = ModelContext(container)
+    let restored = try #require(fresh.fetch(FetchDescriptor<Meeting>()).first)
+    let value = AnalysisPresentationResolver.resolve(.init(meeting: restored, upload: nil, serverStatus: nil, serverStage: nil))
+    #expect(value.phase == .analyzing && value.guidance == .safeServer)
+  }
+
 }

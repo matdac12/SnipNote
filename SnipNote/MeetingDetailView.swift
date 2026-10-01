@@ -14,6 +14,10 @@ struct MeetingDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var meeting: Meeting
     @EnvironmentObject var themeManager: ThemeManager
+    @EnvironmentObject private var localization: LocalizationManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var lastAnalysisPresentation: AnalysisPresentation?
+    @State private var showedAcceptedServer = false
 
     @State private var isEditingName = false
     @State private var tempName = ""
@@ -53,9 +57,10 @@ struct MeetingDetailView: View {
             meetingHeaderView
 
             ScrollView {
-                if meeting.isProcessing || isRetrying || meeting.isPausedLocalJob {
+                if meeting.isProcessing || isRetrying || meeting.isPausedLocalJob || (usesQuietAnalysis && meeting.processingState == .failed) {
                     processingStatusSection
-                        .padding()
+                        .padding(usesQuietAnalysis ? 0 : 16)
+                        .transition(.opacity)
                 } else {
                     VStack(alignment: .leading, spacing: 24) {
                         if !meeting.meetingNotes.isEmpty {
@@ -73,12 +78,12 @@ struct MeetingDetailView: View {
                     .padding()
                 }
             }
-            .id(refreshTrigger)  // Force view rebuild when job completes
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.25), value: meeting.processingState == .completed)
             .refreshable {
                 await refreshJobStatus()
             }
         }
-        .themedBackground()
+        .background(theme.backgroundColor)
         .foregroundColor(themeManager.currentTheme.accentColor)
         .navigationBarBackButtonHidden(false)
         .toolbar {
@@ -95,7 +100,14 @@ struct MeetingDetailView: View {
         } message: {
             Text(exportErrorMessage ?? "")
         }
+        .onChange(of: analysisPresentation) { _, value in
+            if value.canLeave { showedAcceptedServer = true }
+            if value.phase == .foreground { showedAcceptedServer = false }
+            lastAnalysisPresentation = value
+        }
         .onAppear {
+            lastAnalysisPresentation = analysisPresentation
+            showedAcceptedServer = analysisPresentation.canLeave
             tempName = meeting.name
         }
         .task {
@@ -286,22 +298,11 @@ struct MeetingDetailView: View {
     
     private var processingStatusSection: some View {
         VStack(spacing: 24) {
-            if let upload = backgroundUploads.snapshots[meeting.id], [.preparing, .uploading, .retry, .queued].contains(upload.phase) {
-                VStack(spacing: 12) {
-                    Text(LocalizationManager.localizedAppString(upload.phase == .preparing ? "background_upload.preparing" : upload.phase == .retry ? "background_upload.retry" : upload.phase == .queued ? "background_upload.queued" : "background_upload.uploading"))
-                    if upload.totalBytes > 0 && upload.phase != .queued {
-                        ProgressView(value: Double(upload.bytesSent), total: Double(upload.totalBytes))
-                        Text("\(upload.bytesSent.formatted(.byteCount(style: .file))) / \(upload.totalBytes.formatted(.byteCount(style: .file)))")
-                            .font(.caption)
-                    }
-                    Text(LocalizationManager.localizedAppString(upload.transferRegistered || upload.phase == .queued ? "background_upload.can_leave" : "background_upload.keep_open"))
-                        .font(.caption)
-                    if upload.phase == .retry {
-                        Button(LocalizationManager.localizedAppString("background_upload.retry_button")) {
-                            Task { await backgroundUploads.recover(userID: upload.userID) }
-                        }
-                    }
-                }.padding()
+            if usesQuietAnalysis {
+                AnalysisStatusView(presentation: analysisPresentation, retryUpload: retryBackgroundUpload)
+                if analysisPresentation.phase == .failed {
+                    processingErrorCard.padding(.horizontal, 24)
+                }
             } else if meeting.isLocalJob {
                 MinimalistProcessingView(
                     phase: localMinimalistPhase,
@@ -316,39 +317,14 @@ struct MeetingDetailView: View {
                 )
 
                 localProcessingActions
-            } else if let _ = meeting.transcriptionJobId, let status = jobStatus {
-                // Show async job status if available (server-side processing)
-                if status.isInProgress {
-                    let isUploading = status == .pending
-                    // Server-side: use minimalist processing view
-                    MinimalistProcessingView(
-                        phase: jobProgress == 0 && status == .pending ? .uploading : .transcribing,
-                        progress: Double(jobProgress),
-                        stageDescription: jobStage.isEmpty ? (status == .pending ? "Preparing transcription..." : "Processing on server...") : jobStage,
-                        showPercentage: !isUploading,
-                        infoMessage: isUploading ? "Keep SnipNote open while uploading." : "Upload complete. You can close the app.",
-                        estimatedTimeRemaining: jobProgress >= 25 ? serverEstimatedTimeRemaining() : nil,
-                        currentChunk: nil,
-                        totalChunks: nil,
-                        partialTranscript: nil  // Server-side has no partial transcript
-                    )
-                } else if status == .failed {
-                    // Show error state
-                    serverErrorCard()
-                }
-                // If completed, processingStatusSection won't be shown (meeting.isProcessing = false)
             } else if meeting.transcriptionJobId != nil || meeting.isProcessing {
-                // Job ID exists but status not loaded yet, or in upload phase
                 MinimalistProcessingView(
-                    phase: .uploading,
+                    phase: meeting.processingState == .generatingSummary ? .analyzing : .transcribing,
                     progress: 0,
-                    stageDescription: "Uploading to server...",
+                    stageDescription: localization.localizedString(meeting.processingState == .generatingSummary ? "analysis.title.analyzing" : "analysis.title.transcribing"),
                     showPercentage: false,
-                    infoMessage: "Keep SnipNote open while uploading.",
-                    estimatedTimeRemaining: nil,
-                    currentChunk: nil,
-                    totalChunks: nil,
-                    partialTranscript: nil
+                    infoMessage: LocalizedStringKey(localization.localizedString("analysis.guidance.keep_open.title")),
+                    estimatedTimeRemaining: nil, currentChunk: nil, totalChunks: nil, partialTranscript: nil
                 )
             } else {
                 // Fallback for on-device transcription (rarely used in MeetingDetailView)
@@ -365,6 +341,26 @@ struct MeetingDetailView: View {
                 )
             }
         }
+    }
+
+    private var usesQuietAnalysis: Bool {
+        guard !meeting.isLocalJob else { return false }
+        return backgroundUploads.snapshots[meeting.id] != nil || meeting.transcriptionJobId != nil
+            || meeting.processingPhase == .preparing
+            || (meeting.processingState == .failed && showedAcceptedServer)
+    }
+
+    private var analysisPresentation: AnalysisPresentation {
+        AnalysisPresentationResolver.resolve(
+            .init(meeting: meeting, upload: backgroundUploads.snapshots[meeting.id],
+                  serverStatus: jobId == meeting.transcriptionJobId ? jobStatus : nil,
+                  serverStage: jobId == meeting.transcriptionJobId ? jobStage : nil),
+            previous: lastAnalysisPresentation)
+    }
+
+    private func retryBackgroundUpload() {
+        guard let upload = backgroundUploads.snapshots[meeting.id] else { return }
+        Task { await backgroundUploads.recover(userID: upload.userID) }
     }
 
     private var localMinimalistPhase: MinimalistPhase {
@@ -1147,11 +1143,13 @@ struct MeetingDetailView: View {
         }
 
         await MainActor.run {
+            if self.jobId != jobId {
+                self.jobStatus = nil
+                self.jobStage = ""
+                self.jobProgress = 0
+                self.lastAnalysisPresentation = nil
+            }
             self.jobId = jobId
-            // Set initial pending status immediately to show new UI without lag
-            self.jobStatus = .pending
-            self.jobStage = "Uploading to server..."
-            self.jobProgress = 0
             print("🔄 [MeetingDetail] Starting async job polling for: \(jobId)")
         }
 
@@ -1168,6 +1166,7 @@ struct MeetingDetailView: View {
                 let status = try await transcriptionService.getJobStatus(jobId: jobId)
 
                 let isFinal = await MainActor.run {
+                    guard meeting.transcriptionJobId == jobId, self.jobId == jobId, meeting.isProcessing else { return true }
                     if backgroundUploads.snapshots[meeting.id] != nil {
                         jobStatus = status.status
                         jobProgress = status.progressPercentage ?? 0
@@ -1296,6 +1295,10 @@ struct MeetingDetailView: View {
             return true
         default:
             jobErrorMessage = nil
+            if let id = UUID(uuidString: status.id), let user = UUID(uuidString: status.userId) {
+                _ = BackgroundUploadReconciler.applyResult(status, to: meeting, userID: user, jobID: id)
+                try? modelContext.save()
+            }
             return false
         }
     }

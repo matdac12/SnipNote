@@ -110,4 +110,13 @@ struct AnalysisPresentationTests {
     #expect(AnalysisPresentationResolver.serverPhase(status: .processing, stage: "Internal secret stage") == .processing)
     #expect(AnalysisPresentationResolver.serverPhase(status: .processing, stage: nil) == .processing)
   }
+  @MainActor @Test func newServerEntryIsPreparingBeforeManifest() {
+    let meeting = Meeting(name: "New")
+    meeting.updateProcessingState(.transcribing)
+    meeting.transcriptionBackend = .cloud
+    meeting.processingPhase = .preparing
+    let value = AnalysisPresentationResolver.resolve(.init(meeting: meeting, upload: nil, serverStatus: nil, serverStage: nil))
+    #expect(value.phase == .preparing && value.guidance == .keepOpen)
+  }
+
 }

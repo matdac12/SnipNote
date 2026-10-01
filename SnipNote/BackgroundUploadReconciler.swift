@@ -95,8 +95,9 @@ import Supabase
           guard (try? await identity()) == userID,
                 let current = try context.fetch(descriptor).first, current.isProcessing,
                 coordinator.snapshots[meetingID]?.phase != .cancelled else { continue }
-          if Self.applyResult(result, to: current, userID: userID, jobID: jobID) {
-            try context.save()
+          let terminal = Self.applyResult(result, to: current, userID: userID, jobID: jobID)
+          try context.save()
+          if terminal {
             try coordinator.markResultApplied(meetingID: meetingID)
             try await sync(current)
             coordinator.finish(meetingID: meetingID)
@@ -106,6 +107,9 @@ import Supabase
     }
   }
   static func applyQueued(jobID: UUID, to meeting: Meeting) {
+    if meeting.transcriptionJobId != jobID.uuidString {
+      meeting.updateProcessingPhase(.queued, stage: "Waiting to transcribe", progressPercent: 0)
+    }
     meeting.transcriptionJobId = jobID.uuidString
     meeting.updateProcessingState(.transcribing)
     meeting.hasRecording = true
@@ -123,7 +127,15 @@ import Supabase
     case .failed:
       meeting.setProcessingError(result.errorMessage ?? LocalizationManager.localizedAppString("background_upload.remote_failed"))
       return true
-    default: return false
+    case .pending:
+      meeting.updateProcessingPhase(.queued, stage: "Waiting to transcribe", progressPercent: 0)
+      return false
+    case .processing:
+      let phase = AnalysisPresentationResolver.serverPhase(status: result.status, stage: result.currentStage)
+      let modelPhase: MeetingProcessingPhase = phase == .analyzing ? .generatingSummary : .transcribing
+      let stage = phase == .analyzing ? "Generating summary" : phase == .transcribing ? "Transcribing" : "Processing your meeting"
+      meeting.updateProcessingPhase(modelPhase, stage: stage, progressPercent: Double(max(0, min(100, result.progressPercentage ?? 0))))
+      return false
     }
   }
   static func permitsLocalFallback(remoteStatus: JobStatus?, activeUpload: Bool) -> Bool {

@@ -156,3 +156,4 @@ Implementation started 2026-10-01 inline on isolated codex/background-upload bra
 - Task 1: setting/tests/localized opt-out implemented; owner Swift RED/GREEN pending.
 - Task 2 migration generated: `20261001064743_background_upload_sessions.sql`. Backend RED: missing new modules; GREEN: 13 upload tests, 33 full-suite tests. Permission rehearsal follows in Task 3.
 - Task 3 migration generated: `20261001065143_promote_background_upload.sql`. Local PostgreSQL rehearsal verifies concurrent single promotion, metadata rollback, legacy conflicts, and denied client roles.
+- Task 4: durable manifests/protected exports and fixtures implemented; Swift checks owner-pending.

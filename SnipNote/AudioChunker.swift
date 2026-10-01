@@ -640,3 +640,61 @@ class AudioChunker {
         return finalChunks
     }
 }
+
+extension AudioChunker {
+  /// Durable exports with the legacy no-overlap upload segmentation. Size checked
+  /// after encoding; oversized segments are bisected without changing coverage.
+  static func prepareUploadFiles(
+    from source: URL, directory: URL,
+    targetBytes: Int = uploadChunkSizeBytes,
+    availableBytes: (() throws -> Int64)? = nil
+  ) async throws -> [PreparedUploadFile] {
+    try validateAudioFile(url: source)
+    guard targetBytes > 0 else { throw BackgroundUploadFailure.invalidManifest }
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    try await BackgroundUploadStore.protect(directory)
+    let size = try getFileSize(url: source)
+    let available = try availableBytes?() ?? Int64((FileManager.default.attributesOfFileSystem(forPath: directory.path)[.systemFreeSize] as? UInt64) ?? 0)
+    guard available > Int64(size) * 3 + 100 * 1024 * 1024 else { throw BackgroundUploadFailure.diskFull }
+    let asset = AVURLAsset(url: source)
+    let duration = try await asset.load(.duration).seconds
+    guard duration.isFinite && duration > 0 else { throw ChunkerError.invalidAudioFile }
+    let chunkDuration = max(Double(targetBytes) / (Double(size) / duration), 120)
+    var result: [PreparedUploadFile] = []
+    var start = 0.0
+    while start < duration {
+      try Task.checkCancellation()
+      let end = min(start + chunkDuration, duration)
+      try await exportPreparedSegment(source: source, directory: directory, start: start, end: end, targetBytes: targetBytes, result: &result)
+      start = end
+    }
+    return result
+  }
+
+  private static func exportPreparedSegment(source: URL, directory: URL, start: Double, end: Double, targetBytes: Int, result: inout [PreparedUploadFile]) async throws {
+    try Task.checkCancellation()
+    let name = "chunk-\(result.count)-\(UUID().uuidString).m4a"
+    let url = directory.appendingPathComponent(name)
+    guard let exporter = AVAssetExportSession(asset: AVURLAsset(url: source), presetName: AVAssetExportPresetAppleM4A) else { throw ChunkerError.chunkingFailed }
+    exporter.timeRange = CMTimeRange(start: CMTime(seconds: start, preferredTimescale: 1000000), duration: CMTime(seconds: end - start, preferredTimescale: 1000000))
+    do {
+      try await exporter.export(to: url, as: .m4a)
+      let bytes = try getFileSize(url: url)
+      if bytes > targetBytes {
+        try FileManager.default.removeItem(at: url)
+        guard end - start > 0.25 else { throw ChunkerError.chunkingFailed }
+        let middle = (start + end) / 2
+        try await exportPreparedSegment(source: source, directory: directory, start: start, end: middle, targetBytes: targetBytes, result: &result)
+        try await exportPreparedSegment(source: source, directory: directory, start: middle, end: end, targetBytes: targetBytes, result: &result)
+      } else {
+        guard bytes > 0 else { throw ChunkerError.chunkingFailed }
+        try await BackgroundUploadStore.protect(url)
+        result.append(PreparedUploadFile(index: result.count, relativePath: name, expectedBytes: Int64(bytes), duration: end - start, contentType: "audio/mp4", fileExtension: "m4a"))
+      }
+    } catch {
+      try? FileManager.default.removeItem(at: url)
+      if (error as NSError).code == NSFileWriteOutOfSpaceError { throw BackgroundUploadFailure.diskFull }
+      throw error
+    }
+  }
+}

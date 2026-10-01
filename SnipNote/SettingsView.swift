@@ -626,6 +626,12 @@ struct SettingsView: View {
         .sheet(isPresented: $showingAboutSheet) {
             AboutSheetView()
         }
+        .task {
+            let user = SupabaseManager.shared.client.auth.currentUser?.id
+            let capability = try? await BackgroundUploadAPI().capabilities()
+            guard SupabaseManager.shared.client.auth.currentUser?.id == user else { return }
+            backgroundUploadSettings.serverOffered = capability?.backgroundUploadEnabled ?? false
+        }
         .onAppear {
             fetchUsageStats()
             Task { await minutesManager.refreshBalance() }

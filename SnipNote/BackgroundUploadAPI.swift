@@ -55,6 +55,7 @@ import Supabase
          let detail = envelope["detail"] as? [String: Any], detail["code"] as? String == "background_upload_disabled" {
         throw BackgroundUploadFailure.disabled
       }
+      if http.statusCode == 401 || http.statusCode == 403 { throw BackgroundUploadFailure.accountMismatch }
       throw BackgroundUploadFailure.unavailable
     }
     let decoder = JSONDecoder()

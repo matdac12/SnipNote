@@ -1647,6 +1647,12 @@ struct CreateMeetingView: View {
                                 try await SupabaseManager.shared.saveMeeting(current)
                             }
                         }
+                        coordinator.recoverSource = { expectedUser, id in
+                            guard expectedUser == user, SupabaseManager.shared.client.auth.currentUser?.id == user,
+                                  let current = try modelContext.fetch(FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == id })).first,
+                                  current.isProcessing, let path = current.localAudioPath else { return nil }
+                            return URL(fileURLWithPath: path)
+                        }
                         try await coordinator.start(meetingID: meetingId, source: audioURL, options: UploadOptions(provider: provider.rawValue, language: language, duration: audioDuration))
                         if let manifest = coordinator.snapshots[meetingId] {
                             meeting.localAudioPath = try coordinator.store.fileURL(manifest.sourceRelativePath, userID: user, meetingID: meetingId).path
@@ -1781,6 +1787,8 @@ struct CreateMeetingView: View {
                     print("❌ Error in server-side transcription: \(error)")
                     if BackgroundUploadCoordinator.shared.contains(meetingID: meetingId) {
                         meeting.currentStageDescription = localized("background_upload.retry")
+                    } else if let uploadError = error as? BackgroundUploadFailure {
+                        meeting.setProcessingError(uploadError.localizedDescription)
                     } else {
                         meeting.setProcessingError(serverBootstrapErrorMessage(for: error))
                     }

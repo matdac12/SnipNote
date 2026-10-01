@@ -10,6 +10,7 @@ import Supabase
   private let sync: (Meeting) async throws -> Void
   private var reconciling = false
   private var polling: Task<Void, Never>?
+  private var activation = UUID()
 
   init(coordinator: BackgroundUploadCoordinator? = nil,
        status: ((String) async throws -> JobStatusResponse)? = nil,
@@ -23,6 +24,7 @@ import Supabase
   }
   func activate(context: ModelContext, userID: UUID) async {
     stop()
+    let generation = activation
     coordinator.ensureMeeting = { [weak self] user, meetingID in
       guard let self, try await self.identity() == user else { throw BackgroundUploadFailure.accountMismatch }
       let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingID })
@@ -33,11 +35,20 @@ import Supabase
         try await self.sync(meeting)
       }
     }
+    coordinator.recoverSource = { [weak self] user, meetingID in
+      guard let self, try await self.identity() == user else { throw BackgroundUploadFailure.accountMismatch }
+      let descriptor = FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == meetingID })
+      guard let meeting = try context.fetch(descriptor).first, meeting.isProcessing,
+            let path = meeting.localAudioPath else { return nil }
+      return URL(fileURLWithPath: path)
+    }
     coordinator.onUpdate = { [weak self] in
       Task { await self?.reconcile(context: context, userID: userID) }
     }
     await coordinator.recover(userID: userID)
+    guard generation == activation else { return }
     await reconcile(context: context, userID: userID)
+    guard generation == activation else { return }
     polling = Task { [weak self] in
       while !Task.isCancelled {
         try? await Task.sleep(nanoseconds: 5_000_000_000)
@@ -46,11 +57,12 @@ import Supabase
       }
     }
   }
-  func stop() { polling?.cancel(); polling = nil }
+  func stop() { activation = UUID(); polling?.cancel(); polling = nil }
   func reconcile(context: ModelContext, userID: UUID) async {
-    guard !reconciling, (try? await identity()) == userID else { return }
+    guard !reconciling else { return }
     reconciling = true
     defer { reconciling = false }
+    guard (try? await identity()) == userID else { return }
     await coordinator.refreshStatuses(userID: userID)
     for manifest in coordinator.snapshots.values where manifest.userID == userID && manifest.phase != .cancelled && manifest.phase != .completed {
       let meetingID = manifest.meetingID

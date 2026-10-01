@@ -36,6 +36,11 @@ import Testing
       #expect(recoveries == 1)
     }
   }
+  @Test func capabilityAuthenticationFailureDoesNotFallBack() async throws {
+    let settings = BackgroundUploadSettings(defaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let router = BackgroundUploadRouting(settings: settings, capabilities: { throw BackgroundUploadFailure.accountMismatch }, hasExisting: { false }, startBackground: {}, recover: {})
+    await #expect(throws: BackgroundUploadFailure.self) { try await router.start() }
+  }
   @Test func networkFailureDoesNotStartLocalFallback() async throws {
     await #expect(throws: BackgroundUploadFailure.self) { try await router(enabled: true, failure: .unavailable).start() }
     #expect(!BackgroundUploadReconciler.permitsLocalFallback(remoteStatus: nil, activeUpload: true))
@@ -97,6 +102,28 @@ import Testing
     #expect(syncs == 2)
     #expect(meeting.audioTranscript == "Edited after completion")
     #expect(coordinator.snapshots[meeting.id]?.phase == .completed)
+  }
+  @Test func simultaneousReconciliationMakesOneStatusRequest() async throws {
+    let container = try ModelContainer(for: Meeting.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let context = container.mainContext, user = UUID(), job = UUID()
+    let meeting = Meeting(name: "One poll")
+    meeting.updateProcessingState(.transcribing)
+    context.insert(meeting)
+    let store = BackgroundUploadStore(root: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString))
+    let api = UploadFakeAPI(), transport = UploadFakeTransport()
+    var manifest = BackgroundUploadManifest(userID: user, meetingID: meeting.id, sourceRelativePath: "source.m4a", options: UploadOptions(provider: "xai", language: "it", duration: 10))
+    manifest.sessionID = api.reply.sessionId; manifest.jobID = job; manifest.phase = .queued
+    try store.save(manifest)
+    api.reply.status = "queued"; api.reply.jobId = job
+    let coordinator = BackgroundUploadCoordinator(api: api, store: store, transport: transport, identity: { user }, ensureMeeting: { _, _ in })
+    await coordinator.recover(userID: user)
+    let status = result(user: user, meeting: meeting.id, job: job)
+    var calls = 0
+    let reconciler = BackgroundUploadReconciler(coordinator: coordinator, status: { _ in calls += 1; await Task.yield(); return status }, identity: { await Task.yield(); return user }, sync: { _ in })
+    async let first: Void = reconciler.reconcile(context: context, userID: user)
+    async let second: Void = reconciler.reconcile(context: context, userID: user)
+    _ = await (first, second)
+    #expect(calls == 1)
   }
   @Test func queuedPromotionUsesLegacyMeetingStates() {
     let meeting = Meeting(name: "Queued")

@@ -5,6 +5,7 @@ import Supabase
 struct UploadTaskSnapshot: Sendable {
   var id: Int
   var description: String?
+  var suspended: Bool = false
 }
 
 @MainActor protocol BackgroundUploadTransporting: AnyObject {
@@ -14,6 +15,7 @@ struct UploadTaskSnapshot: Sendable {
   func allTasks() async -> [UploadTaskSnapshot]
   func schedule(_ request: URLRequest, file: URL, description: String) throws
   func cancel(_ id: Int)
+  func resume(_ id: Int)
 }
 
 /// Enter synchronously on the serial delegate queue, leave after durable actor work.
@@ -48,13 +50,16 @@ final class UploadDelegateDrain: @unchecked Sendable {
   }()
   func allTasks() async -> [UploadTaskSnapshot] {
     await withCheckedContinuation { continuation in
-      session.getAllTasks { tasks in continuation.resume(returning: tasks.map { UploadTaskSnapshot(id: $0.taskIdentifier, description: $0.taskDescription) }) }
+      session.getAllTasks { tasks in continuation.resume(returning: tasks.map { UploadTaskSnapshot(id: $0.taskIdentifier, description: $0.taskDescription, suspended: $0.state == .suspended) }) }
     }
   }
   func schedule(_ request: URLRequest, file: URL, description: String) throws {
     let task = session.uploadTask(with: request, fromFile: file)
     task.taskDescription = description
     task.resume()
+  }
+  func resume(_ id: Int) {
+    session.getAllTasks { tasks in tasks.first { $0.taskIdentifier == id }?.resume() }
   }
   func cancel(_ id: Int) {
     session.getAllTasks { tasks in tasks.first { $0.taskIdentifier == id }?.cancel() }
@@ -84,16 +89,23 @@ final class UploadDelegateDrain: @unchecked Sendable {
   private let transport: BackgroundUploadTransporting
   private let identity: () async throws -> UUID
   private let productionIdentity: Bool
+  private let retrySleep: (UInt64) async throws -> Void
   var ensureMeeting: (UUID, UUID) async throws -> Void
+  var recoverSource: (UUID, UUID) async throws -> URL?
   var onUpdate: (() -> Void)?
   private var activeUser: UUID?
   private var systemCompletion: (() -> Void)?
   private var recovering = false
+  private var pendingRecoveryUser: UUID?
   private var operating: Set<UUID> = []
   private var retryTasks: [UUID: Task<Void, Never>] = [:]
 
   init(api: BackgroundUploadServing? = nil, store: BackgroundUploadStore? = nil, transport: BackgroundUploadTransporting? = nil,
-       identity: (() async throws -> UUID)? = nil, ensureMeeting: @escaping (UUID, UUID) async throws -> Void = { _, _ in throw BackgroundUploadFailure.unavailable }) {
+       identity: (() async throws -> UUID)? = nil, ensureMeeting: @escaping (UUID, UUID) async throws -> Void = { _, _ in throw BackgroundUploadFailure.unavailable },
+       retrySleep: @escaping (UInt64) async throws -> Void = { try await Task.sleep(nanoseconds: $0 * 1_000_000_000) },
+       recoverSource: @escaping (UUID, UUID) async throws -> URL? = { _, _ in nil }) {
+    self.recoverSource = recoverSource
+    self.retrySleep = retrySleep
     productionIdentity = identity == nil
     self.api = api ?? BackgroundUploadAPI()
     self.store = store ?? BackgroundUploadStore()
@@ -165,6 +177,7 @@ final class UploadDelegateDrain: @unchecked Sendable {
   }
   func signOut() async {
     activeUser = nil
+    pendingRecoveryUser = nil
     for retry in retryTasks.values { retry.cancel() }
     retryTasks.removeAll()
     snapshots = [:]
@@ -190,8 +203,7 @@ final class UploadDelegateDrain: @unchecked Sendable {
     // Original caller's file is retained even if this durable copy or preparation fails.
     try persist(manifest)
     do {
-      try FileManager.default.copyItem(at: source, to: stableSource)
-      try BackgroundUploadStore.protect(stableSource)
+      try await copySource(source, to: stableSource)
       manifest.files = try await AudioChunker.prepareUploadFiles(from: stableSource, directory: directory).map { UploadFileState(file: $0) }
       // Provider, language and duration remain captured for this attempt.
 
@@ -215,19 +227,39 @@ final class UploadDelegateDrain: @unchecked Sendable {
     guard activeUser == user, try await identity() == user else { throw BackgroundUploadFailure.accountMismatch }
   }
   func recover(userID: UUID) async {
-    guard !recovering else { return }
+    activeUser = userID
+    if recovering {
+      pendingRecoveryUser = userID
+      snapshots = snapshots.filter { $0.value.userID == userID }
+      return
+    }
     recovering = true
     defer { recovering = false }
-    activeUser = userID
+    var requested: UUID? = userID
+    while let user = requested {
+      pendingRecoveryUser = nil
+      await recoverPass(userID: user)
+      requested = pendingRecoveryUser
+    }
+  }
+  private func recoverPass(userID: UUID) async {
     for task in retryTasks.values { task.cancel() }
     retryTasks.removeAll()
     do {
-      let manifests = try store.load(userID: userID)
+      try await assertAccount(userID)
+      var manifests = try store.load(userID: userID)
+      // A new authenticated wake grants a fresh bounded retry budget.
+      for offset in manifests.indices {
+        for file in manifests[offset].files.indices where manifests[offset].files[file].state == .retry {
+          manifests[offset].files[file].attempts = 0
+        }
+      }
       snapshots = Dictionary(uniqueKeysWithValues: manifests.map { ($0.meetingID, $0) })
-      for task in await transport.allTasks() {
+      let tasks = await transport.allTasks()
+      try await assertAccount(userID)
+      for task in tasks {
         if task.description?.hasPrefix(userID.uuidString + "/") != true { transport.cancel(task.id) }
       }
-      try await assertAccount(userID)
       for manifest in manifests where manifest.phase != .completed && manifest.phase != .cancelled {
         do { try await resume(manifest) }
         catch {
@@ -247,8 +279,21 @@ final class UploadDelegateDrain: @unchecked Sendable {
     var manifest = snapshots[initial.meetingID] ?? initial
     guard manifest.phase != .cancelled && manifest.phase != .completed && manifest.phase != .queued else { return }
     if manifest.files.isEmpty {
+      try await ensureMeeting(manifest.userID, manifest.meetingID)
+      try await assertAccount(manifest.userID)
       manifest.phase = .preparing; try persist(manifest)
       let source = try store.fileURL(manifest.sourceRelativePath, userID: manifest.userID, meetingID: manifest.meetingID)
+      if !FileManager.default.fileExists(atPath: source.path) {
+        guard let original = try await recoverSource(manifest.userID, manifest.meetingID) else { throw BackgroundUploadFailure.unavailable }
+        try await assertAccount(manifest.userID)
+        try await copySource(original, to: source)
+      }
+      // No durable file list or tasks exists yet; these are orphaned preparation exports.
+      let directory = store.directory(userID: manifest.userID, meetingID: manifest.meetingID)
+      for file in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+        where file.lastPathComponent.hasPrefix("chunk-") || file.lastPathComponent.hasSuffix(".copying") {
+        try FileManager.default.removeItem(at: file)
+      }
       manifest.files = try await AudioChunker.prepareUploadFiles(from: source, directory: store.directory(userID: manifest.userID, meetingID: manifest.meetingID)).map { UploadFileState(file: $0) }
 
       try await assertAccount(manifest.userID)
@@ -260,7 +305,7 @@ final class UploadDelegateDrain: @unchecked Sendable {
     if let sid = manifest.sessionID {
       let remote = try await api.status(sessionID: sid)
       try await assertAccount(manifest.userID)
-      manifest = try apply(remote, to: manifest)
+      manifest = try apply(remote, to: snapshots[manifest.meetingID] ?? manifest)
       if manifest.phase == .queued || manifest.phase == .cancelled { return }
     }
     let tasks = await transport.allTasks()
@@ -273,7 +318,13 @@ final class UploadDelegateDrain: @unchecked Sendable {
       guard let offset = manifest.files.firstIndex(where: { $0.file.index == instruction.index }) else { throw BackgroundUploadFailure.invalidManifest }
       let description = Self.taskDescription(manifest, index: instruction.index)
       if instruction.verified || [.uploaded, .verified].contains(manifest.files[offset].state) { continue }
-      if existing.contains(description) { manifest.files[offset].state = .scheduled; continue }
+      if existing.contains(description) {
+        manifest.files[offset].state = .scheduled
+        for task in tasks where task.description == description && task.suspended { transport.resume(task.id) }
+        continue
+      }
+      // Other files' automatic retries cannot reset an exhausted file's budget.
+      if manifest.files[offset].state == .retry && manifest.files[offset].attempts > 3 { continue }
       guard let url = instruction.uploadUrl, url.scheme == "https", let method = instruction.method, let headers = instruction.headers,
             let expiry = instruction.expiresAt, expiry > Date() else { throw BackgroundUploadFailure.unavailable }
       let body = try multipartBody(manifest: manifest, file: manifest.files[offset].file, headers: headers)
@@ -286,8 +337,8 @@ final class UploadDelegateDrain: @unchecked Sendable {
       try persist(manifest)
       try transport.schedule(request, file: body, description: description)
     }
-    manifest.phase = .uploading
-    manifest.errorCode = nil
+    manifest.phase = manifest.files.contains { $0.state == .retry } ? .retry : .uploading
+    if manifest.phase == .uploading { manifest.errorCode = nil }
     try persist(manifest)
   }
 
@@ -307,8 +358,13 @@ final class UploadDelegateDrain: @unchecked Sendable {
     return manifest
   }
   private func persist(_ manifest: BackgroundUploadManifest) throws {
+    if let previous = snapshots[manifest.meetingID] {
+      if previous.phase == .cancelled && manifest.phase != .cancelled { throw BackgroundUploadFailure.cancelled }
+      if previous.phase == .completed && manifest.phase != .completed { throw BackgroundUploadFailure.cancelled }
+      if previous.phase == .queued && ![.queued, .completed, .cancelled].contains(manifest.phase) { throw BackgroundUploadFailure.unavailable }
+    }
     try store.save(manifest)
-    snapshots[manifest.meetingID] = manifest
+    if manifest.userID == activeUser { snapshots[manifest.meetingID] = manifest }
   }
   func acceptCompletion(_ description: String, statusCode: Int?, failed: Bool) {
     guard let (manifest, index) = callbackTarget(description), ![.uploaded, .verified].contains(manifest.files[index].state) else { return }
@@ -328,8 +384,9 @@ final class UploadDelegateDrain: @unchecked Sendable {
   private func scheduleRetry(_ manifest: BackgroundUploadManifest, delay: UInt64) {
     guard retryTasks[manifest.meetingID] == nil else { return }
     retryTasks[manifest.meetingID] = Task { [weak self] in
-      try? await Task.sleep(nanoseconds: delay * 1_000_000_000)
-      guard let self, !Task.isCancelled else { return }
+      guard let self else { return }
+      try? await self.retrySleep(delay)
+      guard !Task.isCancelled else { return }
       self.retryTasks[manifest.meetingID] = nil
       guard self.activeUser == manifest.userID else { return }
       try? await self.resume(self.snapshots[manifest.meetingID] ?? manifest)
@@ -363,6 +420,27 @@ final class UploadDelegateDrain: @unchecked Sendable {
       if let manifests = try? store.load(userID: user) {
         snapshots = Dictionary(uniqueKeysWithValues: manifests.map { ($0.meetingID, $0) })
       }
+    }
+  }
+
+  /// Copy before export using an atomic destination and a utility executor.
+  private func copySource(_ source: URL, to destination: URL) async throws {
+    let temporary = destination.appendingPathExtension("copying")
+    do {
+      try await Task.detached(priority: .utility) {
+        if FileManager.default.fileExists(atPath: temporary.path) { try FileManager.default.removeItem(at: temporary) }
+        try FileManager.default.copyItem(at: source, to: temporary)
+      }.value
+      try BackgroundUploadStore.protect(temporary)
+      if FileManager.default.fileExists(atPath: destination.path) {
+        _ = try FileManager.default.replaceItemAt(destination, withItemAt: temporary)
+      } else {
+        try FileManager.default.moveItem(at: temporary, to: destination)
+      }
+    } catch {
+      try? FileManager.default.removeItem(at: temporary)
+      if (error as NSError).code == NSFileWriteOutOfSpaceError { throw BackgroundUploadFailure.diskFull }
+      throw error
     }
   }
 

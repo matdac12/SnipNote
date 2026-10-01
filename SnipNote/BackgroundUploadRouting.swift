@@ -16,6 +16,7 @@ import Foundation
     if hasExisting() { await recover(); return .background }
     let enabled: Bool
     do { enabled = try await capabilities().backgroundUploadEnabled }
+    catch BackgroundUploadFailure.accountMismatch { throw BackgroundUploadFailure.accountMismatch }
     catch { return .legacy }
     settings.serverOffered = enabled
     guard settings.shouldStartBackgroundUpload(serverEnabled: enabled) else { return .legacy }

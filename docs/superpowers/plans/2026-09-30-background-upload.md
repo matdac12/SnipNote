@@ -154,3 +154,4 @@ Implementation started 2026-10-01 inline on isolated codex/background-upload bra
 ## Execution record
 
 - Task 1: setting/tests/localized opt-out implemented; owner Swift RED/GREEN pending.
+- Task 2 migration generated: `20261001064743_background_upload_sessions.sql`. Backend RED: missing new modules; GREEN: 13 upload tests, 33 full-suite tests. Permission rehearsal follows in Task 3.

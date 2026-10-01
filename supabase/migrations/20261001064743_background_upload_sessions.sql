@@ -48,7 +48,7 @@ BEGIN
   VALUES ((p_session->>'id')::uuid,owner_id,mid,(p_session->>'reserved_job_id')::uuid,p_session->>'manifest_digest',p_session->>'transcription_provider',p_session->>'language',(p_session->>'duration')::float8,(p_session->>'upload_deadline')::timestamptz)
   RETURNING id INTO sid;
   INSERT INTO public.background_upload_files(session_id,index,path,expected_bytes,duration,content_type)
-  SELECT sid,(f->>'index')::integer,f->>'path',(f->>'expected_bytes')::bigint,(f->>'duration')::float8,f->>'content_type FROM jsonb_array_elements(p_files) f;
+  SELECT sid,(f->>'index')::integer,f->>'path',(f->>'expected_bytes')::bigint,(f->>'duration')::float8,f->>'content_type' FROM jsonb_array_elements(p_files) f;
   IF NOT FOUND THEN RAISE EXCEPTION 'empty_manifest'; END IF;
   RETURN sid;
 END $$;

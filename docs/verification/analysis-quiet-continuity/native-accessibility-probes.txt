@@ -1,0 +1,85 @@
+Temporary native Settings observation methods run on iPhone 16 / iOS 18.5.
+These used the existing launch/capture helpers in AnalysisExperienceUITests.
+The ONE_OFF_RESTORE block restored the documented original off setting after a harness interruption.
+The methods are evidence, not part of the routine app test target.
+
+  func testNativeDifferentiateWithoutColorObservation() {
+    let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+    settings.launch()
+    if settings.switches["Reduce Motion"].exists {
+      settings.navigationBars.buttons.firstMatch.tap()
+    }
+    let display = settings.staticTexts["Display & Text Size"]
+    if !display.exists {
+      let accessibility = settings.staticTexts["Accessibility"]
+      for _ in 0..<4 where !accessibility.isHittable { settings.swipeUp() }
+      XCTAssertTrue(accessibility.waitForExistence(timeout: 8), settings.debugDescription)
+      accessibility.tap()
+    }
+    display.tap()
+    let toggle = settings.switches["Differentiate Without Color"]
+    for _ in 0..<4 where !toggle.isHittable { settings.swipeUp() }
+    XCTAssertTrue(toggle.waitForExistence(timeout: 8), settings.debugDescription)
+    // ONE_OFF_RESTORE: previous interrupted run recorded original off.
+    if toggle.value as? String == "1" { toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap() }
+    XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "0"), object: toggle)], timeout: 3), .completed)
+    let original = toggle.value as? String
+    if original != "1" { toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap() }
+    XCTAssertEqual(toggle.value as? String, "1")
+    capture(settings, "Native Differentiate Without Color — enabled")
+    let app = launch("upload-zero")
+    XCTAssertTrue(app.staticTexts["You can leave now"].waitForExistence(timeout: 8))
+    XCTAssertTrue(app.staticTexts["Switch apps or lock your phone. Uploading continues."].exists)
+    capture(app, "Native Differentiate Without Color — words and symbol")
+    app.terminate()
+    // Restart Settings so restoration uses the same settled launch path as setup.
+    settings.launch()
+    let accessibilityAgain = settings.staticTexts["Accessibility"]
+    for _ in 0..<4 where !accessibilityAgain.isHittable { settings.swipeUp() }
+    accessibilityAgain.tap()
+    settings.staticTexts["Display & Text Size"].tap()
+    let restoredToggle = settings.switches["Differentiate Without Color"]
+    for _ in 0..<4 where !restoredToggle.isHittable { settings.swipeUp() }
+    capture(settings, "Native Differentiate Without Color — before restoration")
+    if restoredToggle.value as? String != original {
+      restoredToggle.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+    }
+    XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", original ?? "0"), object: restoredToggle)], timeout: 3), .completed)
+    capture(settings, "Native Differentiate Without Color — original restored")
+    settings.terminate()
+
+  }
+  func testNativeReduceMotionObservation() {
+    let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+    settings.launch()
+    let toggle = settings.switches["Reduce Motion"]
+    if !toggle.exists {
+      let accessibility = settings.staticTexts["Accessibility"]
+      for _ in 0..<4 where !accessibility.isHittable { settings.swipeUp() }
+      XCTAssertTrue(accessibility.waitForExistence(timeout: 8), settings.debugDescription)
+      accessibility.tap()
+      settings.staticTexts["Motion"].tap()
+    }
+    XCTAssertTrue(toggle.waitForExistence(timeout: 8), settings.debugDescription)
+    let original = toggle.value as? String
+    if original != "1" { toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap() }
+    XCTAssertEqual(toggle.value as? String, "1")
+    capture(settings, "Native Reduce Motion — enabled in Settings")
+    addTeardownBlock {
+      XCUIApplication().terminate()
+      settings.activate()
+      XCTAssertTrue(settings.wait(for: .runningForeground, timeout: 5))
+      if toggle.exists, toggle.value as? String != original { toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap() }
+      XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", original ?? "0"), object: toggle)], timeout: 3), .completed)
+      settings.terminate()
+      XCUIDevice.shared.orientation = .portrait
+    }
+    let app = launch("preparing") // No fixture Reduce Motion override.
+    XCTAssertTrue(app.staticTexts["analysis.stage"].waitForExistence(timeout: 8))
+    capture(app, "Native Reduce Motion — preparation first frame")
+    Thread.sleep(forTimeInterval: 0.6)
+    capture(app, "Native Reduce Motion — preparation second frame")
+    app.buttons["fixture.next"].tap()
+    XCTAssertTrue(app.staticTexts["You can leave now"].exists)
+    capture(app, "Native Reduce Motion — safe handoff")
+  }

@@ -124,7 +124,11 @@ final class ExportTests: XCTestCase {
         let xml = String(decoding: documentData, as: UTF8.self)
 
         XCTAssertTrue(xml.contains("Riunione &lt;A&amp;B&gt;"))
-        XCTAssertTrue(xml.contains("All good &amp; &lt;fine&gt;."))
+        // Inline Markdown may split plain content into multiple Word runs.
+        // Verify the decoded document text rather than XML run boundaries.
+        XCTAssertTrue(parseXML(documentData).text.contains("All good & <fine>."))
+        XCTAssertTrue(xml.contains("&amp;"))
+        XCTAssertTrue(xml.contains("&lt;fine&gt;"))
         XCTAssertFalse(xml.contains("<A&B>"))
         XCTAssertTrue(xml.contains("w:val=\"Title\""))
         XCTAssertTrue(xml.contains("w:val=\"Heading1\""))

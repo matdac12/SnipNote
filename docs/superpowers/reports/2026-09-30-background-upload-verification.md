@@ -374,3 +374,45 @@ server verification, single promotion and successful ordinary transcription afte
 the deployed tail fix. Exact OS suspension timing, network interruption, force-quit,
 large originals, TestFlight replacement and longer trial acceptance remain pending.
 No additional deployment or account/configuration change made during this check.
+
+
+### Owner confirms fresh trial results on phone
+
+Owner confirmed the fresh trial's results appeared successfully on the physical
+phone (“worked like a charm”). This closes the successful Home Screen transfer,
+single ordinary promotion, transcription and foreground result-application check
+for the tested recording. It does not substitute for the remaining interruption,
+large-file, force-quit, low-disk, account-switch, shipped-app or longer-trial matrix.
+
+Pre-merge backend rerun: 52/52 tests passed, including six disposable PostgreSQL
+tests (`/private/tmp/upload-premerge-backend.log`). Both feature worktrees clean
+before this evidence update, branch-wide diff whitespace checks passed. Original
+app main has unrelated dirty metadata/installed skills; preserve them. No merge
+or push performed. Author review remains distinct from independent review, which
+is still pending under the no-subagents restriction. Full app pre-merge unit
+suite is being checked separately; prior DOCX failure was reproduced on main.
+
+
+## Authorized DOCX test correction and long trial — 2026-10-01
+
+Owner requested diagnosing/fixing the DOCX failure and a long recording before
+merge. Pre-merge full app suite reproduced 107 passed / one failed / one skipped.
+Failure was ExportTests.swift:127, the raw XML substring assertion. Foundation
+Markdown creates separate inline runs around `<fine>`; the exporter escapes and
+preserves the text in separate WordprocessingML nodes. Real Foundation reproduction
+confirmed text preservation. Corrected the test to assert decoded XML text while
+retaining escaping/style/bold checks; no production exporter or phone app change.
+Full iPhone 17 unit suite then passed: 108 passed, zero failed, one skipped.
+Evidence `/private/tmp/upload-docx-fixed.log`, `/private/tmp/upload-docx-fixed.xcresult`.
+This supersedes the earlier unresolved DOCX test blocker; baseline history remains.
+
+Owner launched a long recording and confirmed reaching Home Screen below total
+upload bytes and staying outside. Session `a08a73a2-f1f6-40f6-8bad-5163039970fb`,
+meeting `c16d97b9-a6cb-43ec-a6a3-2315918af3c0`, ordinary job
+`3f04b1e2-1fe6-4606-83ba-1a4d3ab3439c`. Manifest duration 5,189.461 seconds
+(1h26m29s), shorter than the requested two hours; owner informed. Six prepared
+files total 84,899,972 bytes. Created 09:05:55 UTC; first verification 09:06:09.851
+UTC, last verification 09:06:30.969 UTC; queued 09:06:31.071 UTC while owner
+reported remaining outside. Transcription processing with no retries at the latest
+observation. Terminal result and owner phone application pending. Both branches
+remain unmerged, following owner's request to finish this trial first.

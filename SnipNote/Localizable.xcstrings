@@ -1,6 +1,380 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+  "analysis.phase.preparing": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Preparing"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Preparazione"
+        }
+      }
+    }
+  },
+  "analysis.phase.uploading": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Uploading"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Caricamento"
+        }
+      }
+    }
+  },
+  "analysis.phase.server": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "On the server"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Sul server"
+        }
+      }
+    }
+  },
+  "analysis.title.preparing": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Preparing your audio"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Preparazione dell’audio"
+        }
+      }
+    }
+  },
+  "analysis.title.uploading": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Uploading your audio"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Caricamento dell’audio"
+        }
+      }
+    }
+  },
+  "analysis.title.confirming": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Finishing upload"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Completamento del caricamento"
+        }
+      }
+    }
+  },
+  "analysis.title.queued": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Waiting to transcribe"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "In attesa di trascrizione"
+        }
+      }
+    }
+  },
+  "analysis.title.transcribing": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Transcribing your meeting"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Trascrizione della riunione"
+        }
+      }
+    }
+  },
+  "analysis.title.analyzing": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Finding the key points"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Individuazione dei punti chiave"
+        }
+      }
+    }
+  },
+  "analysis.title.processing": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Processing your meeting"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Elaborazione della riunione"
+        }
+      }
+    }
+  },
+  "analysis.title.paused": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Upload paused"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Caricamento in pausa"
+        }
+      }
+    }
+  },
+  "analysis.title.failed": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Analysis needs attention"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "L’analisi richiede attenzione"
+        }
+      }
+    }
+  },
+  "analysis.guidance.keep_open.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Keep SnipNote open for now"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Tieni SnipNote aperta per ora"
+        }
+      }
+    }
+  },
+  "analysis.guidance.keep_open.detail": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "This is brief. We’ll let you know when you can leave."
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Ci vorrà poco. Ti avviseremo quando potrai uscire."
+        }
+      }
+    }
+  },
+  "analysis.guidance.safe.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "You can leave now"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Ora puoi uscire dall’app"
+        }
+      }
+    }
+  },
+  "analysis.guidance.upload.detail": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Switch apps or lock your phone. Uploading continues."
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Puoi cambiare app o bloccare il telefono. Il caricamento continua."
+        }
+      }
+    }
+  },
+  "analysis.guidance.queue.detail": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Your audio is uploaded. Processing will continue."
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "L’audio è caricato. L’elaborazione continuerà."
+        }
+      }
+    }
+  },
+  "analysis.guidance.server.detail": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Your meeting is being processed on the server."
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "La riunione viene elaborata sul server."
+        }
+      }
+    }
+  },
+  "analysis.guidance.attention.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Open SnipNote to continue"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Apri SnipNote per continuare"
+        }
+      }
+    }
+  },
+  "analysis.guidance.attention.detail": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Check your connection and try again."
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Controlla la connessione e riprova."
+        }
+      }
+    }
+  },
+  "analysis.action.retry": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Retry upload"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Riprova caricamento"
+        }
+      }
+    }
+  },
+  "analysis.progress.accessibility": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Audio upload: %d%%"
+        }
+      },
+      "it": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Caricamento audio: %d%%"
+        }
+      }
+    }
+  },
     "background_upload.queued" : {
       "extractionState" : "manual",
       "localizations" : {

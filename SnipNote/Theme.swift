@@ -21,6 +21,9 @@ protocol AppTheme {
     var destructiveColor: Color { get }
     var warningColor: Color { get }
 
+    var successColor: Color { get }
+    var successBackgroundColor: Color { get }
+
     // Typography
     var useMonospacedFont: Bool { get }
 
@@ -43,6 +46,8 @@ struct LightTheme: AppTheme {
     let secondaryTextColor = Color(UIColor.secondaryLabel)
     let destructiveColor = Color.red
     let warningColor = Color.orange
+    let successColor = Color(red: 0.137, green: 0.424, blue: 0.286)
+    let successBackgroundColor = Color(red: 0.918, green: 0.957, blue: 0.929)
 
     // Typography
     let useMonospacedFont = false
@@ -70,6 +75,8 @@ struct DarkTheme: AppTheme {
     let secondaryTextColor = Color(UIColor.secondaryLabel)
     let destructiveColor = Color.red
     let warningColor = Color.orange
+    let successColor = Color(red: 0.722, green: 0.882, blue: 0.776)
+    let successBackgroundColor = Color(red: 0.125, green: 0.227, blue: 0.169)
 
     // Typography - Same as Light theme
     let useMonospacedFont = false

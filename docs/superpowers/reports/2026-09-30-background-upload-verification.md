@@ -330,3 +330,24 @@ response validation, provider routing and concurrency remain unchanged. Worker
 fix deployment/retry of the existing owner job need approval because the original
 background-upload rollout explicitly preserved the existing worker. Successful
 transcript application remains pending that retry; no additional app build needed.
+
+
+### Approved fix rollout and successful retained-job retry
+
+Owner approved the worker fix and same-job retry. Deployed service `62dd6f9`,
+retaining prior revision `f328b6d` for rollback. Idle worker restarted alone,
+concurrency/poll interval unchanged (one job, 20 seconds); API/reconciler remained
+running. No migrations/configuration/provider/allowlist changes. Four stale
+processing records from earlier dates were inspected and left untouched.
+
+The original job was guardedly reset from failed to pending with retry count zero,
+reusing the same recording/session/meeting/provider. Corrected five-chunk split
+completed at 08:55:28 UTC / 10:55:28 Europe/Rome with zero retries. Saved transcript
+5,707 characters, summary 2,058 characters, ordinary result actions; one job for
+the meeting. All services active and API healthy. No transcript contents printed.
+
+Owner informed that a fresh physical background-upload test can proceed with the
+installed app, and to check previous results first. Actual phone application of
+these successful results remains owner-unverified; fresh trial not yet observed.
+The failed first transcription is retained as acceptance history rather than
+rewritten as an uninterrupted pass. No merge/push or wider release performed.

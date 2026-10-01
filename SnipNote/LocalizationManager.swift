@@ -62,6 +62,14 @@ final class LocalizationManager: ObservableObject {
         UserDefaults.standard.set(normalized, forKey: AppLocalization.storageKey)
     }
 
+#if DEBUG
+    init(previewLanguageCode: String) {
+        let normalized = AppLocalization.normalizedCode(from: previewLanguageCode)
+        languageCode = normalized
+        locale = Locale(identifier: normalized)
+    }
+#endif
+
     func setLanguage(code: String) {
         let normalized = AppLocalization.normalizedCode(from: code)
         guard normalized != languageCode else { return }
@@ -71,7 +79,7 @@ final class LocalizationManager: ObservableObject {
     }
 
     func localizedString(_ key: String) -> String {
-        Self.localizedAppString(key)
+        AppLocalization.bundle(for: languageCode).localizedString(forKey: key, value: nil, table: nil)
     }
 
     nonisolated static func localizedAppString(_ key: String) -> String {

@@ -9,13 +9,14 @@ import SwiftUI
 import SwiftData
 
 struct MeetingDetailView: View {
-    @StateObject private var backgroundUploads = BackgroundUploadCoordinator.shared
+    @StateObject private var analysisUploads: AnalysisUploadObservation
+    private var backgroundUploads: BackgroundUploadCoordinator { .shared }
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Bindable var meeting: Meeting
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject private var localization: LocalizationManager
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @State private var lastAnalysisPresentation: AnalysisPresentation?
     @State private var showedAcceptedServer = false
 
@@ -47,6 +48,39 @@ struct MeetingDetailView: View {
     @State private var jobStage: String = ""
     @State private var jobPollingTask: Task<Void, Never>?
     @StateObject private var transcriptionService = RenderTranscriptionService()
+
+#if DEBUG
+    private var analysisPreview: AnalysisPresentationInput? = nil
+    init(meeting: Meeting, analysisPreview: AnalysisPresentationInput) {
+        self.meeting = meeting
+        self.analysisPreview = analysisPreview
+        _analysisUploads = StateObject(wrappedValue: AnalysisUploadObservation(coordinator: nil))
+    }
+#endif
+
+    init(meeting: Meeting) {
+        self.meeting = meeting
+        _analysisUploads = StateObject(wrappedValue: AnalysisUploadObservation(coordinator: .shared))
+    }
+
+    private var isAnalysisPreview: Bool {
+#if DEBUG
+        return analysisPreview != nil
+#else
+        return false
+#endif
+    }
+
+#if DEBUG
+  @Environment(\.analysisPreviewReduceMotion) private var previewReduceMotion
+#endif
+  private var reduceMotion: Bool {
+#if DEBUG
+    return previewReduceMotion ?? systemReduceMotion
+#else
+    return systemReduceMotion
+#endif
+  }
 
     private var theme: AppTheme {
         themeManager.currentTheme
@@ -111,6 +145,7 @@ struct MeetingDetailView: View {
             tempName = meeting.name
         }
         .task {
+            guard !isAnalysisPreview else { return }
             // Continuously refresh meeting data - start immediately to catch stale data
             let meetingId = meeting.id
 
@@ -213,6 +248,7 @@ struct MeetingDetailView: View {
 #endif
         }
         .task {
+            guard !isAnalysisPreview else { return }
             await updatePollingTask(for: meeting.transcriptionJobId)
         }
         .onChange(of: meeting.transcriptionJobId) { _, newValue in
@@ -257,12 +293,12 @@ struct MeetingDetailView: View {
                     HStack(spacing: 16) {
                         if !meeting.location.isEmpty {
                             Text("📍 \(meeting.location)")
-                                .themedCaption()
+                                .font(.caption).foregroundStyle(theme.secondaryTextColor)
                         }
 
                         if meeting.duration > 0 {
                             Text("⏱️ \(meeting.durationFormatted)")
-                                .themedCaption()
+                                .font(.caption).foregroundStyle(theme.secondaryTextColor)
                         }
                     }
                 }
@@ -270,7 +306,7 @@ struct MeetingDetailView: View {
                 Spacer()
 
                 Text(meeting.dateCreated, style: .date)
-                    .themedCaption()
+                    .font(.caption).foregroundStyle(theme.secondaryTextColor)
                     .multilineTextAlignment(.trailing)
             }
             .padding(.top, 13)
@@ -344,21 +380,31 @@ struct MeetingDetailView: View {
     }
 
     private var usesQuietAnalysis: Bool {
+#if DEBUG
+        if let analysisPreview {
+            return analysisPreview.backend != .local && (analysisPreview.upload != nil
+                || analysisPreview.jobID != nil || analysisPreview.processingPhase == .preparing)
+        }
+#endif
         guard !meeting.isLocalJob else { return false }
-        return backgroundUploads.snapshots[meeting.id] != nil || meeting.transcriptionJobId != nil
+        return analysisUploads.snapshots[meeting.id] != nil || meeting.transcriptionJobId != nil
             || meeting.processingPhase == .preparing
             || (meeting.processingState == .failed && showedAcceptedServer)
     }
 
     private var analysisPresentation: AnalysisPresentation {
-        AnalysisPresentationResolver.resolve(
-            .init(meeting: meeting, upload: backgroundUploads.snapshots[meeting.id],
+#if DEBUG
+        if let analysisPreview { return AnalysisPresentationResolver.resolve(analysisPreview, previous: lastAnalysisPresentation) }
+#endif
+        return         AnalysisPresentationResolver.resolve(
+            .init(meeting: meeting, upload: analysisUploads.snapshots[meeting.id],
                   serverStatus: jobId == meeting.transcriptionJobId ? jobStatus : nil,
                   serverStage: jobId == meeting.transcriptionJobId ? jobStage : nil),
             previous: lastAnalysisPresentation)
     }
 
     private func retryBackgroundUpload() {
+        guard !isAnalysisPreview else { return }
         guard let upload = backgroundUploads.snapshots[meeting.id] else { return }
         Task { await backgroundUploads.recover(userID: upload.userID) }
     }
@@ -526,7 +572,7 @@ struct MeetingDetailView: View {
                     .background(theme.accentColor)
                     .cornerRadius(theme.cornerRadius)
                 }
-                .disabled(isRetrying)
+                .disabled(isRetrying || isAnalysisPreview)
                 .padding(.top, 4)
             } else {
                 Text("The original audio file is no longer available.")
@@ -697,7 +743,7 @@ struct MeetingDetailView: View {
                 }
                 .padding()
             }
-            .themedBackground()
+            .background(theme.backgroundColor)
             .navigationTitle("Transcription Summary")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(false)
@@ -725,7 +771,7 @@ struct MeetingDetailView: View {
                 }
                 .padding()
             }
-            .themedBackground()
+            .background(theme.backgroundColor)
             .navigationTitle("Full Transcript")
             .navigationBarTitleDisplayMode(.inline)
             .navigationBarBackButtonHidden(false)
@@ -796,7 +842,7 @@ struct MeetingDetailView: View {
 
         if blocks.isEmpty {
             Text(text)
-                .themedBody()
+                .font(.body).foregroundStyle(theme.textColor)
                 .lineSpacing(4)
         } else {
             VStack(alignment: .leading, spacing: 14) {
@@ -1127,6 +1173,7 @@ struct MeetingDetailView: View {
     // MARK: - Refresh Functionality
 
     private func updatePollingTask(for jobId: String?) async {
+        guard !isAnalysisPreview else { return }
         await MainActor.run {
             jobPollingTask?.cancel()
             jobPollingTask = nil
@@ -1304,6 +1351,7 @@ struct MeetingDetailView: View {
     }
 
     private func refreshJobStatus() async {
+        guard !isAnalysisPreview else { return }
         guard let jobId = meeting.transcriptionJobId else {
             print("ℹ️ [MeetingDetail] No job ID to refresh")
             return
@@ -1331,18 +1379,21 @@ struct MeetingDetailView: View {
     // MARK: - Retry Functionality
 
     private func retryTranscription() {
+        guard !isAnalysisPreview else { return }
         Task {
             await performRetryTranscription()
         }
     }
 
     private func retryAIAnalysis() {
+        guard !isAnalysisPreview else { return }
         Task {
             await performRetryAIAnalysis()
         }
     }
 
     private func resumeLocalJob() {
+        guard !isAnalysisPreview else { return }
         Task {
             isRetrying = true
             meeting.clearProcessingError()
@@ -1359,6 +1410,7 @@ struct MeetingDetailView: View {
     }
 
     private func cancelLocalJob() {
+        guard !isAnalysisPreview else { return }
         Task {
             isRetrying = true
             let meetingID = meeting.id

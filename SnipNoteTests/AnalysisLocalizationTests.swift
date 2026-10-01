@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import Testing
 @testable import SnipNote
 
@@ -27,4 +28,15 @@ struct AnalysisLocalizationTests {
       #expect(bundle.localizedString(forKey: key, value: nil, table: nil) != key)
     }
   }
+  @MainActor @Test func previewManagersUseInstanceLanguageWithoutChangingSettings() {
+    let languageBefore = UserDefaults.standard.object(forKey: "appLanguage") as? String
+    let themeBefore = UserDefaults.standard.object(forKey: "selectedTheme") as? String
+    let localization = LocalizationManager(previewLanguageCode: "it")
+    let theme = ThemeManager(previewTheme: DarkTheme())
+    #expect(localization.localizedString("analysis.guidance.safe.title") == "Ora puoi uscire dall’app")
+    #expect(theme.currentTheme.name == "Dark")
+    #expect(UserDefaults.standard.object(forKey: "appLanguage") as? String == languageBefore)
+    #expect(UserDefaults.standard.object(forKey: "selectedTheme") as? String == themeBefore)
+  }
+
 }

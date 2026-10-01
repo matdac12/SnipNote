@@ -38,15 +38,32 @@ struct SnipNoteApp: App {
     @State private var sharedAudioImportRequest: SharedAudioImportRequest?
     @Environment(\.scenePhase) private var scenePhase
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var themeManager = ThemeManager.shared
-    @StateObject private var storeManager = StoreManager.shared
-    @StateObject private var localizationManager = LocalizationManager.shared
+    @StateObject private var themeManager: ThemeManager
+    @StateObject private var localizationManager: LocalizationManager
+
+    init() {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--analysis-preview") {
+            let environment = ProcessInfo.processInfo.environment
+            _themeManager = StateObject(wrappedValue: ThemeManager(previewTheme: environment["SNIPNOTE_ANALYSIS_APPEARANCE"] == "dark" ? DarkTheme() : LightTheme()))
+            _localizationManager = StateObject(wrappedValue: LocalizationManager(previewLanguageCode: environment["SNIPNOTE_ANALYSIS_LANGUAGE"] ?? "en"))
+            return
+        }
+#endif
+        _themeManager = StateObject(wrappedValue: ThemeManager.shared)
+        _localizationManager = StateObject(wrappedValue: LocalizationManager.shared)
+    }
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Meeting.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+#if DEBUG
+        let preview = ProcessInfo.processInfo.arguments.contains("--analysis-preview")
+#else
+        let preview = false
+#endif
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: preview)
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
@@ -71,6 +88,25 @@ struct SnipNoteApp: App {
 
     var body: some Scene {
         WindowGroup {
+#if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--analysis-preview") {
+                let environment = ProcessInfo.processInfo.environment
+                AnalysisPreviewHostView(stage: environment["SNIPNOTE_ANALYSIS_STAGE"] ?? "preparing",
+                    language: environment["SNIPNOTE_ANALYSIS_LANGUAGE"] ?? "en",
+                    dark: environment["SNIPNOTE_ANALYSIS_APPEARANCE"] == "dark",
+                    largeText: environment["SNIPNOTE_ANALYSIS_LARGE_TEXT"] == "1",
+                    reduceMotion: environment["SNIPNOTE_ANALYSIS_REDUCE_MOTION"] == "1")
+            } else {
+                productionRoot
+            }
+#else
+            productionRoot
+#endif
+        }
+        .modelContainer(sharedModelContainer)
+    }
+
+    private var productionRoot: some View {
             SystemColorSchemeObserver {
                 AuthenticationView(sharedAudioImportRequest: $sharedAudioImportRequest)
             }
@@ -82,6 +118,7 @@ struct SnipNoteApp: App {
                 handleDeepLink(url)
             }
             .onAppear {
+                _ = StoreManager.shared
                 Task {
                     // Initialize minutes manager - grant free tier if needed and refresh balance
                     await MinutesManager.shared.handleAppLaunch()
@@ -99,8 +136,6 @@ struct SnipNoteApp: App {
                     BackgroundUploadReconciler.shared.stop()
                 }
             }
-        }
-        .modelContainer(sharedModelContainer)
     }
     
     private static let appGroupID = "group.com.mattianalytics.snipnote"
@@ -182,6 +217,9 @@ extension URL {
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--analysis-preview") { return true }
+#endif
         UNUserNotificationCenter.current().delegate = self
 
         // Register background tasks for transcription

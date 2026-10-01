@@ -5,10 +5,21 @@ struct AnalysisStatusView: View {
   var retryUpload: (() -> Void)? = nil
   @EnvironmentObject private var themeManager: ThemeManager
   @EnvironmentObject private var localization: LocalizationManager
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
   @ScaledMetric(relativeTo: .largeTitle) private var percentageSize = 56.0
   @State private var tracker = AnalysisAnnouncementTracker()
   @State private var lastCanLeave = false
+
+#if DEBUG
+  @Environment(\.analysisPreviewReduceMotion) private var previewReduceMotion
+#endif
+  private var reduceMotion: Bool {
+#if DEBUG
+    return previewReduceMotion ?? systemReduceMotion
+#else
+    return systemReduceMotion
+#endif
+  }
 
   private var theme: AppTheme { themeManager.currentTheme }
   private var transitionAnimation: Animation? { reduceMotion ? nil : .easeOut(duration: 0.25) }
@@ -126,8 +137,10 @@ struct AnalysisStatusView: View {
         .animation(transitionAnimation, value: guidanceDetailKey)
       }
       if presentation.canRetryUpload, let retryUpload {
-        Button(localization.localizedString("analysis.action.retry"), action: retryUpload)
-          .frame(maxWidth: .infinity, minHeight: 44)
+        Button(action: retryUpload) {
+          Text(localization.localizedString("analysis.action.retry"))
+            .frame(maxWidth: .infinity, minHeight: 44)
+        }
           .buttonStyle(.bordered).tint(theme.accentColor)
           .accessibilityIdentifier("analysis.retry")
       }

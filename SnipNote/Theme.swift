@@ -150,6 +150,12 @@ class ThemeManager: ObservableObject {
         }
     }
 
+#if DEBUG
+    init(previewTheme: AppTheme) {
+        currentTheme = previewTheme
+    }
+#endif
+
     /// Update theme based on type and optional system color scheme
     func updateTheme(for type: ThemeType, systemColorScheme: ColorScheme?) {
         currentTheme = type.theme(for: systemColorScheme)

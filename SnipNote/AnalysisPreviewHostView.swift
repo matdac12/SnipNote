@@ -108,6 +108,10 @@ private struct AnalysisPreviewAccessibility: ViewModifier {
   AnalysisPreviewHostView(stage: "upload-half", language: "it", dark: true)
     .modelContainer(for: Meeting.self, inMemory: true)
 }
+#Preview("Small phone width 320") {
+  AnalysisPreviewHostView(stage: "upload-zero", language: "it", largeText: true, reduceMotion: true)
+    .frame(width: 320).modelContainer(for: Meeting.self, inMemory: true)
+}
 #Preview("Largest text — Reduce Motion") {
   AnalysisPreviewHostView(stage: "upload-zero", language: "it", largeText: true, reduceMotion: true)
     .modelContainer(for: Meeting.self, inMemory: true)

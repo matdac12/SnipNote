@@ -63,8 +63,10 @@ struct AnalysisStatusView: View {
   var body: some View {
     VStack(spacing: 24) {
       VStack(spacing: 16) {
-        Text(localization.localizedString(phaseKey))
-          .font(.caption.weight(.medium)).foregroundStyle(theme.secondaryTextColor)
+        if presentation.phase != .failed {
+          Text(localization.localizedString(phaseKey))
+            .font(.caption.weight(.medium)).foregroundStyle(theme.secondaryTextColor)
+        }
         Text(localization.localizedString(titleKey))
           .font(.title2.weight(.semibold)).foregroundStyle(theme.textColor)
           .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
@@ -91,7 +93,7 @@ struct AnalysisStatusView: View {
         .frame(minHeight: 80)
         GeometryReader { geometry in
           ZStack(alignment: .leading) {
-            Capsule().fill(theme.tertiaryBackgroundColor)
+            Capsule().fill(theme.secondaryBackgroundColor)
             if let fraction = presentation.uploadFraction {
               Capsule().fill(theme.accentColor).frame(width: geometry.size.width * fraction)
                 .animation(transitionAnimation, value: fraction)
@@ -108,9 +110,14 @@ struct AnalysisStatusView: View {
         }
         .frame(height: 4).accessibilityHidden(true)
         if let sent = presentation.sentBytes, let total = presentation.totalBytes {
-          Text("\(sent.formatted(.byteCount(style: .file).locale(localization.locale))) / \(total.formatted(.byteCount(style: .file).locale(localization.locale)))")
-            .font(.caption).monospacedDigit().foregroundStyle(theme.secondaryTextColor)
-            .fixedSize(horizontal: false, vertical: true)
+          HStack(spacing: 8) {
+            Text("\(sent.formatted(.byteCount(style: .file).locale(localization.locale))) / \(total.formatted(.byteCount(style: .file).locale(localization.locale)))")
+              .monospacedDigit().fixedSize(horizontal: false, vertical: true)
+            if presentation.phase == .confirmingUpload {
+              Image(systemName: "ellipsis").accessibilityHidden(true)
+            }
+          }
+          .font(.caption).foregroundStyle(theme.secondaryTextColor)
         }
       }
 

@@ -46,6 +46,14 @@ struct AnalysisAnnouncementTests {
     #expect(tracker.update(two) == nil)
     #expect(tracker.update(safe(UUID())) == nil)
   }
+  @Test func terminalFailureWithClearedJobAnnouncesOnce() {
+    let id = UUID(); var tracker = AnalysisAnnouncementTracker()
+    let processing = AnalysisPresentationResolver.resolve(.init(meetingID: id, jobID: "job", serverStatus: .processing))
+    #expect(tracker.update(processing) == nil)
+    let failed = AnalysisPresentationResolver.resolve(.init(meetingID: id, processingState: .failed))
+    #expect(tracker.update(failed)?.phase == .failed)
+    #expect(tracker.update(failed) == nil)
+  }
   @Test func jobAssignedDuringLiveFlowAnnouncesQueueOnly() {
     let id = UUID(); var tracker = AnalysisAnnouncementTracker(); let uploading = safe(id)
     #expect(tracker.update(uploading) == nil)

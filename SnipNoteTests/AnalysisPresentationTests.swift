@@ -93,6 +93,22 @@ struct AnalysisPresentationTests {
     #expect(AnalysisPresentationResolver.resolve(sample, previous: previous) == previous)
     #expect(previous.uploadFraction == 0.33)
   }
+  @Test func overflowingUploadTotalNeverAuthorizesLeaving() {
+    var manifest = upload(total: Int64.max)
+    var second = manifest.files[0]
+    second.file = .init(index: 1, relativePath: "second.m4a", expectedBytes: 1, duration: 10, contentType: "audio/mp4", fileExtension: "m4a")
+    manifest.files.append(second)
+    let value = AnalysisPresentationResolver.resolve(input(manifest))
+    #expect(!value.canLeave && value.uploadFraction == nil && value.phase == .preparing)
+  }
+  @Test func failedServerStatusGapRemainsAttention() {
+    let id = UUID()
+    let failed = AnalysisPresentationResolver.resolve(.init(meetingID: id, jobID: "job", serverStatus: .failed))
+    let gap = AnalysisPresentationResolver.resolve(.init(meetingID: id, jobID: "job", processingPhase: .transcribing, serverStage: "Transcribing"), previous: failed)
+    #expect(gap.phase == .failed && gap.guidance == .needsAttention && !gap.canLeave)
+    let recovered = AnalysisPresentationResolver.resolve(.init(meetingID: id, jobID: "job", serverStatus: .processing), previous: failed)
+    #expect(recovered.phase == .processing && recovered.canLeave)
+  }
   @Test func malformedProgressIsBounded() {
     #expect(AnalysisPresentationResolver.resolve(input(upload(sent: -20))).uploadFraction == 0)
     #expect(AnalysisPresentationResolver.resolve(input(upload(sent: 200))).uploadFraction == 1)

@@ -1,6 +1,6 @@
 import Foundation
 
- enum AnalysisPresentationResolver {
+enum AnalysisPresentationResolver {
   static func resolve(_ input: AnalysisPresentationInput, previous: AnalysisPresentation? = nil) -> AnalysisPresentation {
     let upload = input.upload.flatMap { $0.meetingID == input.meetingID ? $0 : nil }
     let jobID = input.jobID ?? upload?.jobID?.uuidString
@@ -23,6 +23,7 @@ import Foundation
               upload.files.allSatisfy({ $0.file.expectedBytes > 0 }) else { return value(.preparing, .keepOpen) }
         var result = value(.uploading, .safeUpload)
         applyProgress(upload, to: &result)
+        guard result.totalBytes != nil else { return value(.preparing, .keepOpen) }
         if result.uploadFraction == 1 { result.phase = .confirmingUpload }
         return result
       }
@@ -32,6 +33,10 @@ import Foundation
       if let status = input.serverStatus {
         let phase = serverPhase(status: status, stage: input.serverStage)
         return value(phase, status == .failed ? .needsAttention : .safeServer)
+      }
+      if let previous, previous.meetingID == input.meetingID, previous.jobID == jobID,
+         previous.phase == .failed, previous.guidance == .needsAttention {
+        return previous
       }
       if let stage = input.serverStage, !stage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
          input.processingPhase != .queued {

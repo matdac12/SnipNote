@@ -13,10 +13,11 @@ activation, push or merge performed. Main checkouts and unrelated local changes 
   table column contracts unchanged, six public tables afterward. RLS enabled on
   both new tables; anonymous/authenticated roles denied table/RPC access. Concurrent
   promotion creates one pending job; registration/metadata errors roll back.
-- iPhone 17: new upload and relevant selected cloud/meeting suites pass. The user
+- iPhone 17: 33/33 new upload and relevant selected cloud/meeting tests pass. The user
   authorized simulator commands after reporting Task 1 success. No physical-device
   suspension/large-file behavior claimed.
-- Full unit suite: `ExportTests.testDOCXDocumentEscapesAndKeepsContent` fails; the
+- Full unit suite: 107 passed, one skipped, one failed.
+  `ExportTests.testDOCXDocumentEscapesAndKeepsContent` fails; the
   same test fails on unchanged main. This remains a pre-existing merge/release blocker.
 - SQL migrations generated with installed CLI 2.24.3 (`migration new --help` read):
   `20261001064743_background_upload_sessions.sql` and
@@ -35,7 +36,7 @@ Run from the app worktree:
 
 ```bash
 cd /Users/mattia/.codex/worktrees/background-upload/SnipNote
-xcodebuild test -project SnipNote.xcodeproj -scheme SnipNote -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:SnipNoteTests/BackgroundUploadSettingsTests -only-testing:SnipNoteTests/BackgroundUploadPreparationTests -only-testing:SnipNoteTests/BackgroundUploadStoreTests -only-testing:SnipNoteTests/BackgroundUploadCoordinatorTests -only-testing:SnipNoteTests/BackgroundUploadRoutingTests
+xcodebuild test -project SnipNote.xcodeproj -scheme SnipNote -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:SnipNoteTests/BackgroundUploadSettingsTests -only-testing:SnipNoteTests/BackgroundUploadPreparationTests -only-testing:SnipNoteTests/BackgroundUploadStoreTests -only-testing:SnipNoteTests/BackgroundUploadCoordinatorTests -only-testing:SnipNoteTests/BackgroundUploadRoutingTests -only-testing:SnipNoteTests/MeetingTranscriptionBackendTests -only-testing:SnipNoteTests/CloudTranscriptionRequestTests
 # Full suite (known existing DOCX failure):
 xcodebuild test -project SnipNote.xcodeproj -scheme SnipNote -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:SnipNoteTests
 # A single Swift Testing function selection includes parentheses:
@@ -102,5 +103,63 @@ recovery. Wider allowlist/app release/merge await owner acceptance evidence.
 
 ## Review and rulings
 
-Whole-change self-review pending; independent review remains required before production.
-Rulings and final review findings will be recorded here before handoff.
+Whole-change author self-review completed against both branch diffs, the spec,
+plan interfaces and review focus. No independent reviewer was delegated, per the
+user's instruction; independent review remains pending before production/merge.
+One substantive fix pass covered late status overwriting successful callbacks,
+cancellation resurrection, suspended task resumption, cross-file retry-budget
+bypass, authentication fallback, concurrent reconciliation and interrupted source
+copy. Each regression was observed failing, then passing. Settings now fetches
+capability when opened; no deferred minor findings were recorded.
+
+Rulings, in execution order:
+
+1. Initially defer Swift/device execution to the owner because Xcode was explicitly
+   prohibited; implement in order without claiming verification. Cost if wrong:
+   owner finds compile/device defects. Later simulator authorization superseded
+   this restriction; physical-device evidence remains pending.
+2. Perform author self-review without delegation, as expressly instructed. Cost
+   if wrong: author blind spots; independent review remains a production/merge gate.
+3. Execute unchanged disposable copies of native skill scripts because installed
+   executable bits were missing. Cost if wrong: tooling drift; installed skills
+   were preserved.
+4. Use multipart PUT from the pinned storage3 implementation, with streamed
+   durable iOS request bodies. Cost if wrong: production transport proof requires
+   adapting framing before activation.
+5. Retain expired/abandoned objects because retry reuses them and no retention
+   interval was specified. Cost if wrong: storage accumulates until a reviewed
+   cleanup policy exists. Queued objects are never deleted by the new reconciler.
+6. Promote even one prepared file through ordinary audio_chunks and the unchanged
+   chunk worker. Cost if wrong: existing single-file playback needs device proof;
+   the app retains its durable original for playback.
+7. Leave the unrelated DOCX failure outside feature scope after reproducing it on
+   unchanged main. Cost if wrong: the full suite remains red; resolve it before
+   merge/release.
+
+The native execution ledger remains in this plan's ignored workspace while owner
+acceptance is pending. Completion markers do not claim unfinished deployment,
+transport or device contracts have passed. Code and observed evidence are committed.
+
+## Commits and final evidence
+
+App base: `efa1a11719e554db0e7a1898515c2157a176a0a4`.
+Service base: `6764cb4` (whole-file xAI revert retained).
+
+The authoritative app commits are: `99dbf12`, `5d1d84a`, `0245757`, `6d0a9b9`,
+`488e28e`, `de1294a`, `9826ecd`, `5693864`, `55b7598` (final race fixes),
+followed by this verification record. Service commits are `e9f827b`, `364ed6b`,
+`0b28724`, `754fc29` (current service HEAD).
+
+Final logs (local, not committed):
+- `/private/tmp/upload-final-backend.log`: 49 tests, OK.
+- `/private/tmp/upload-final-rehearsal.log`: fresh disposable schema rehearsal.
+- `/private/tmp/upload-final-swift.log` and `upload-final-swift-summary.json`: 33/33.
+- `/private/tmp/upload-final-full-swift.log` and `upload-final-full-summary.json`:
+  107 passed, one failed, one skipped.
+- `/private/tmp/upload-xcode-baseline-export.log`: same DOCX failure on main.
+- `/private/tmp/upload-review-red.log`, `upload-review-routing-red.log`,
+  `upload-review-retry-red.log`, `upload-source-copy-red.log`: review regressions.
+
+Branches/worktrees remain for follow-up. No push, merge, production action or
+owner-only activation has occurred. Tasks 7/8 are intentionally incomplete at
+those authorization and physical-device checkpoints.

@@ -149,4 +149,8 @@ All HTTP signing details must be proved using the pinned Storage SDK and small d
 
 Recommended execution: **Native** in this session, task by task, followed by an independent whole-change review. These tasks share a tight API/manifest contract across two repositories; keeping implementation context together reduces interface drift. The owner supplies Xcode/device evidence at the indicated checks.
 
-Implementation is deferred to a later session at the owner's request. Preserve the agreed simpler rollout and select the execution method when implementation resumes. Production deployment review concerns the concrete migration/deployment result; it does not stop already-authorized reversible code work. No implementation or production changes are part of this documentation update.
+Implementation started 2026-10-01 inline on isolated codex/background-upload branches. Owner Xcode/device checks remain pending; no subagents, production changes, merge or activation authorized. Production deployment review concerns the concrete migration/deployment result; it does not stop already-authorized reversible code work. No implementation or production changes are part of this documentation update.
+
+## Execution record
+
+- Task 1: setting/tests/localized opt-out implemented; owner Swift RED/GREEN pending.

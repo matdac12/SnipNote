@@ -1,3982 +1,3792 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "export.content.everything" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Summary and transcript"
+  "sourceLanguage": "en",
+  "strings": {
+    "export.content.everything": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summary and transcript"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riepilogo e trascrizione"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riepilogo e trascrizione"
           }
         }
       }
     },
-    "export.content.summary" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Summary"
+    "export.content.summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summary"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riepilogo"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riepilogo"
           }
         }
       }
     },
-    "export.content.transcript" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcript"
+    "export.content.transcript": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcript"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione"
           }
         }
       }
     },
-    "export.error.nothingToExport" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "There is nothing to export yet."
+    "export.error.nothingToExport": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There is nothing to export yet."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non c'è ancora nulla da esportare."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non c'è ancora nulla da esportare."
           }
         }
       }
     },
-    "export.error.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Export failed"
+    "export.error.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export failed"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esportazione non riuscita"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esportazione non riuscita"
           }
         }
       }
     },
-    "export.format.pdf" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PDF"
+    "export.format.pdf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PDF"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PDF"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PDF"
           }
         }
       }
     },
-    "export.format.text" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Text"
+    "export.format.text": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Testo"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testo"
           }
         }
       }
     },
-    "export.format.word" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Word"
+    "export.format.word": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Word"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Word"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Word"
           }
         }
       }
     },
-    "export.heading.summary" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Summary"
+    "export.heading.summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summary"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riepilogo"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riepilogo"
           }
         }
       }
     },
-    "export.heading.transcript" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcript"
+    "export.heading.transcript": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcript"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione"
           }
         }
       }
     },
-    "export.untitled" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Untitled transcription"
+    "export.untitled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Untitled transcription"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione senza titolo"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione senza titolo"
           }
         }
       }
     },
-    "" : {
-
-    },
-    " • " : {
-
-    },
-    "-%@" : {
-
-    },
-    "\"...%@...\"" : {
-
-    },
-    "%" : {
-
-    },
-    "%@ • %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ • %2$@"
+    "": {},
+    " • ": {},
+    "-%@": {},
+    "\"...%@...\"": {},
+    "%": {},
+    "%@ • %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ • %2$@"
           }
         }
       }
     },
-    "%@: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@: %2$@"
+    "%@: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@: %2$@"
           }
         }
       }
-    },
-    "%@×" : {
-
     },
-    "%lld" : {
-
-    },
-    "%lld Minutes" : {
-
-    },
-    "%lld%%" : {
-
-    },
-    "%lld%% Complete" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%% Completato"
+    "%@×": {},
+    "%lld": {},
+    "%lld Minutes": {},
+    "%lld%%": {},
+    "%lld%% Complete": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld%% Completato"
           }
         }
       }
-    },
-    "•" : {
-
-    },
-    "• Minutes are added instantly to your account" : {
-
-    },
-    "• Minutes never expire" : {
-
-    },
-    "• Purchase multiple packs anytime" : {
-
     },
-    "≈ %@/mo" : {
-
-    },
-    "≈ %@€/min" : {
-
-    },
-    "⏱️ %@" : {
-
-    },
-    "✓ Completed" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "✓ Completato"
+    "•": {},
+    "• Minutes are added instantly to your account": {},
+    "• Minutes never expire": {},
+    "• Purchase multiple packs anytime": {},
+    "≈ %@/mo": {},
+    "≈ %@€/min": {},
+    "⏱️ %@": {},
+    "✓ Completed": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✓ Completato"
           }
         }
       }
     },
-    "✓ COMPLETED" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "✓ COMPLETATO"
+    "✓ COMPLETED": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✓ COMPLETATO"
           }
         }
       }
-    },
-    "📍 %@" : {
-
-    },
-    "0.5×" : {
-
-    },
-    "0.75×" : {
-
     },
-    "1. Go to iOS Settings\n2. Find Privacy & Security\n3. Tap Microphone\n4. Enable SnipNote\n5. Return to the app" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1. Vai a Impostazioni iOS\n2. Trova Privacy e Sicurezza\n3. Premi Microfono\n4. Abilita SnipNote\n5. Torna all'app"
+    "📍 %@": {},
+    "0.5×": {},
+    "0.75×": {},
+    "1. Go to iOS Settings\n2. Find Privacy & Security\n3. Tap Microphone\n4. Enable SnipNote\n5. Return to the app": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1. Vai a Impostazioni iOS\n2. Trova Privacy e Sicurezza\n3. Premi Microfono\n4. Abilita SnipNote\n5. Torna all'app"
           }
         }
       }
     },
-    "1.5×" : {
-
-    },
-    "1.25×" : {
-
-    },
-    "1×" : {
-
-    },
-    "2×" : {
-
-    },
-    "About" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Info"
+    "1.5×": {},
+    "1.25×": {},
+    "1×": {},
+    "2×": {},
+    "About": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Info"
           }
         }
       }
     },
-    "ABOUT" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "INFO"
+    "ABOUT": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "INFO"
           }
         }
       }
     },
-    "About SnipNote" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Info su SnipNote"
+    "About SnipNote": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Info su SnipNote"
           }
         }
       }
-    },
-    "AI analysis failed" : {
-
     },
-    "AI Does the Work" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L'AI Fa il Lavoro"
+    "AI analysis failed": {},
+    "AI Does the Work": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'AI Fa il Lavoro"
           }
         }
       }
     },
-    "AI-Powered Insights" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Insight con AI"
+    "AI-Powered Insights": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insight con AI"
           }
         }
       }
     },
-    "AI-powered voice note taking. Turn your recordings into clear transcripts and summaries." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Note vocali con AI. Trasforma le tue registrazioni in trascrizioni chiare e riassunti."
+    "AI-powered voice note taking. Turn your recordings into clear transcripts and summaries.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note vocali con AI. Trasforma le tue registrazioni in trascrizioni chiare e riassunti."
           }
         }
       }
     },
-    "Allow" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Acconsenti"
+    "Allow": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acconsenti"
           }
         }
       }
     },
-    "Almost finished!" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quasi finito!"
+    "Almost finished!": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quasi finito!"
           }
         }
       }
     },
-    "Already have an account?" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hai già un account?"
+    "Already have an account?": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hai già un account?"
           }
         }
       }
     },
-    "Analyze Audio" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Analizza audio"
+    "Analyze Audio": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analizza audio"
           }
         }
       }
     },
-    "ANALYZE AUDIO" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ANALIZZA AUDIO"
+    "ANALYZE AUDIO": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ANALIZZA AUDIO"
           }
         }
       }
-    },
-    "ANALYZING" : {
-
-    },
-    "Are you sure you want to cancel? All progress will be lost." : {
-
     },
-    "Audio" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Audio"
+    "ANALYZING": {},
+    "Are you sure you want to cancel? All progress will be lost.": {},
+    "Audio": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio"
           }
         }
       }
     },
-    "Audio Import Queued" : {
-
-    },
-    "auth.forgotPassword" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Forgot Password?"
+    "Audio Import Queued": {},
+    "auth.forgotPassword": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forgot Password?"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Password dimenticata?"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password dimenticata?"
           }
         }
       }
     },
-    "auth.resetPassword.cancel" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancel"
+    "auth.resetPassword.cancel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Annulla"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annulla"
           }
         }
       }
     },
-    "auth.resetPassword.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter your email to receive password reset instructions."
+    "auth.resetPassword.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter your email to receive password reset instructions."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inserisci la tua email per ricevere le istruzioni di reset."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inserisci la tua email per ricevere le istruzioni di reset."
           }
         }
       }
     },
-    "auth.resetPassword.emailPlaceholder" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Email"
+    "auth.resetPassword.emailPlaceholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Email"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email"
           }
         }
       }
     },
-    "auth.resetPassword.emailSent" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check your inbox for password reset instructions."
+    "auth.resetPassword.emailSent": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check your inbox for password reset instructions."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controlla la tua casella per le istruzioni di reset."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controlla la tua casella per le istruzioni di reset."
           }
         }
       }
     },
-    "auth.resetPassword.emailSentTitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Email Sent"
+    "auth.resetPassword.emailSentTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email Sent"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Email Inviata"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email Inviata"
           }
         }
       }
     },
-    "auth.resetPassword.ok" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OK"
+    "auth.resetPassword.ok": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OK"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
           }
         }
       }
     },
-    "auth.resetPassword.send" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Send Reset Link"
+    "auth.resetPassword.send": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send Reset Link"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Invia Link di Reset"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invia Link di Reset"
           }
         }
       }
     },
-    "auth.resetPassword.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset Password"
+    "auth.resetPassword.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset Password"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reimposta Password"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reimposta Password"
           }
         }
       }
     },
-    "Best for long recordings (1+ hour) - just share!" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ideale per registrazioni lunghe (1+ ora) - condividi!"
+    "Best for long recordings (1+ hour) - just share!": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ideale per registrazioni lunghe (1+ ora) - condividi!"
           }
         }
       }
-    },
-    "BEST VALUE" : {
-
-    },
-    "Buy Extra Minutes" : {
-
-    },
-    "Buy Minutes" : {
-
-    },
-    "Buy Minutes Packs" : {
-
-    },
-    "Buy Packs" : {
-
     },
-    "Cancel" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Annulla"
+    "BEST VALUE": {},
+    "Buy Extra Minutes": {},
+    "Buy Minutes": {},
+    "Buy Minutes Packs": {},
+    "Buy Packs": {},
+    "Cancel": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annulla"
           }
         }
       }
     },
-    "CANCEL" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ANNULLA"
+    "CANCEL": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ANNULLA"
           }
         }
       }
     },
-    "Cancel anytime from Settings" : {
-
-    },
-    "Cancel Job" : {
-
-    },
-    "Cancel Transcription" : {
-
-    },
-    "Cancel Transcription?" : {
-
-    },
-    "Choose Your Pack" : {
-
-    },
-    "Chunk %lld/%lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Chunk %1$lld/%2$lld"
+    "Cancel anytime from Settings": {},
+    "Cancel Job": {},
+    "Cancel Transcription": {},
+    "Cancel Transcription?": {},
+    "Choose Your Pack": {},
+    "Chunk %lld/%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Chunk %1$lld/%2$lld"
           }
         }
       }
     },
-    "Clear names make transcriptions easy to find." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nomi chiari rendono le trascrizioni facili da trovare."
+    "Clear names make transcriptions easy to find.": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nomi chiari rendono le trascrizioni facili da trovare."
           }
         }
       }
     },
-    "Close" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chiudi"
+    "Close": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiudi"
           }
         }
       }
     },
-    "CLOSE" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CHIUDI"
+    "CLOSE": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CHIUDI"
           }
         }
       }
     },
-    "CONTACT" : {
-
-    },
-    "Continue" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continua"
+    "CONTACT": {},
+    "Continue": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continua"
           }
         }
       }
     },
-    "Create Account" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Crea Account"
+    "Create Account": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea Account"
           }
         }
       }
     },
-    "createMeeting.localTranscription.missingModelAlert.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local transcription is enabled, but the selected model is not installed. Download it in Settings > Local Transcription or switch back to Cloud mode."
+    "createMeeting.localTranscription.missingModelAlert.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local transcription is enabled, but the selected model is not installed. Download it in Settings > Local Transcription or switch back to Cloud mode."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La trascrizione locale è attiva, ma il modello selezionato non è installato. Scaricalo in Impostazioni > Trascrizione locale oppure torna alla modalità Cloud."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La trascrizione locale è attiva, ma il modello selezionato non è installato. Scaricalo in Impostazioni > Trascrizione locale oppure torna alla modalità Cloud."
           }
         }
       }
     },
-    "createMeeting.localTranscription.missingModelAlert.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local Model Required"
+    "createMeeting.localTranscription.missingModelAlert.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Model Required"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modello locale richiesto"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modello locale richiesto"
           }
         }
       }
-    },
-    "Current Balance" : {
-
     },
-    "DEVELOPER" : {
-
-    },
-    "Dismiss Keyboard" : {
-
-    },
-    "Don't have an account?" : {
-
-    },
-    "Don't show again" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non mostrare più"
+    "Current Balance": {},
+    "DEVELOPER": {},
+    "Dismiss Keyboard": {},
+    "Don't have an account?": {},
+    "Don't show again": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non mostrare più"
           }
         }
       }
     },
-    "Done" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fatto"
+    "Done": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fatto"
           }
         }
       }
     },
-    "Duration: %@" : {
-
-    },
-    "Edit" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modifica"
+    "Duration: %@": {},
+    "Edit": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifica"
           }
         }
       }
     },
-    "Email" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Email"
+    "Email": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email"
           }
         }
       }
     },
-    "EMAIL" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "EMAIL"
+    "EMAIL": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EMAIL"
           }
         }
       }
-    },
-    "Enter location" : {
-
-    },
-    "Enter transcription name" : {
-
-    },
-    "Everything" : {
-
     },
-    "EXTRA MINUTES" : {
-
-    },
-    "Extracting..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estrazione..."
+    "Enter location": {},
+    "Enter transcription name": {},
+    "Everything": {},
+    "EXTRA MINUTES": {},
+    "Extracting...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estrazione..."
           }
         }
       }
     },
-    "EXTRACTING..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ESTRAZIONE..."
+    "EXTRACTING...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ESTRAZIONE..."
           }
         }
       }
     },
-    "Final touches..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ultimi ritocchi..."
+    "Final touches...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ultimi ritocchi..."
           }
         }
       }
     },
-    "Finish or cancel the current recording or processing before opening the shared audio." : {
-
-    },
-    "Focus on the conversation while SnipNote handles everything else." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Concentrati sulla conversazione mentre SnipNote gestisce tutto il resto."
+    "Finish or cancel the current recording or processing before opening the shared audio.": {},
+    "Focus on the conversation while SnipNote handles everything else.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concentrati sulla conversazione mentre SnipNote gestisce tutto il resto."
           }
         }
       }
     },
-    "For long recordings (1+ hour), record with Voice Memos and share to SnipNote for better results." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Per registrazioni lunghe (1+ ora), registra con Memo Vocali e condividi su SnipNote per risultati migliori."
+    "For long recordings (1+ hour), record with Voice Memos and share to SnipNote for better results.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per registrazioni lunghe (1+ ora), registra con Memo Vocali e condividi su SnipNote per risultati migliori."
           }
         }
       }
-    },
-    "Free Tier - Minutes-based usage" : {
-
     },
-    "Full Transcript" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione completa"
+    "Free Tier - Minutes-based usage": {},
+    "Full Transcript": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione completa"
           }
         }
       }
     },
-    "Get instant minutes that never expire" : {
-
-    },
-    "Get premium features with generous minute allowances" : {
-
-    },
-    "Get Started" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inizia"
+    "Get instant minutes that never expire": {},
+    "Get premium features with generous minute allowances": {},
+    "Get Started": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inizia"
           }
         }
       }
     },
-    "Hide" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nascondi"
+    "Hide": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nascondi"
           }
         }
       }
     },
-    "home.action.import" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import Audio"
+    "home.action.import": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import Audio"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importa Audio"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importa Audio"
           }
         }
       }
     },
-    "home.action.record" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Record Audio"
+    "home.action.record": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record Audio"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registra audio"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra audio"
           }
         }
       }
     },
-    "home.greeting.afternoon" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Good afternoon"
+    "home.greeting.afternoon": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Good afternoon"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buon pomeriggio"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buon pomeriggio"
           }
         }
       }
     },
-    "home.greeting.evening" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Good evening"
+    "home.greeting.evening": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Good evening"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buonasera"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buonasera"
           }
         }
       }
     },
-    "home.greeting.morning" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Good morning"
+    "home.greeting.morning": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Good morning"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buongiorno"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buongiorno"
           }
         }
       }
     },
-    "home.kpi.free" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Free"
+    "home.kpi.free": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gratis"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gratis"
           }
         }
       }
     },
-    "home.kpi.meeting_time" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Audio Time"
+    "home.kpi.meeting_time": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio Time"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tempo audio"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tempo audio"
           }
         }
       }
     },
-    "home.kpi.minutes_balance" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minutes Balance"
+    "home.kpi.minutes_balance": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minutes Balance"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minuti Disponibili"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minuti Disponibili"
           }
         }
       }
     },
-    "home.kpi.pro" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro"
+    "home.kpi.pro": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro"
           }
         }
       }
     },
-    "home.kpi.total_meetings" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total Transcriptions"
+    "home.kpi.total_meetings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total Transcriptions"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizioni Totali"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizioni Totali"
           }
         }
       }
     },
-    "home.kpi.transcribed" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "transcribed"
+    "home.kpi.transcribed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "transcribed"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "trascritte"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "trascritte"
           }
         }
       }
     },
-    "home.recent.empty" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No transcriptions yet"
+    "home.recent.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No transcriptions yet"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessuna trascrizione"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna trascrizione"
           }
         }
       }
     },
-    "home.recent.see_all" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "See All"
+    "home.recent.see_all": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See All"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vedi Tutte"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vedi Tutte"
           }
         }
       }
     },
-    "home.recent.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recent Transcriptions"
+    "home.recent.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent Transcriptions"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizioni Recenti"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizioni Recenti"
           }
         }
       }
     },
-    "If you're experiencing issues or have questions:" : {
-
-    },
-    "Import from Voice Memos" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importa da Memo Vocali"
+    "If you're experiencing issues or have questions:": {},
+    "Import from Voice Memos": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importa da Memo Vocali"
           }
         }
       }
-    },
-    "Imported Audio Ready" : {
-
     },
-    "Insufficient Minutes" : {
-
-    },
-    "Jot down talking points, decisions to make, or context to remember." : {
-
-    },
-    "Keep SnipNote open while uploading." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tieni SnipNote aperta durante il caricamento."
+    "Imported Audio Ready": {},
+    "Insufficient Minutes": {},
+    "Jot down talking points, decisions to make, or context to remember.": {},
+    "Keep SnipNote open while uploading.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tieni SnipNote aperta durante il caricamento."
           }
         }
       }
     },
-    "language.option.english" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "English"
+    "language.option.english": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "English"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inglese"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inglese"
           }
         }
       }
     },
-    "language.option.italian" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Italiano"
+    "language.option.italian": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Italiano"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Italiano"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Italiano"
           }
         }
       }
     },
-    "language.option.short.english" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ENG"
+    "language.option.short.english": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ENG"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ENG"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ENG"
           }
         }
       }
     },
-    "language.option.short.italian" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ITA"
+    "language.option.short.italian": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ITA"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ITA"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ITA"
           }
         }
       }
-    },
-    "Loading subscription options..." : {
-
     },
-    "Local processing continues while SnipNote stays open." : {
-
-    },
-    "Making great progress!" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ottimi progressi!"
+    "Loading subscription options...": {},
+    "Local processing continues while SnipNote stays open.": {},
+    "Making great progress!": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ottimi progressi!"
           }
         }
       }
     },
-    "Mattia Da Campo" : {
-
-    },
-    "Microphone Access Denied" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accesso al microfono negato"
+    "Mattia Da Campo": {},
+    "Microphone Access Denied": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accesso al microfono negato"
           }
         }
       }
     },
-    "MICROPHONE ACCESS DENIED" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ACCESSO AL MICROFONO NEGATO"
+    "MICROPHONE ACCESS DENIED": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ACCESSO AL MICROFONO NEGATO"
           }
         }
       }
     },
-    "Microphone Permission Needed" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permesso microfono richiesto"
+    "Microphone Permission Needed": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permesso microfono richiesto"
           }
         }
       }
     },
-    "MICROPHONE PERMISSION NEEDED" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PERMESSO MICROFONO RICHIESTO"
+    "MICROPHONE PERMISSION NEEDED": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PERMESSO MICROFONO RICHIESTO"
           }
         }
       }
-    },
-    "minutes" : {
-
     },
-    "Minutes Sync In Progress" : {
-
-    },
-    "More than halfway there!" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Più della metà completato!"
+    "minutes": {},
+    "Minutes Sync In Progress": {},
+    "More than halfway there!": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Più della metà completato!"
           }
         }
       }
     },
-    "Nearly complete - hang tight!" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quasi completo - ancora un attimo!"
+    "Nearly complete - hang tight!": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quasi completo - ancora un attimo!"
           }
         }
       }
-    },
-    "NEED HELP?" : {
-
-    },
-    "Need More Minutes?" : {
-
     },
-    "NEED MORE MINUTES?" : {
-
-    },
-    "New Transcription" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nuova trascrizione"
+    "NEED HELP?": {},
+    "Need More Minutes?": {},
+    "NEED MORE MINUTES?": {},
+    "New Transcription": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuova trascrizione"
           }
         }
       }
     },
-    "Next" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avanti"
+    "Next": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avanti"
           }
         }
       }
-    },
-    "No results found" : {
-
     },
-    "No transcriptions yet" : {
-
-    },
-    "OK" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OK"
+    "No results found": {},
+    "No transcriptions yet": {},
+    "OK": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
           }
         }
       }
-    },
-    "Open full summary" : {
-
     },
-    "Open full transcript" : {
-
-    },
-    "Password" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Password"
+    "Open full summary": {},
+    "Open full transcript": {},
+    "Password": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password"
           }
         }
       }
     },
-    "PASSWORD" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PASSWORD"
+    "PASSWORD": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PASSWORD"
           }
         }
       }
     },
-    "Pause" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pausa"
+    "Pause": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausa"
           }
         }
       }
     },
-    "PAUSE" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PAUSA"
+    "PAUSE": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PAUSA"
           }
         }
       }
-    },
-    "Paused" : {
-
-    },
-    "Payment will be charged to your iTunes account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. Manage or cancel your subscription in Account Settings." : {
-
     },
-    "Perfect for %@" : {
-
-    },
-    "Perfect for quick recordings and voice notes" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Perfetto per registrazioni brevi e note vocali"
+    "Paused": {},
+    "Payment will be charged to your iTunes account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. Manage or cancel your subscription in Account Settings.": {},
+    "Perfect for %@": {},
+    "Perfect for quick recordings and voice notes": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfetto per registrazioni brevi e note vocali"
           }
         }
       }
     },
-    "Permissions Needed" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permessi richiesti"
+    "Permissions Needed": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permessi richiesti"
           }
         }
       }
-    },
-    "Please enter the name of the transcription" : {
-
     },
-    "Premium Features" : {
-
-    },
-    "Preparing your audio for transcription..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preparazione dell'audio per la trascrizione..."
+    "Please enter the name of the transcription": {},
+    "Premium Features": {},
+    "Preparing your audio for transcription...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparazione dell'audio per la trascrizione..."
           }
         }
       }
-    },
-    "Privacy Policy" : {
-
     },
-    "PRO" : {
-
-    },
-    "Pro Tip" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggerimento"
+    "Privacy Policy": {},
+    "PRO": {},
+    "Pro Tip": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggerimento"
           }
         }
       }
     },
-    "Process" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elabora"
+    "Process": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elabora"
           }
         }
       }
     },
-    "PROCESS" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ELABORA"
+    "PROCESS": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ELABORA"
           }
         }
       }
     },
-    "Processing" : {
-
-    },
-    "Processing on our servers..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elaborazione sui nostri server..."
+    "Processing": {},
+    "Processing on our servers...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elaborazione sui nostri server..."
           }
         }
       }
     },
-    "Processing transcription summary..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elaborazione riepilogo trascrizione..."
+    "Processing transcription summary...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elaborazione riepilogo trascrizione..."
           }
         }
       }
     },
-    "Processing transcription..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elaborazione trascrizione..."
+    "Processing transcription...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elaborazione trascrizione..."
           }
         }
       }
     },
-    "PROCESSING TRANSCRIPTION..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ELABORAZIONE TRASCRIZIONE..."
+    "PROCESSING TRANSCRIPTION...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ELABORAZIONE TRASCRIZIONE..."
           }
         }
       }
     },
-    "Processing..." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elaborazione..."
+    "Processing...": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elaborazione..."
           }
         }
       }
     },
-    "PROCESSING..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ELABORAZIONE..."
+    "PROCESSING...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ELABORAZIONE..."
           }
         }
       }
     },
-    "Progressing smoothly - almost there!" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Procedendo bene - quasi finito!"
+    "Progressing smoothly - almost there!": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procedendo bene - quasi finito!"
           }
         }
       }
-    },
-    "Purchase Error" : {
-
     },
-    "Purchase Pack" : {
-
-    },
-    "Record" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registra"
+    "Purchase Error": {},
+    "Purchase Pack": {},
+    "Record": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra"
           }
         }
       }
     },
-    "RECORD" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "REGISTRA"
+    "RECORD": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REGISTRA"
           }
         }
       }
     },
-    "Record in App" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registra nell'App"
+    "Record in App": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra nell'App"
           }
         }
       }
     },
-    "Recording Paused" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registrazione in pausa"
+    "Recording Paused": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione in pausa"
           }
         }
       }
     },
-    "RECORDING PAUSED" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "REGISTRAZIONE IN PAUSA"
+    "RECORDING PAUSED": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REGISTRAZIONE IN PAUSA"
           }
         }
       }
     },
-    "Recording requires microphone access. Please enable it in Settings > Privacy & Security > Microphone > SnipNote." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La registrazione richiede l'accesso al microfono. Abilitalo in Impostazioni > Privacy e Sicurezza > Microfono > SnipNote."
+    "Recording requires microphone access. Please enable it in Settings > Privacy & Security > Microphone > SnipNote.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La registrazione richiede l'accesso al microfono. Abilitalo in Impostazioni > Privacy e Sicurezza > Microfono > SnipNote."
           }
         }
       }
     },
-    "Recording..." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registrazione..."
+    "Recording...": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione..."
           }
         }
       }
     },
-    "RECORDING..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "REGISTRAZIONE..."
+    "RECORDING...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REGISTRAZIONE..."
           }
         }
       }
-    },
-    "Restore Purchases" : {
-
     },
-    "Resume" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riprendi"
+    "Restore Purchases": {},
+    "Resume": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riprendi"
           }
         }
       }
     },
-    "RESUME" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "RIPRENDI"
+    "RESUME": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RIPRENDI"
           }
         }
       }
-    },
-    "Resume from this transcription when you're ready." : {
-
-    },
-    "Retry" : {
-
     },
-    "Retry Loading" : {
-
-    },
-    "Review" : {
-
-    },
-    "Save" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Salva"
+    "Resume from this transcription when you're ready.": {},
+    "Retry": {},
+    "Retry Loading": {},
+    "Review": {},
+    "Save": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salva"
           }
         }
       }
     },
-    "SAVE" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SALVA"
+    "SAVE": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SALVA"
           }
         }
       }
-    },
-    "Search transcriptions..." : {
-
     },
-    "Select transcription date" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seleziona data trascrizione"
+    "Search transcriptions...": {},
+    "Select transcription date": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleziona data trascrizione"
           }
         }
       }
     },
-    "Server Transcription" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione server"
+    "Server Transcription": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione server"
           }
         }
       }
     },
-    "SERVER TRANSCRIPTION" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "TRASCRIZIONE SERVER"
+    "SERVER TRANSCRIPTION": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TRASCRIZIONE SERVER"
           }
         }
       }
     },
-    "settings.about.developer.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hi! I'm Mattia, the developer behind SnipNote. I created this app to help professionals capture and organize insights from their recordings more effectively using AI technology."
+    "settings.about.developer.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hi! I'm Mattia, the developer behind SnipNote. I created this app to help professionals capture and organize insights from their recordings more effectively using AI technology."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ciao! Sono Mattia, lo sviluppatore di SnipNote. Ho creato questa app per aiutare i professionisti a catturare e organizzare le intuizioni dalle loro registrazioni in modo più efficace usando la tecnologia AI."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ciao! Sono Mattia, lo sviluppatore di SnipNote. Ho creato questa app per aiutare i professionisti a catturare e organizzare le intuizioni dalle loro registrazioni in modo più efficace usando la tecnologia AI."
           }
         }
       }
     },
-    "settings.about.developer.role" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Independent iOS Developer"
+    "settings.about.developer.role": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Independent iOS Developer"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sviluppatore iOS Indipendente"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sviluppatore iOS Indipendente"
           }
         }
       }
     },
-    "settings.about.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI-Powered Transcription Assistant"
+    "settings.about.subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-Powered Transcription Assistant"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Assistente Trascrizioni con AI"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assistente Trascrizioni con AI"
           }
         }
       }
     },
-    "settings.about.tagline" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI-powered voice note taking with smart action extraction"
+    "settings.about.tagline": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-powered voice note taking with smart action extraction"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Note vocali con AI e azioni intelligenti"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note vocali con AI e azioni intelligenti"
           }
         }
       }
     },
-    "settings.about.version" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SnipNote v1.4.6"
+    "settings.about.version": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SnipNote v1.4.6"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SnipNote v1.4.6"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SnipNote v1.4.6"
           }
         }
       }
     },
-    "settings.about.viewTutorial" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "View Tutorial"
+    "settings.about.viewTutorial": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View Tutorial"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Guarda il Tutorial"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda il Tutorial"
           }
         }
       }
     },
-    "settings.account.deleteAccount" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Account"
+    "settings.account.deleteAccount": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete Account"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elimina account"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina account"
           }
         }
       }
     },
-    "settings.account.deleteAccount.cancel" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancel"
+    "settings.account.deleteAccount.cancel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Annulla"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annulla"
           }
         }
       }
     },
-    "settings.account.deleteAccount.confirmButton" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Account"
+    "settings.account.deleteAccount.confirmButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete Account"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elimina account"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina account"
           }
         }
       }
     },
-    "settings.account.deleteAccount.confirmMessage" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Type DELETE to permanently delete your account and all data."
+    "settings.account.deleteAccount.confirmMessage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type DELETE to permanently delete your account and all data."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Digita DELETE per eliminare definitivamente il tuo account e tutti i dati."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digita DELETE per eliminare definitivamente il tuo account e tutti i dati."
           }
         }
       }
     },
-    "settings.account.deleteAccount.confirmPlaceholder" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Type DELETE to confirm"
+    "settings.account.deleteAccount.confirmPlaceholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type DELETE to confirm"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Digita DELETE per confermare"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digita DELETE per confermare"
           }
         }
       }
     },
-    "settings.account.deleteAccount.confirmTitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confirm Account Deletion"
+    "settings.account.deleteAccount.confirmTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm Account Deletion"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Conferma eliminazione account"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conferma eliminazione account"
           }
         }
       }
     },
-    "settings.account.deleteAccount.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This will permanently delete your account and all associated data. This action cannot be undone."
+    "settings.account.deleteAccount.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This will permanently delete your account and all associated data. This action cannot be undone."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questo eliminerà definitivamente il tuo account e tutti i dati associati. Questa azione non può essere annullata."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo eliminerà definitivamente il tuo account e tutti i dati associati. Questa azione non può essere annullata."
           }
         }
       }
     },
-    "settings.account.deleteAccount.errorDismiss" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OK"
+    "settings.account.deleteAccount.errorDismiss": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OK"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
           }
         }
       }
     },
-    "settings.account.deleteAccount.errorTitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Error"
+    "settings.account.deleteAccount.errorTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Error"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Errore"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Errore"
           }
         }
       }
     },
-    "settings.account.deleteAccount.restoreButton" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restore Purchases"
+    "settings.account.deleteAccount.restoreButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore Purchases"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ripristina acquisti"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ripristina acquisti"
           }
         }
       }
     },
-    "settings.account.deleteAccount.restoreFailure" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No purchases to restore"
+    "settings.account.deleteAccount.restoreFailure": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No purchases to restore"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessun acquisto da ripristinare"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun acquisto da ripristinare"
           }
         }
       }
     },
-    "settings.account.deleteAccount.restoreSuccess" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restored successfully"
+    "settings.account.deleteAccount.restoreSuccess": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restored successfully"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ripristino riuscito"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ripristino riuscito"
           }
         }
       }
     },
-    "settings.account.deleteAccount.restoreTitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restore Purchases"
+    "settings.account.deleteAccount.restoreTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore Purchases"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ripristina acquisti"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ripristina acquisti"
           }
         }
       }
     },
-    "settings.account.email" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Email"
+    "settings.account.email": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Email"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email"
           }
         }
       }
     },
-    "settings.account.logoutButton" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Log Out"
+    "settings.account.logoutButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log Out"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esci"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esci"
           }
         }
       }
     },
-    "settings.account.manageSubscription" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manage Subscription"
+    "settings.account.manageSubscription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage Subscription"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gestisci abbonamento"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestisci abbonamento"
           }
         }
       }
     },
-    "settings.account.restorePurchases" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restore Purchases"
+    "settings.account.restorePurchases": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore Purchases"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ripristina acquisti"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ripristina acquisti"
           }
         }
       }
     },
-    "settings.aiAnalysis.appleIntelligenceAvailable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Available on this device."
+    "settings.aiAnalysis.appleIntelligenceAvailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Available on this device."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disponibile sul dispositivo."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disponibile sul dispositivo."
           }
         }
       }
     },
-    "settings.aiAnalysis.appleIntelligenceStatus" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple Intelligence status"
+    "settings.aiAnalysis.appleIntelligenceStatus": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence status"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stato Apple Intelligence"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stato Apple Intelligence"
           }
         }
       }
     },
-    "settings.aiAnalysis.provider" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI Analysis Provider"
+    "settings.aiAnalysis.provider": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI Analysis Provider"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Provider analisi AI"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provider analisi AI"
           }
         }
       }
     },
-    "settings.aiAnalysis.providerDescription" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose which provider generates transcription overviews and summaries."
+    "settings.aiAnalysis.providerDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose which provider generates transcription overviews and summaries."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scegli quale provider genera panoramiche e riassunti delle trascrizioni."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli quale provider genera panoramiche e riassunti delle trascrizioni."
           }
         }
       }
     },
-    "settings.appearance.darkDescription" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dark interface for low-light environments"
+    "settings.appearance.darkDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dark interface for low-light environments"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interfaccia scura per ambienti con poca luce"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interfaccia scura per ambienti con poca luce"
           }
         }
       }
     },
-    "settings.appearance.lightDescription" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clean and modern interface for everyday use"
+    "settings.appearance.lightDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clean and modern interface for everyday use"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interfaccia pulita e moderna per l'uso quotidiano"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interfaccia pulita e moderna per l'uso quotidiano"
           }
         }
       }
     },
-    "settings.appearance.systemDescription" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatically matches your device appearance"
+    "settings.appearance.systemDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatically matches your device appearance"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Segue automaticamente l'aspetto del dispositivo"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segue automaticamente l'aspetto del dispositivo"
           }
         }
       }
     },
-    "settings.appearance.theme" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Theme"
+    "settings.appearance.theme": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Theme"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grafica"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grafica"
           }
         }
       }
     },
-    "settings.cloudTranscription.provider.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Applies to new cloud transcriptions."
+    "settings.cloudTranscription.provider.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applies to new cloud transcriptions."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Si applica alle nuove trascrizioni cloud."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si applica alle nuove trascrizioni cloud."
           }
         }
       }
     },
-    "settings.cloudTranscription.provider.openai" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAI"
+    "settings.cloudTranscription.provider.openai": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenAI"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OpenAI"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenAI"
           }
         }
       }
     },
-    "settings.cloudTranscription.provider.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcription provider"
+    "settings.cloudTranscription.provider.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription provider"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Provider di trascrizione"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provider di trascrizione"
           }
         }
       }
     },
-    "settings.cloudTranscription.provider.xai" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "xAI (Grok)"
+    "settings.cloudTranscription.provider.xai": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI (Grok)"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "xAI (Grok)"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xAI (Grok)"
           }
         }
       }
     },
-    "settings.language.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose the app language. SnipNote defaults to your system language."
+    "settings.language.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the app language. SnipNote defaults to your system language."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scegli la lingua dell’app. SnipNote usa la lingua di sistema per impostazione predefinita."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli la lingua dell’app. SnipNote usa la lingua di sistema per impostazione predefinita."
           }
         }
       }
     },
-    "settings.language.section.footer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changes apply instantly. Some content like AI summaries follows your selected language."
+    "settings.language.section.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes apply instantly. Some content like AI summaries follows your selected language."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le modifiche si applicano subito. Alcuni contenuti, come i riepiloghi AI, seguono la lingua selezionata."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le modifiche si applicano subito. Alcuni contenuti, come i riepiloghi AI, seguono la lingua selezionata."
           }
         }
       }
     },
-    "settings.language.section.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Language"
+    "settings.language.section.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lingua"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lingua"
           }
         }
       }
     },
-    "settings.localTranscription.availableModels" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Available models"
+    "settings.localTranscription.availableModels": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Available models"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modelli disponibili"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modelli disponibili"
           }
         }
       }
     },
-    "settings.localTranscription.backendDescription.cloud" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use the existing cloud pipeline exactly as it works today."
+    "settings.localTranscription.backendDescription.cloud": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the existing cloud pipeline exactly as it works today."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usa l'attuale pipeline cloud esattamente come funziona oggi."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa l'attuale pipeline cloud esattamente come funziona oggi."
           }
         }
       }
     },
-    "settings.localTranscription.backendDescription.local" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose a local model to balance speed, quality, and storage."
+    "settings.localTranscription.backendDescription.local": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a local model to balance speed, quality, and storage."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scegli un modello locale per bilanciare velocità, qualità e spazio di archiviazione."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli un modello locale per bilanciare velocità, qualità e spazio di archiviazione."
           }
         }
       }
     },
-    "settings.localTranscription.backendTitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcription Backend"
+    "settings.localTranscription.backendTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription Backend"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Motore di trascrizione"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motore di trascrizione"
           }
         }
       }
     },
-    "settings.localTranscription.installHint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If local mode is enabled and the selected model is missing, new recordings and transcriptions will stop and ask you to install it here."
+    "settings.localTranscription.installHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If local mode is enabled and the selected model is missing, new recordings and transcriptions will stop and ask you to install it here."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se la modalità locale è attiva e il modello selezionato non è disponibile, le nuove registrazioni e trascrizioni si fermeranno e ti chiederanno di installarlo qui."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se la modalità locale è attiva e il modello selezionato non è disponibile, le nuove registrazioni e trascrizioni si fermeranno e ti chiederanno di installarlo qui."
           }
         }
       }
     },
-    "settings.localTranscription.model.deleteButton" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete"
+    "settings.localTranscription.model.deleteButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elimina"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina"
           }
         }
       }
     },
-    "settings.localTranscription.model.downloadButton" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Download"
+    "settings.localTranscription.model.downloadButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scarica"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scarica"
           }
         }
       }
     },
-    "settings.localTranscription.model.downloadingButton" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Downloading"
+    "settings.localTranscription.model.downloadingButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Download in corso"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download in corso"
           }
         }
       }
     },
-    "settings.localTranscription.model.selectedBadge" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selected"
+    "settings.localTranscription.model.selectedBadge": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selezionato"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selezionato"
           }
         }
       }
     },
-    "settings.localTranscription.model.useButton" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use This Model"
+    "settings.localTranscription.model.useButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use This Model"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usa questo modello"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa questo modello"
           }
         }
       }
     },
-    "settings.localTranscription.model.verifyingButton" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verifying"
+    "settings.localTranscription.model.verifyingButton": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifying"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verifica in corso"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifica in corso"
           }
         }
       }
     },
-    "settings.localTranscription.sectionTitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local Transcription"
+    "settings.localTranscription.sectionTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local Transcription"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione locale"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione locale"
           }
         }
       }
     },
-    "settings.notifications.logout.cancel" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancel"
+    "settings.notifications.logout.cancel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Annulla"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annulla"
           }
         }
       }
     },
-    "settings.notifications.logout.confirm" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Log Out"
+    "settings.notifications.logout.confirm": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log Out"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esci"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esci"
           }
         }
       }
     },
-    "settings.notifications.logout.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Are you sure you want to log out? You'll need to sign in again to use the app."
+    "settings.notifications.logout.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Are you sure you want to log out? You'll need to sign in again to use the app."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sei sicuro di voler uscire? Dovrai accedere nuovamente per usare l’app."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sei sicuro di voler uscire? Dovrai accedere nuovamente per usare l’app."
           }
         }
       }
     },
-    "settings.notifications.logout.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Log Out"
+    "settings.notifications.logout.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log Out"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esci"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esci"
           }
         }
       }
     },
-    "settings.notifications.permission.cancel" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancel"
+    "settings.notifications.permission.cancel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Annulla"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annulla"
           }
         }
       }
     },
-    "settings.notifications.permission.settings" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings"
+    "settings.notifications.permission.settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impostazioni"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impostazioni"
           }
         }
       }
     },
-    "settings.notifications.permission.status" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permission Status"
+    "settings.notifications.permission.status": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permission Status"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stato autorizzazione"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stato autorizzazione"
           }
         }
       }
     },
-    "settings.notifications.permission.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notification Permission Required"
+    "settings.notifications.permission.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification Permission Required"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autorizzazione alle notifiche richiesta"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autorizzazione alle notifiche richiesta"
           }
         }
       }
     },
-    "settings.notifications.processing.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stay informed when recordings start, progress, and complete. Manage these alerts from iOS Settings."
+    "settings.notifications.processing.description": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stay informed when recordings start, progress, and complete. Manage these alerts from iOS Settings."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rimani informato quando le registrazioni iniziano, progrediscono e si completano. Gestisci questi avvisi dalle Impostazioni iOS."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rimani informato quando le registrazioni iniziano, progrediscono e si completano. Gestisci questi avvisi dalle Impostazioni iOS."
           }
         }
       }
     },
-    "settings.notifications.processing.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Processing Notifications"
+    "settings.notifications.processing.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Processing Notifications"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notifiche di elaborazione"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifiche di elaborazione"
           }
         }
       }
     },
-    "settings.section.account.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Account"
+    "settings.section.account.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Account"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account"
           }
         }
       }
     },
-    "settings.section.aiAnalysis.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI Analysis"
+    "settings.section.aiAnalysis.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI Analysis"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Analisi AI"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analisi AI"
           }
         }
       }
     },
-    "settings.section.appearance.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appearance"
+    "settings.section.appearance.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aspetto"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aspetto"
           }
         }
       }
     },
-    "settings.section.notifications.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notifications"
+    "settings.section.notifications.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Notifiche"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifiche"
           }
         }
       }
     },
-    "settings.section.subscription.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Subscription"
+    "settings.section.subscription.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subscription"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abbonamento"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbonamento"
           }
         }
       }
     },
-    "settings.section.usage.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usage"
+    "settings.section.usage.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usage"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utilizzo"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utilizzo"
           }
         }
       }
     },
-    "settings.subscription.plan.free" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Free Plan"
+    "settings.subscription.plan.free": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Free Plan"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Piano gratuito"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Piano gratuito"
           }
         }
       }
     },
-    "settings.subscription.plan.pro" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro Member"
+    "settings.subscription.plan.pro": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pro Member"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utente Pro"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utente Pro"
           }
         }
       }
     },
-    "settings.subscription.plan.unlimited" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unlimited access to all features"
+    "settings.subscription.plan.unlimited": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlimited access to all features"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accesso illimitato a tutte le funzionalità"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accesso illimitato a tutte le funzionalità"
           }
         }
       }
     },
-    "settings.subscription.plan.usage" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$d/%2$d transcriptions used"
+    "settings.subscription.plan.usage": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$d/%2$d transcriptions used"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$d/%2$d trascrizioni utilizzate"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$d/%2$d trascrizioni utilizzate"
           }
         }
       }
     },
-    "settings.subscription.upgrade" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Upgrade"
+    "settings.subscription.upgrade": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upgrade"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiorna"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiorna"
           }
         }
       }
     },
-    "settings.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings"
+    "settings.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impostazioni"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impostazioni"
           }
         }
       }
     },
-    "settings.usage.aiSummaries" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI Summaries"
+    "settings.usage.aiSummaries": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI Summaries"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riepiloghi AI"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riepiloghi AI"
           }
         }
       }
     },
-    "settings.usage.loading" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading usage data..."
+    "settings.usage.loading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading usage data..."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Caricamento dati di utilizzo..."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caricamento dati di utilizzo..."
           }
         }
       }
     },
-    "settings.usage.meetingsCreated" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcriptions Created"
+    "settings.usage.meetingsCreated": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcriptions Created"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizioni create"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizioni create"
           }
         }
       }
     },
-    "settings.usage.meetingsTranscribed" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcriptions Completed"
+    "settings.usage.meetingsTranscribed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcriptions Completed"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizioni completate"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizioni completate"
           }
         }
       }
     },
-    "settings.usage.totalRecordingTime" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Total Recording Time"
+    "settings.usage.totalRecordingTime": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total Recording Time"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tempo totale di registrazione"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tempo totale di registrazione"
           }
         }
       }
     },
-    "Should be ready soon - check back in a few minutes" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sarà pronto a breve - ricontrolla tra qualche minuto"
+    "Should be ready soon - check back in a few minutes": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sarà pronto a breve - ricontrolla tra qualche minuto"
           }
         }
       }
     },
-    "Show" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostra"
+    "Show": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra"
           }
         }
       }
     },
-    "Sign in" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accedi"
+    "Sign in": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accedi"
           }
         }
       }
     },
-    "Sign In" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accedi"
+    "Sign In": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accedi"
           }
         }
       }
     },
-    "SIGN IN" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ACCEDI"
+    "SIGN IN": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ACCEDI"
           }
         }
       }
     },
-    "Sign up" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registrati"
+    "Sign up": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrati"
           }
         }
       }
     },
-    "Skip" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Salta"
+    "Skip": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salta"
           }
         }
       }
-    },
-    "SnipNote" : {
-
-    },
-    "SNIPNOTE" : {
-
-    },
-    "SnipNote v1.9" : {
-
     },
-    "Something went wrong" : {
-
-    },
-    "Start Recording" : {
-
-    },
-    "Starting in..." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inizio tra..."
+    "SnipNote": {},
+    "SNIPNOTE": {},
+    "SnipNote v1.9": {},
+    "Something went wrong": {},
+    "Start Recording": {},
+    "Starting in...": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inizio tra..."
           }
         }
       }
     },
-    "STARTING IN..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "INIZIO TRA..."
+    "STARTING IN...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "INIZIO TRA..."
           }
         }
       }
-    },
-    "Stop Job" : {
-
     },
-    "Stop Recording" : {
-
-    },
-    "Subscribe Now" : {
-
-    },
-    "Summary" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riepilogo"
+    "Stop Job": {},
+    "Stop Recording": {},
+    "Subscribe Now": {},
+    "Summary": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riepilogo"
           }
         }
       }
     },
-    "tab.home" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Home"
+    "tab.home": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Home"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
           }
         }
       }
     },
-    "tab.meetings" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcriptions"
+    "tab.meetings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcriptions"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizioni"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizioni"
           }
         }
       }
     },
-    "tab.settings" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Settings"
+    "tab.settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impostazioni"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impostazioni"
           }
         }
       }
     },
-    "Tap + to create your first transcription" : {
-
-    },
-    "Tap the record button to capture audio from meetings, calls, or voice notes. SnipNote will automatically transcribe and analyze your content." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Premi il pulsante di registrazione per catturare l'audio di riunioni, chiamate o note vocali. SnipNote trascriverà e analizzerà automaticamente il contenuto."
+    "Tap + to create your first transcription": {},
+    "Tap the record button to capture audio from meetings, calls, or voice notes. SnipNote will automatically transcribe and analyze your content.": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Premi il pulsante di registrazione per catturare l'audio di riunioni, chiamate o note vocali. SnipNote trascriverà e analizzerà automaticamente il contenuto."
           }
         }
       }
-    },
-    "Terms of Use (EULA)" : {
-
     },
-    "The original audio file is no longer available." : {
-
-    },
-    "This audio requires %lld minutes. You have %lld minutes remaining." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "This audio requires %1$lld minutes. You have %2$lld minutes remaining."
+    "Terms of Use (EULA)": {},
+    "The original audio file is no longer available.": {},
+    "This audio requires %lld minutes. You have %lld minutes remaining.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "This audio requires %1$lld minutes. You have %2$lld minutes remaining."
           }
         }
       }
     },
-    "This recording will require %lld minutes. You have %lld minutes remaining." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "This recording will require %1$lld minutes. You have %2$lld minutes remaining."
+    "This recording will require %lld minutes. You have %lld minutes remaining.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "This recording will require %1$lld minutes. You have %2$lld minutes remaining."
           }
         }
       }
     },
-    "This requires %lld minutes, but you only have %lld minutes remaining." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "This requires %1$lld minutes, but you only have %2$lld minutes remaining."
+    "This requires %lld minutes, but you only have %lld minutes remaining.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "This requires %1$lld minutes, but you only have %2$lld minutes remaining."
           }
         }
       }
     },
-    "Tip: Use Voice Memos for long recordings (1+ hour) and share to SnipNote." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suggerimento: Usa Memo Vocali per registrazioni lunghe (1+ ora) e condividi su SnipNote."
+    "Tip: Use Voice Memos for long recordings (1+ hour) and share to SnipNote.": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggerimento: Usa Memo Vocali per registrazioni lunghe (1+ ora) e condividi su SnipNote."
           }
         }
       }
     },
-    "To provide the best experience, SnipNote needs access to your microphone and permission to send notifications." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Per offrire la migliore esperienza, SnipNote necessita l'accesso al microfono e il permesso di inviare notifiche."
+    "To provide the best experience, SnipNote needs access to your microphone and permission to send notifications.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per offrire la migliore esperienza, SnipNote necessita l'accesso al microfono e il permesso di inviare notifiche."
           }
         }
       }
     },
-    "To record audio, SnipNote needs access to your microphone. Tap the record button and grant permission when prompted." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Per registrare l'audio, SnipNote necessita l'accesso al microfono. Premi il pulsante di registrazione e concedi il permesso quando richiesto."
+    "To record audio, SnipNote needs access to your microphone. Tap the record button and grant permission when prompted.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per registrare l'audio, SnipNote necessita l'accesso al microfono. Premi il pulsante di registrazione e concedi il permesso quando richiesto."
           }
         }
       }
     },
-    "Top up your transcription minutes instantly" : {
-
-    },
-    "Transcript" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione"
+    "Top up your transcription minutes instantly": {},
+    "Transcript": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione"
           }
         }
       }
     },
-    "Transcription Date" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Data trascrizione"
+    "Transcription Date": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data trascrizione"
           }
         }
       }
-    },
-    "Transcription Failed" : {
-
     },
-    "Transcription Name" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nome trascrizione"
+    "Transcription Failed": {},
+    "Transcription Name": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome trascrizione"
           }
         }
       }
     },
-    "Transcription Name Required" : {
-
-    },
-    "Transcription Summary" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riepilogo trascrizione"
+    "Transcription Name Required": {},
+    "Transcription Summary": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riepilogo trascrizione"
           }
         }
       }
     },
-    "transcription.local.error.downloadIncomplete" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Download incomplete. Please retry."
+    "transcription.local.error.downloadIncomplete": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download incomplete. Please retry."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Download incompleto. Riprova."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download incompleto. Riprova."
           }
         }
       }
     },
-    "transcription.local.error.downloadInterrupted" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Download was interrupted. Please retry."
+    "transcription.local.error.downloadInterrupted": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download was interrupted. Please retry."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il download è stato interrotto. Riprova."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il download è stato interrotto. Riprova."
           }
         }
       }
     },
-    "transcription.local.error.emptyTranscript" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The local transcription returned no text."
+    "transcription.local.error.emptyTranscript": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The local transcription returned no text."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La trascrizione locale non ha restituito alcun testo."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La trascrizione locale non ha restituito alcun testo."
           }
         }
       }
     },
-    "transcription.local.error.failedToLoadModel" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The local model could not be initialized on this device."
+    "transcription.local.error.failedToLoadModel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The local model could not be initialized on this device."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il modello locale non può essere inizializzato su questo dispositivo."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il modello locale non può essere inizializzato su questo dispositivo."
           }
         }
       }
     },
-    "transcription.local.error.modelNotInstalled" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ is not downloaded. Install it in Settings > Local Transcription."
+    "transcription.local.error.modelNotInstalled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is not downloaded. Install it in Settings > Local Transcription."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ non è scaricato. Installalo in Impostazioni > Trascrizione locale."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ non è scaricato. Installalo in Impostazioni > Trascrizione locale."
           }
         }
       }
     },
-    "transcription.local.error.unavailable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local transcription is unavailable in this build."
+    "transcription.local.error.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local transcription is unavailable in this build."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La trascrizione locale non è disponibile in questa build."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La trascrizione locale non è disponibile in questa build."
           }
         }
       }
     },
-    "transcription.local.model.base.detail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Best for fast local transcription with modest storage use."
+    "transcription.local.model.base.detail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Best for fast local transcription with modest storage use."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ideale per trascrizioni locali rapide con un uso contenuto dello spazio."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ideale per trascrizioni locali rapide con un uso contenuto dello spazio."
           }
         }
       }
     },
-    "transcription.local.model.base.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Base"
+    "transcription.local.model.base.name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Base"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Base"
           }
         }
       }
     },
-    "transcription.local.model.small.detail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Better transcript quality with a larger download."
+    "transcription.local.model.small.detail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Better transcript quality with a larger download."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qualità di trascrizione migliore, con un download più grande."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qualità di trascrizione migliore, con un download più grande."
           }
         }
       }
     },
-    "transcription.local.model.small.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Small"
+    "transcription.local.model.small.name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Small"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Small"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Small"
           }
         }
       }
     },
-    "transcription.local.progress.chunkComplete" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chunk %1$lld completed"
+    "transcription.local.progress.chunkComplete": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chunk %1$lld completed"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Segmento %1$lld completato"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segmento %1$lld completato"
           }
         }
       }
     },
-    "transcription.local.progress.chunkRunning" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcribing locally: chunk %1$lld of %2$lld"
+    "transcription.local.progress.chunkRunning": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribing locally: chunk %1$lld of %2$lld"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione locale: segmento %1$lld di %2$lld"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione locale: segmento %1$lld di %2$lld"
           }
         }
       }
     },
-    "transcription.local.progress.chunkSkipped" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chunk %1$lld contained no speech"
+    "transcription.local.progress.chunkSkipped": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chunk %1$lld contained no speech"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il segmento %1$lld non conteneva parlato"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il segmento %1$lld non conteneva parlato"
           }
         }
       }
     },
-    "transcription.local.progress.combining" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Combining transcripts"
+    "transcription.local.progress.combining": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Combining transcripts"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unione delle trascrizioni"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unione delle trascrizioni"
           }
         }
       }
     },
-    "transcription.local.progress.complete" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local transcription complete"
+    "transcription.local.progress.complete": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local transcription complete"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione locale completata"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione locale completata"
           }
         }
       }
     },
-    "transcription.local.progress.detectingSpeech" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Detecting speech regions"
+    "transcription.local.progress.detectingSpeech": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detecting speech regions"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rilevamento delle aree di parlato"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rilevamento delle aree di parlato"
           }
         }
       }
     },
-    "transcription.local.progress.loadingAudio" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading local audio"
+    "transcription.local.progress.loadingAudio": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading local audio"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Caricamento audio locale"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caricamento audio locale"
           }
         }
       }
     },
-    "transcription.local.progress.preparingChunks" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preparing local chunks"
+    "transcription.local.progress.preparingChunks": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing local chunks"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preparazione segmenti locali"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparazione segmenti locali"
           }
         }
       }
     },
-    "transcription.local.progress.running" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Running local transcription"
+    "transcription.local.progress.running": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Running local transcription"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione locale in esecuzione"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizione locale in esecuzione"
           }
         }
       }
     },
-    "transcription.local.status.checking" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Checking model files..."
+    "transcription.local.status.checking": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking model files..."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controllo dei file del modello..."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controllo dei file del modello..."
           }
         }
       }
     },
-    "transcription.local.status.downloading" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Downloading %1$lld%%"
+    "transcription.local.status.downloading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading %1$lld%%"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Download %1$lld%%"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download %1$lld%%"
           }
         }
       }
     },
-    "transcription.local.status.installed" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Installed"
+    "transcription.local.status.installed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installed"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Installato"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installato"
           }
         }
       }
     },
-    "transcription.local.status.notInstalled" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not downloaded"
+    "transcription.local.status.notInstalled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not downloaded"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non scaricato"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non scaricato"
           }
         }
       }
     },
-    "transcription.local.status.verifying" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verifying model..."
+    "transcription.local.status.verifying": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifying model..."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verifica del modello..."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifica del modello..."
           }
         }
       }
     },
-    "transcription.mode.cloud" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cloud"
+    "transcription.mode.cloud": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cloud"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cloud"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cloud"
           }
         }
       }
     },
-    "transcription.mode.local" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local"
+    "transcription.mode.local": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Locale"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Locale"
           }
         }
       }
     },
-    "Transcriptions" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizioni"
+    "Transcriptions": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascrizioni"
           }
         }
       }
-    },
-    "Troubleshooting:" : {
-
     },
-    "Try a different search term" : {
-
-    },
-    "Two Ways to Capture" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Due Modi per Registrare"
+    "Troubleshooting:": {},
+    "Try a different search term": {},
+    "Two Ways to Capture": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Due Modi per Registrare"
           }
         }
       }
-    },
-    "Unable to load subscription options" : {
-
     },
-    "Unlock SnipNote Pro" : {
-
-    },
-    "Upgrade Now" : {
-
-    },
-    "Upload complete. You can close the app." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Caricamento completato. Puoi chiudere l'app."
+    "Unable to load subscription options": {},
+    "Unlock SnipNote Pro": {},
+    "Upgrade Now": {},
+    "Upload complete. You can close the app.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caricamento completato. Puoi chiudere l'app."
           }
         }
       }
     },
-    "Uploading to server..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Caricamento sul server..."
+    "Uploading to server...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caricamento sul server..."
           }
         }
       }
     },
-    "UPLOADING TO SERVER..." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CARICAMENTO SUL SERVER..."
+    "UPLOADING TO SERVER...": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CARICAMENTO SUL SERVER..."
           }
         }
       }
     },
-    "VERSION" : {
-
+    "VERSION": {},
+    "Welcome to SnipNote": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benvenuto in SnipNote"
+          }
+        }
+      }
     },
-    "Welcome to SnipNote" : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Benvenuto in SnipNote"
+    "You don't have enough minutes to start recording. Purchase minute packs to continue.": {
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non hai abbastanza minuti per iniziare una traduzione. Acquista un pacchetto minuti per continuare."
           }
         }
       }
     },
-    "You don't have enough minutes to start recording. Purchase minute packs to continue." : {
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non hai abbastanza minuti per iniziare una traduzione. Acquista un pacchetto minuti per continuare."
+    "You've reached your free tier limit of %lld total transcriptions. Upgrade to Pro for unlimited transcriptions.": {
+      "extractionState": "stale",
+      "localizations": {
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hai raggiunto il tuo limite gratuito di %lld trascrizioni. Passa a Pro per accesso illimitato."
           }
         }
       }
     },
-    "You've reached your free tier limit of %lld total transcriptions. Upgrade to Pro for unlimited transcriptions." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hai raggiunto il tuo limite gratuito di %lld trascrizioni. Passa a Pro per accesso illimitato."
+    "background_upload.legacy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use legacy audio upload"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa il caricamento audio precedente"
           }
         }
       }
     }
   },
-  "version" : "1.1"
+  "version": "1.1"
 }

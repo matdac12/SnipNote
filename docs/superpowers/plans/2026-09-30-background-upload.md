@@ -149,7 +149,7 @@ All HTTP signing details must be proved using the pinned Storage SDK and small d
 
 Recommended execution: **Native** in this session, task by task, followed by an independent whole-change review. These tasks share a tight API/manifest contract across two repositories; keeping implementation context together reduces interface drift. The owner supplies Xcode/device evidence at the indicated checks.
 
-Implementation started 2026-10-01 inline on isolated codex/background-upload branches. Owner Xcode/device checks remain pending; no subagents, production changes, merge or activation authorized. Production deployment review concerns the concrete migration/deployment result; it does not stop already-authorized reversible code work. No implementation or production changes are part of this documentation update.
+Implementation started 2026-10-01 inline on isolated codex/background-upload branches. Simulator checks now run here by user authorization; physical-device checks remain pending; no subagents, production changes, merge or activation authorized. Production deployment review concerns the concrete migration/deployment result; it does not stop already-authorized reversible code work. Implementation changes are recorded below; production actions remain pending approval.
 
 ## Execution record
 
@@ -158,5 +158,6 @@ Implementation started 2026-10-01 inline on isolated codex/background-upload bra
 - Task 3 migration generated: `20261001065143_promote_background_upload.sql`. Local PostgreSQL rehearsal verifies concurrent single promotion, metadata rollback, legacy conflicts, and denied client roles.
 - Task 4: durable manifests/protected exports and fixtures implemented; Swift checks owner-pending.
 - Task 5: background URLSession/crash recovery implemented. User authorized subsequent Xcode checks on iPhone 17; Tasks 1/4/5 selected tests passed (14). Backend 44/44. Device behavior unverified.
-- Task 6: integrated routing, localized byte progress, app-level recovery and durable result-sync retry; 27 selected Swift tests passed. Full unit suite has pre-existing DOCX export failure reproduced on main.
+- Task 6: integrated routing, localized byte progress, app-level recovery and durable result-sync retry; 26 selected Swift tests passed. Full unit suite has pre-existing DOCX export failure reproduced on main.
 - Task 7: local rehearsal/backend checks and read-only VPS/Supabase preflight done; concrete deployment prepared in service DEPLOYMENT.md and app report. Production migration/deploy/activation pending owner approval. Database backups unconfirmed; independent review pending (no delegation authorized).
+- Task 8: archive commands, single-suite selections and focused physical-device/trial checklist delivered in the verification report; archive, production transport, 7–10-day trial and App Store decision pending.

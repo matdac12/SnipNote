@@ -251,3 +251,27 @@ recording first, then larger audio; wait for permission to leave before locking.
 Verify server verification/ordinary queueing and transcript on reopen. Network drop
 and force-quit/reopen are separate recovery tests. Do not uninstall/reset the app.
 Direct Xcode installation is the first test; TestFlight and the 7–10-day trial follow.
+
+
+## Physical-phone installation — 2026-10-01
+
+Owner connected iPhone 16 di Matti (iPhone 16 Plus). Pairing completed through
+`devicectl manage pair`; no app deletion or bundle/signing change. Build from app
+revision `9f747dd` succeeded with existing automatic signing using Xcode 26.6:
+
+```bash
+cd /Users/mattia/.codex/worktrees/background-upload/SnipNote
+xcodebuild -project SnipNote.xcodeproj -scheme SnipNote -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath /private/tmp/SnipNote-background-upload-device build
+xcrun devicectl device install app --device F14158B7-FEC9-5476-9FE3-E246488F6ABF /private/tmp/SnipNote-background-upload-device/Build/Products/Debug-iphoneos/SnipNote.app --timeout 60
+xcrun devicectl device process launch --device F14158B7-FEC9-5476-9FE3-E246488F6ABF com.mattianalytics.snipnote --timeout 30
+```
+
+Install and launch confirmed successful with original bundle identity
+`com.mattianalytics.snipnote`, without attaching a debugger. Local build log:
+`/private/tmp/upload-device-build.log`; install/launch JSON:
+`/private/tmp/upload-phone-install.json`, `/private/tmp/upload-phone-launch.json`.
+
+Owner must now confirm account/data continuity and perform the small-audio
+server upload, preparation/permission-to-leave, lock and reopen test. These observed
+installation results do not yet prove background transfer, server promotion or
+transcript application on the physical phone. TestFlight/archive/trial remain pending.

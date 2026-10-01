@@ -51,3 +51,12 @@ only against a disposable/local database after the addition.
 1. Go to https://supabase.com/dashboard/project/bndbnqtvicvynzkyygte/auth/providers
 2. Enable "Email" provider if not already enabled
 3. Configure email settings as needed
+
+## Background upload sessions (not deployed)
+
+The two 20261001 upload migrations add service-only tables and registration/promotion
+RPCs. Clients authenticate to the existing transcription API with a Supabase access
+token; the API validates it remotely and checks meeting ownership. No client table
+permissions or existing RLS/bucket policies change. The server gate defaults off and
+an empty allowlist enables nobody. See the background upload verification report
+for local rehearsal evidence and the production approval checkpoint.

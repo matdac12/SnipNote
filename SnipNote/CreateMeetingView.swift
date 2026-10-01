@@ -1629,6 +1629,38 @@ struct CreateMeetingView: View {
         // but the background task identifier ensures iOS gives us time to complete
         Task {
             do {
+                let coordinator = BackgroundUploadCoordinator.shared
+                let api = BackgroundUploadAPI()
+                let routing = BackgroundUploadRouting(
+                    settings: .shared,
+                    capabilities: { try await api.capabilities() },
+                    hasExisting: { coordinator.contains(meetingID: meetingId) },
+                    startBackground: {
+                        try modelContext.save()
+                        let user = try await SupabaseManager.shared.client.auth.session.user.id
+                        coordinator.ensureMeeting = { expectedUser, id in
+                            guard expectedUser == user,
+                                  SupabaseManager.shared.client.auth.currentUser?.id == expectedUser,
+                                  let current = try modelContext.fetch(FetchDescriptor<Meeting>(predicate: #Predicate { $0.id == id })).first,
+                                  current.isProcessing else { throw BackgroundUploadFailure.cancelled }
+                            if coordinator.snapshots[id]?.sessionID == nil {
+                                try await SupabaseManager.shared.saveMeeting(current)
+                            }
+                        }
+                        try await coordinator.start(meetingID: meetingId, source: audioURL, options: UploadOptions(provider: provider.rawValue, language: language, duration: audioDuration))
+                        if let manifest = coordinator.snapshots[meetingId] {
+                            meeting.localAudioPath = try coordinator.store.fileURL(manifest.sourceRelativePath, userID: user, meetingID: meetingId).path
+                            try modelContext.save()
+                        }
+                    },
+                    recover: {
+                        if let user = try? await SupabaseManager.shared.client.auth.session.user.id { await coordinator.recover(userID: user) }
+                    }
+                )
+                if try await routing.start() == .background {
+                    backgroundTaskManager.endBackgroundTask(backgroundTaskId)
+                    return
+                }
                 // Check if file needs chunking for upload (>15MB)
                 let needsChunking = try AudioChunker.needsUploadChunking(url: audioURL)
                 var totalChunks = 1
@@ -1747,7 +1779,11 @@ struct CreateMeetingView: View {
             } catch {
                 await MainActor.run {
                     print("❌ Error in server-side transcription: \(error)")
-                    meeting.setProcessingError(serverBootstrapErrorMessage(for: error))
+                    if BackgroundUploadCoordinator.shared.contains(meetingID: meetingId) {
+                        meeting.currentStageDescription = localized("background_upload.retry")
+                    } else {
+                        meeting.setProcessingError(serverBootstrapErrorMessage(for: error))
+                    }
 
                     do {
                         try modelContext.save()

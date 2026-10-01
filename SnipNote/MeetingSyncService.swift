@@ -56,6 +56,10 @@ class MeetingSyncService: ObservableObject {
             }
         }
 
+        if let user = SupabaseManager.shared.client.auth.currentUser?.id {
+            await BackgroundUploadReconciler.shared.reconcile(context: modelContext, userID: user)
+        }
+
         // 3. Delete local meetings not on server (delete sync)
         let deletedCount = try deleteOrphanedLocalMeetings(
             remoteMeetingIds: Set(remoteMeetings.map { $0.meeting.id }),

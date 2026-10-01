@@ -118,7 +118,58 @@ final class UploadDelegateDrain: @unchecked Sendable {
   static func taskDescription(_ manifest: BackgroundUploadManifest, index: Int) -> String {
     "\(manifest.userID.uuidString)/\(manifest.meetingID.uuidString)/\(index)"
   }
-  func contains(meetingID: UUID) -> Bool { snapshots[meetingID] != nil }
+  func contains(meetingID: UUID) -> Bool {
+    if let manifest = snapshots[meetingID] { return manifest.phase != .cancelled && manifest.phase != .completed }
+    if let user = SupabaseManager.shared.client.auth.currentUser?.id,
+       let manifest = try? store.load(userID: user).first(where: { $0.meetingID == meetingID }) {
+      return manifest.phase != .cancelled && manifest.phase != .completed
+    }
+    return false
+  }
+  func refreshStatuses(userID: UUID) async {
+    guard activeUser == userID else { return }
+    for manifest in Array(snapshots.values) where manifest.userID == userID && manifest.phase != .completed && manifest.phase != .cancelled {
+      guard let sid = manifest.sessionID else { continue }
+      do {
+        let remote = try await api.status(sessionID: sid)
+        try await assertAccount(userID)
+        guard let latest = snapshots[manifest.meetingID], latest.phase != .cancelled && latest.phase != .completed else { continue }
+        _ = try apply(remote, to: latest)
+      } catch { /* Status errors preserve identity and transfer state. */ }
+    }
+  }
+  func markResultApplied(meetingID: UUID) throws {
+    guard var manifest = snapshots[meetingID] else { return }
+    manifest.resultApplied = true
+    try persist(manifest)
+  }
+  func finish(meetingID: UUID) {
+    guard var manifest = snapshots[meetingID] else { return }
+    manifest.phase = .completed
+    try? persist(manifest)
+    // Keep source for existing playback. Release only remotely verified chunk/body files.
+    for state in manifest.files where state.state == .verified {
+      for relative in [state.file.relativePath, "body-\(state.file.index).multipart"] {
+        if let url = try? store.fileURL(relative, userID: manifest.userID, meetingID: meetingID) { try? FileManager.default.removeItem(at: url) }
+      }
+    }
+  }
+  func cancel(meetingID: UUID) {
+    guard var manifest = snapshots[meetingID], manifest.phase != .completed else { return }
+    manifest.phase = .cancelled
+    try? persist(manifest)
+    retryTasks[meetingID]?.cancel()
+    Task {
+      for task in await transport.allTasks() where task.description?.hasPrefix("\(manifest.userID.uuidString)/\(meetingID.uuidString)/") == true { transport.cancel(task.id) }
+    }
+  }
+  func signOut() async {
+    activeUser = nil
+    for retry in retryTasks.values { retry.cancel() }
+    retryTasks.removeAll()
+    snapshots = [:]
+    for task in await transport.allTasks() { transport.cancel(task.id) }
+  }
   func start(meetingID: UUID, source: URL, options: UploadOptions) async throws {
     let user = try await identity()
     activeUser = user
@@ -137,10 +188,10 @@ final class UploadDelegateDrain: @unchecked Sendable {
     guard available > sourceSize * 4 + 100 * 1024 * 1024 else { throw BackgroundUploadFailure.diskFull }
     var manifest = BackgroundUploadManifest(userID: user, meetingID: meetingID, sourceRelativePath: relative, options: options)
     // Original caller's file is retained even if this durable copy or preparation fails.
-    try FileManager.default.copyItem(at: source, to: stableSource)
-    try BackgroundUploadStore.protect(stableSource)
     try persist(manifest)
     do {
+      try FileManager.default.copyItem(at: source, to: stableSource)
+      try BackgroundUploadStore.protect(stableSource)
       manifest.files = try await AudioChunker.prepareUploadFiles(from: stableSource, directory: directory).map { UploadFileState(file: $0) }
       // Provider, language and duration remain captured for this attempt.
 
@@ -194,7 +245,7 @@ final class UploadDelegateDrain: @unchecked Sendable {
     defer { operating.remove(initial.meetingID) }
     try await assertAccount(initial.userID)
     var manifest = snapshots[initial.meetingID] ?? initial
-    guard manifest.phase != .cancelled && manifest.phase != .completed else { return }
+    guard manifest.phase != .cancelled && manifest.phase != .completed && manifest.phase != .queued else { return }
     if manifest.files.isEmpty {
       manifest.phase = .preparing; try persist(manifest)
       let source = try store.fileURL(manifest.sourceRelativePath, userID: manifest.userID, meetingID: manifest.meetingID)
@@ -221,8 +272,8 @@ final class UploadDelegateDrain: @unchecked Sendable {
     for instruction in response.files {
       guard let offset = manifest.files.firstIndex(where: { $0.file.index == instruction.index }) else { throw BackgroundUploadFailure.invalidManifest }
       let description = Self.taskDescription(manifest, index: instruction.index)
-      if existing.contains(description) { manifest.files[offset].state = .scheduled; continue }
       if instruction.verified || [.uploaded, .verified].contains(manifest.files[offset].state) { continue }
+      if existing.contains(description) { manifest.files[offset].state = .scheduled; continue }
       guard let url = instruction.uploadUrl, url.scheme == "https", let method = instruction.method, let headers = instruction.headers,
             let expiry = instruction.expiresAt, expiry > Date() else { throw BackgroundUploadFailure.unavailable }
       let body = try multipartBody(manifest: manifest, file: manifest.files[offset].file, headers: headers)
@@ -258,7 +309,6 @@ final class UploadDelegateDrain: @unchecked Sendable {
   private func persist(_ manifest: BackgroundUploadManifest) throws {
     try store.save(manifest)
     snapshots[manifest.meetingID] = manifest
-    onUpdate?()
   }
   func acceptCompletion(_ description: String, statusCode: Int?, failed: Bool) {
     guard let (manifest, index) = callbackTarget(description), ![.uploaded, .verified].contains(manifest.files[index].state) else { return }
@@ -270,6 +320,7 @@ final class UploadDelegateDrain: @unchecked Sendable {
       updated.files[index].state = .retry; updated.phase = .retry; updated.errorCode = "upload_retry"
     }
     do { try persist(updated) } catch { return }
+    onUpdate?()
     if updated.files[index].state == .retry, updated.files[index].attempts <= 3 {
       scheduleRetry(updated, delay: UInt64(1 << max(0, updated.files[index].attempts - 1)))
     }

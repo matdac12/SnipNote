@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import SwiftData
 import StoreKit
 
 struct AuthenticationView: View {
+    @Environment(\.modelContext) private var modelContext
     @StateObject private var authManager = AuthenticationManager()
     @EnvironmentObject var themeManager: ThemeManager
     @Binding var sharedAudioImportRequest: SharedAudioImportRequest?
@@ -39,6 +41,14 @@ struct AuthenticationView: View {
                     }
             } else {
                 LoginView(authManager: authManager)
+            }
+        }
+        .task(id: authManager.currentUser?.id) {
+            if let user = authManager.currentUser?.id {
+                await BackgroundUploadReconciler.shared.activate(context: modelContext, userID: user)
+            } else {
+                BackgroundUploadReconciler.shared.stop()
+                await BackgroundUploadCoordinator.shared.signOut()
             }
         }
         .animation(.easeInOut, value: authManager.isAuthenticated)

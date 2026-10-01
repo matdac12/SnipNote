@@ -92,6 +92,11 @@ struct SnipNoteApp: App {
                 BackgroundTaskManager.shared.handleScenePhaseChange(newPhase)
                 if newPhase == .active {
                     checkForSharedAudio()
+                    if let user = SupabaseManager.shared.client.auth.currentUser?.id {
+                        Task { await BackgroundUploadReconciler.shared.activate(context: sharedModelContainer.mainContext, userID: user) }
+                    }
+                } else {
+                    BackgroundUploadReconciler.shared.stop()
                 }
             }
         }

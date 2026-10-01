@@ -41,6 +41,7 @@ struct BackgroundUploadManifest: Codable, Sendable, Identifiable {
   var files: [UploadFileState] = []
   var phase: BackgroundUploadPhase = .preparing
   var errorCode: String?
+  var resultApplied = false
   var id: UUID { meetingID }
   var bytesSent: Int64 { files.reduce(0) { $0 + min($1.sentBytes, $1.file.expectedBytes) } }
   var totalBytes: Int64 { files.reduce(0) { $0 + $1.file.expectedBytes } }

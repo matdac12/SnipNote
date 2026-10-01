@@ -158,3 +158,4 @@ Implementation started 2026-10-01 inline on isolated codex/background-upload bra
 - Task 3 migration generated: `20261001065143_promote_background_upload.sql`. Local PostgreSQL rehearsal verifies concurrent single promotion, metadata rollback, legacy conflicts, and denied client roles.
 - Task 4: durable manifests/protected exports and fixtures implemented; Swift checks owner-pending.
 - Task 5: background URLSession/crash recovery implemented. User authorized subsequent Xcode checks on iPhone 17; Tasks 1/4/5 selected tests passed (14). Backend 44/44. Device behavior unverified.
+- Task 6: integrated routing, localized byte progress, app-level recovery and durable result-sync retry; 27 selected Swift tests passed. Full unit suite has pre-existing DOCX export failure reproduced on main.

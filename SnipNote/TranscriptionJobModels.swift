@@ -7,6 +7,11 @@ enum JobStatus: String, Codable {
     case completed
     case failed
 
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = JobStatus(rawValue: raw) ?? .pending
+    }
+
     var displayText: String {
         switch self {
         case .pending: return "Pending"

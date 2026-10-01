@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct MeetingDetailView: View {
+    @StateObject private var backgroundUploads = BackgroundUploadCoordinator.shared
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Bindable var meeting: Meeting
@@ -285,7 +286,23 @@ struct MeetingDetailView: View {
     
     private var processingStatusSection: some View {
         VStack(spacing: 24) {
-            if meeting.isLocalJob {
+            if let upload = backgroundUploads.snapshots[meeting.id], [.preparing, .uploading, .retry, .queued].contains(upload.phase) {
+                VStack(spacing: 12) {
+                    Text(LocalizationManager.localizedAppString(upload.phase == .preparing ? "background_upload.preparing" : upload.phase == .retry ? "background_upload.retry" : upload.phase == .queued ? "background_upload.queued" : "background_upload.uploading"))
+                    if upload.totalBytes > 0 && upload.phase != .queued {
+                        ProgressView(value: Double(upload.bytesSent), total: Double(upload.totalBytes))
+                        Text("\(upload.bytesSent.formatted(.byteCount(style: .file))) / \(upload.totalBytes.formatted(.byteCount(style: .file)))")
+                            .font(.caption)
+                    }
+                    Text(LocalizationManager.localizedAppString(upload.transferRegistered || upload.phase == .queued ? "background_upload.can_leave" : "background_upload.keep_open"))
+                        .font(.caption)
+                    if upload.phase == .retry {
+                        Button(LocalizationManager.localizedAppString("background_upload.retry_button")) {
+                            Task { await backgroundUploads.recover(userID: upload.userID) }
+                        }
+                    }
+                }.padding()
+            } else if meeting.isLocalJob {
                 MinimalistProcessingView(
                     phase: localMinimalistPhase,
                     progress: meeting.displayedProgressPercent,
@@ -1150,7 +1167,15 @@ struct MeetingDetailView: View {
             do {
                 let status = try await transcriptionService.getJobStatus(jobId: jobId)
 
-                let isFinal = await MainActor.run { applyJobStatusUpdate(status: status) }
+                let isFinal = await MainActor.run {
+                    if backgroundUploads.snapshots[meeting.id] != nil {
+                        jobStatus = status.status
+                        jobProgress = status.progressPercentage ?? 0
+                        jobStage = status.currentStage ?? ""
+                        return status.status == .completed || status.status == .failed
+                    }
+                    return applyJobStatusUpdate(status: status)
+                }
 
                 if isFinal {
                     break pollingLoop
@@ -1160,14 +1185,7 @@ struct MeetingDetailView: View {
             } catch {
                 if Task.isCancelled { break }
 
-                // Check if max retries exceeded - trigger fallback
-                if let transcriptionError = error as? TranscriptionError,
-                   case .maxRetriesExceeded = transcriptionError {
-                    print("❌ [MeetingDetail] Max retries exceeded - attempting on-device fallback")
-                    await attemptOnDeviceFallback()
-                    break pollingLoop
-                }
-
+                // Network/polling exhaustion preserves the remote job identity.
                 print("⚠️ [MeetingDetail] Error polling job status: \(error)")
                 try? await Task.sleep(nanoseconds: 5_000_000_000)
             }
@@ -1293,6 +1311,10 @@ struct MeetingDetailView: View {
         do {
             let status = try await transcriptionService.getJobStatus(jobId: jobId)
 
+            if let upload = backgroundUploads.snapshots[meeting.id] {
+                await BackgroundUploadReconciler.shared.reconcile(context: modelContext, userID: upload.userID)
+                return
+            }
             let isFinal = await MainActor.run { applyJobStatusUpdate(status: status) }
 
             if !isFinal {

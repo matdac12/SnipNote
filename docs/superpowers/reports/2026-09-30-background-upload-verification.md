@@ -163,3 +163,91 @@ Final logs (local, not committed):
 Branches/worktrees remain for follow-up. No push, merge, production action or
 owner-only activation has occurred. Tasks 7/8 are intentionally incomplete at
 those authorization and physical-device checkpoints.
+
+
+## Approved owner trial rollout — 2026-10-01
+
+The owner approved trial preparation, production migrations/deployment and owner-only
+activation in this conversation, then identified their login and confirmed backup
+readiness. This section supersedes the earlier approval-pending status; nothing was
+pushed or merged to main.
+
+- Auth verified `mattia.dacampo@gmail.com`, UUID
+  `e6658fad-05e2-4d25-9779-857bc72bbc81`, confirmed/non-anonymous. This is the only
+  allowed account. New-upload capability true for owner, false for a non-owner UUID
+  fixture. Actual non-owner authenticated device testing remains pending.
+- The two exact additive SQL files were applied via Supabase MCP. Its generated
+  history versions were aligned to the already generated repository versions
+  `20261001064743` / `20261001065143`; both named entries confirmed afterward.
+  New tables have RLS and no anon/authenticated table or RPC privileges;
+  service-role-only access confirmed. New RPCs remain SECURITY INVOKER with fixed
+  search paths. Advisors report only the expected no-policy INFO for these new
+  service-only tables; unrelated existing warnings left untouched.
+- Service deployed by transferring a Git bundle and checking out a detached reviewed
+  revision on the existing VPS. Current running API code:
+  `f328b6df996f96b4846e0ff2e6d93724458f6578`.
+  API, ordinary worker and independent reconciler active. Ordinary worker PID
+  `3103443` and start time `2026-09-30 12:04:28 UTC` unchanged throughout.
+- Private rollback copy of environment and prior revision retained at
+  `/root/snipnote-rollbacks/background-upload-2026-10-01/` on omni. Prior revision
+  `7cc8460d8904154f2a34303abd28bde6cd92bdbf` remains available. API restarts caused
+  brief 502 responses while initializing, then recovered to healthy.
+- Backup evidence is owner-confirmed, not independently verified: Management API
+  returned `walg_enabled=true`, `pitr_enabled=false`, no listed backups/physical
+  restore data. Fresh protected CLI dump failed because the database password was
+  unavailable; the empty output is not a backup. No backup settings/password changed.
+- Disabled production smoke: real owner Auth, missing-Auth 401, owner capability
+  false, structured disabled bootstrap 403 without session writes, unchanged legacy
+  missing-job route 404. Shipped-app end-to-end smoke remains owner-pending.
+- Real production transport proof: tiny owner-scoped synthetic audio, exact iOS
+  multipart PUT framing, exact stored bytes, missing/wrong-size verification,
+  idempotent refresh, verified files omitted from signed credentials, replacement
+  upload of a wrong-size object, same-session expiry renewal, independent reconciler
+  rejection of an incomplete fixture, and feature-off refresh all passed. Owner
+  activation restored afterward. The deliberately absent third file prevented any
+  paid promotion. Fixture meetings/sessions/files removed; zero remain. A transient
+  Auth session was used only for the proof and signed out with `scope=local`, leaving
+  existing device sessions alone. Tokens/signed URLs were not printed or committed.
+- Transport exposed a real SDK gap: storage3 0.8.2 rejects signing an existing object
+  unless `x-upsert=true` is supplied at signing time. Regression test observed
+  Duplicate failure, then passed after a narrow pinned-adapter fix. Service commit
+  `f328b6d`; final backend 50/50 including six local PostgreSQL tests. Log
+  `/private/tmp/upload-upsert-green.log`. No app code change required.
+- Final sanitized production logs retained privately on omni:
+  `disabled-smoke.log` and `transport-proof-final.log` under the rollback directory.
+  The latter proves recovery and rollback behavior. Production object credential
+  expiry over the full two-hour interval, a long paid job during reconciliation,
+  actual device suspension and transcript arrival remain unverified.
+
+Additional rulings:
+
+1. Proceed with the explicitly approved owner trial using the completed author
+   review, respecting the continued no-subagents instruction. Independent review
+   remains pending before merge/wider release. Cost if wrong: undiscovered defects
+   affect the owner trial.
+2. Keep the pinned dependencies and use the SDK's narrow request adapter to send
+   the documented signing-time upsert header, only for unverified session files.
+   Cost if wrong: a future SDK upgrade needs adapter/wire-test review. Production
+   replacement proof passed; verified files never receive replacement credentials.
+3. Align MCP-generated migration history IDs to repository-generated IDs without
+   altering SQL contents, keeping one migration source/history. Cost if wrong:
+   incorrect bookkeeping could cause future migration replay; both entries verified.
+
+### Immediate physical-phone handoff
+
+Xcode's device inventory found the owner's iPhone 13/16 unavailable; only an iPad
+was available. No app installed onto another device.
+
+```bash
+cd /Users/mattia/.codex/worktrees/background-upload/SnipNote
+open SnipNote.xcodeproj
+```
+
+Connect/unlock/trust the intended iPhone, enable Developer Mode if prompted, choose
+SnipNote and the physical phone destination, retain existing bundle ID/signing/data,
+and Run. Then stop debugging and launch from Home Screen for suspension tests.
+Use server transcription and leave the local legacy-upload opt-out off. Test small
+recording first, then larger audio; wait for permission to leave before locking.
+Verify server verification/ordinary queueing and transcript on reopen. Network drop
+and force-quit/reopen are separate recovery tests. Do not uninstall/reset the app.
+Direct Xcode installation is the first test; TestFlight and the 7–10-day trial follow.

@@ -72,9 +72,9 @@ enum BackgroundUploadFailure: Error, LocalizedError {
   case invalidPath, diskFull, invalidManifest, accountMismatch, disabled, unavailable, cancelled
   var errorDescription: String? {
     switch self {
-    case .diskFull: return localized("background_upload.disk_full")
-    case .accountMismatch: return localized("background_upload.account_changed")
-    default: return localized("background_upload.retry")
+    case .diskFull: return LocalizationManager.localizedAppString("background_upload.disk_full")
+    case .accountMismatch: return LocalizationManager.localizedAppString("background_upload.account_changed")
+    default: return LocalizationManager.localizedAppString("background_upload.retry")
     }
   }
 }

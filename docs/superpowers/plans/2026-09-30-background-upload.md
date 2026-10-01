@@ -157,3 +157,4 @@ Implementation started 2026-10-01 inline on isolated codex/background-upload bra
 - Task 2 migration generated: `20261001064743_background_upload_sessions.sql`. Backend RED: missing new modules; GREEN: 13 upload tests, 33 full-suite tests. Permission rehearsal follows in Task 3.
 - Task 3 migration generated: `20261001065143_promote_background_upload.sql`. Local PostgreSQL rehearsal verifies concurrent single promotion, metadata rollback, legacy conflicts, and denied client roles.
 - Task 4: durable manifests/protected exports and fixtures implemented; Swift checks owner-pending.
+- Task 5: background URLSession/crash recovery implemented. User authorized subsequent Xcode checks on iPhone 17; Tasks 1/4/5 selected tests passed (14). Backend 44/44. Device behavior unverified.

@@ -429,3 +429,21 @@ long ordinary job (recent scans zero errors), API/worker/reconciler all active.
 Owner instructed to reopen and check actual phone transcript/summary. That result
 application remains unverified; the tested media duration was 1h26m29s, so a literal
 two-hour recording remains untested. No merge or wider activation performed.
+
+
+## Owner acceptance and main integration approval — 2026-10-01
+
+Owner confirmed the long recording's transcript/summary on the physical phone and
+explicitly gave the green light to merge app/service into main. The measured
+1h26m29s trial is accepted as this merge checkpoint; a literal two-hour case and
+remaining recovery/resource/longer-trial matrix remain untested. Owner approval
+also authorizes integration despite independent review still pending under the
+no-subagents restriction; author review and recorded automated/device evidence
+are the review basis for this merge. Independent review remains for wider release.
+
+Merge keeps production owner-only feature configuration, current deployed worker
+fix and additive migrations unchanged. No App Store release or allowlist expansion
+is part of integration. Preserve unrelated app-main local metadata/installed
+skills; retain feature workspaces with execution notes for remaining trial work.
+Latest verified checks: backend 52/52 including six disposable PostgreSQL tests;
+app unit 108 passed, zero failed, one skipped after semantic DOCX test correction.

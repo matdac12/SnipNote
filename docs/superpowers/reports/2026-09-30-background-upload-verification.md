@@ -275,3 +275,58 @@ Owner must now confirm account/data continuity and perform the small-audio
 server upload, preparation/permission-to-leave, lock and reopen test. These observed
 installation results do not yet prove background transfer, server promotion or
 transcript application on the physical phone. TestFlight/archive/trial remain pending.
+
+
+## First physical-phone upload — 2026-10-01
+
+Owner confirmed the installed app remained logged in and showed existing real
+meetings. For a 477-second recording, the owner reported reaching Home Screen
+while the upload byte counter was below its total and staying outside SnipNote.
+Server observations:
+
+- Session `69828665-7894-48d2-8dce-8c7723b61c21`, meeting
+  `e614c373-5be4-415a-b844-51af8f42daef`, created 08:36:10 UTC.
+- One file, 7,870,403 bytes, verified at 08:36:17.216 UTC.
+- Ordinary job `17bef8f9-4fef-4bb6-b575-752c0bace00a` queued at
+  08:36:17.311 UTC; processing observed while owner remained outside the app.
+- The unchanged xAI worker then retried five times and marked this job failed
+  at 08:42:21 UTC. Its sanitized error was “xAI transcription returned invalid
+  text (HTTP 502)”; this is the worker's validation error for absent/empty text,
+  not evidence of an actual HTTP 502 response from xAI.
+- Read-only media inspection found decodable AAC, 48 kHz stereo, 477.163 seconds
+  and non-silent mean volume (-23.8 dB). Temporary inspection audio was deleted;
+  no recording/transcript content or credentials were logged.
+
+This demonstrates transfer completion and ordinary queue promotion after the
+owner reported leaving before upload completion. Exact OS suspension timing,
+background delegate completion and successful transcript application remain
+unverified. Owner was asked to reopen and report the displayed meeting status;
+that observation is pending. No automatic provider switch, duplicate upload or
+additional paid diagnostic transcription was initiated. Network interruption,
+force-quit recovery, large originals and the longer owner trial remain pending.
+
+
+### Transcription follow-up and owner reopen observation
+
+Owner reopened and observed the expected invalid-text/max-retries error. Worker
+logs showed five internal chunks successfully transcribed (1,091 / 1,159 /
+1,079 / 1,269 / 1,097 characters), followed by a sixth 0.00 MB chunk failing.
+These partial transcripts were in memory and were not saved when the job failed.
+Boundary reproduction decoded 477,119 ms; step 95,350 ms; fifth chunk ended at
+477,119 ms, while the redundant sixth covered 476,750–477,119 ms (369 ms,
+3,501 encoded bytes). The fifth chunk already contained that entire fragment.
+
+Owner explicitly authorized paid diagnostic requests. One call using the same
+provider configuration and fragment returned HTTP 200, application/json, valid
+object with duration/language/text fields and empty string text. Only response
+structure/length was printed. This confirms empty tail text rather than a
+special-character rejection. No failed-job state change was made.
+
+A minimal service fix stops splitting once the preceding overlap reaches the
+recording end. Real WAV/MP3 regression failed before the fix (two chunks versus
+one), then passed; another case verifies audio beyond overlap stays covered.
+Backend suite 52/52 including six local PostgreSQL tests passed. Strict invalid
+response validation, provider routing and concurrency remain unchanged. Worker
+fix deployment/retry of the existing owner job need approval because the original
+background-upload rollout explicitly preserved the existing worker. Successful
+transcript application remains pending that retry; no additional app build needed.

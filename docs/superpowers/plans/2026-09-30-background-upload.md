@@ -159,3 +159,4 @@ Implementation started 2026-10-01 inline on isolated codex/background-upload bra
 - Task 4: durable manifests/protected exports and fixtures implemented; Swift checks owner-pending.
 - Task 5: background URLSession/crash recovery implemented. User authorized subsequent Xcode checks on iPhone 17; Tasks 1/4/5 selected tests passed (14). Backend 44/44. Device behavior unverified.
 - Task 6: integrated routing, localized byte progress, app-level recovery and durable result-sync retry; 27 selected Swift tests passed. Full unit suite has pre-existing DOCX export failure reproduced on main.
+- Task 7: local rehearsal/backend checks and read-only VPS/Supabase preflight done; concrete deployment prepared in service DEPLOYMENT.md and app report. Production migration/deploy/activation pending owner approval. Database backups unconfirmed; independent review pending (no delegation authorized).

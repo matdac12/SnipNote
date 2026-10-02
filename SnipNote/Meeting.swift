@@ -341,6 +341,28 @@ final class Meeting {
         dateModified = Date()
     }
 
+    func applyLocalTranscriptionProgress(_ progress: AudioChunkerProgress) {
+        guard processingState == .transcribing, processingPhase != .paused else { return }
+        // Running/preparation events describe the UI, not a completed checkpoint.
+        // Cumulative snapshots also make late callbacks harmless.
+        if let completed = progress.completedChunks {
+            guard completed >= lastProcessedChunk else { return }
+            if let transcript = progress.cumulativeTranscript {
+                audioTranscript = transcript
+            } else if completed > lastProcessedChunk, let partial = progress.partialTranscript {
+                audioTranscript = LocalTranscriptionService.mergePartialTranscript(
+                    hasTranscriptContent ? audioTranscript : "", with: partial
+                )
+            }
+        }
+        updateDetailedProgress(
+            completed: max(lastProcessedChunk, progress.completedChunks ?? lastProcessedChunk),
+            total: progress.totalChunks > 0 ? progress.totalChunks : totalChunks,
+            percent: max(displayedProgressPercent, progress.percentComplete),
+            stage: progress.currentStage
+        )
+    }
+
     func markLocalJobPaused(reason: String, stage: String? = nil) {
         processingError = reason
         processingState = .failed

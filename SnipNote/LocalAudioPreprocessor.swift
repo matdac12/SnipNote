@@ -68,6 +68,7 @@ actor LocalAudioPreprocessor {
         from audioURL: URL,
         maxChunkLength: Int,
         cachedPlanJSON: String? = nil,
+        preferSilenceBoundaries: Bool = false,
         progressHandler: (@Sendable (String) -> Void)? = nil
     ) async throws -> PreparedLocalAudio {
         progressHandler?(LocalizationManager.localizedAppString("transcription.local.progress.loadingAudio"))
@@ -83,7 +84,9 @@ actor LocalAudioPreprocessor {
             mergeGapSeconds: mergeGapSeconds,
             leadingPaddingSeconds: leadingPaddingSeconds,
             trailingPaddingSeconds: trailingPaddingSeconds,
-            minimumChunkDurationSeconds: minimumChunkDurationSeconds
+            minimumChunkDurationSeconds: minimumChunkDurationSeconds,
+            maxChunkLength: maxChunkLength,
+            preferSilenceBoundaries: preferSilenceBoundaries
         )
 
         if let cachedPlanJSON,
@@ -91,7 +94,8 @@ actor LocalAudioPreprocessor {
            cachedPlan.sourceAudioPath == audioURL.path,
            cachedPlan.fingerprint == fingerprint,
            !cachedPlan.chunks.isEmpty,
-           cachedPlan.sampleRate == sampleRate {
+           cachedPlan.sampleRate == sampleRate,
+           Self.isValidCachedPlan(cachedPlan, totalSampleCount: audioSamples.count, maxChunkLength: maxChunkLength) {
             let speechDurationSeconds = Double(cachedPlan.chunks.reduce(0) { $0 + $1.sampleCount }) / Double(sampleRate)
             let diagnostics = LocalSpeechChunkDiagnostics(
                 totalDurationSeconds: totalDurationSeconds,
@@ -127,10 +131,9 @@ actor LocalAudioPreprocessor {
         }
 
         progressHandler?(LocalizationManager.localizedAppString("transcription.local.progress.preparingChunks"))
-        let chunks = Self.splitMergedRanges(
-            mergedRanges,
-            maxChunkLength: maxChunkLength
-        )
+        let chunks = (preferSilenceBoundaries
+            ? Self.splitAtSilence(mergedRanges, audioSamples: audioSamples, maxChunkLength: maxChunkLength, sampleRate: sampleRate)
+            : Self.splitMergedRanges(mergedRanges, maxChunkLength: maxChunkLength))
         .filter { $0.sampleCount > 0 }
 
         guard !chunks.isEmpty else {
@@ -156,6 +159,48 @@ actor LocalAudioPreprocessor {
         return PreparedLocalAudio(audioSamples: audioSamples, plan: plan, diagnostics: diagnostics)
     }
     #endif
+
+    nonisolated static func isValidCachedPlan(
+        _ plan: LocalSpeechChunkPlan, totalSampleCount: Int, maxChunkLength: Int
+    ) -> Bool {
+        guard maxChunkLength > 0, !plan.chunks.isEmpty else { return false }
+        return plan.chunks.allSatisfy {
+            $0.startSample >= 0 && $0.endSample <= totalSampleCount &&
+            $0.endSample > $0.startSample && $0.sampleCount <= maxChunkLength
+        }
+    }
+
+    /// Prefer a quiet 100 ms frame within the final two seconds of a unit.
+    /// All samples remain covered; continuous speech falls back to the limit.
+    nonisolated static func splitAtSilence(
+        _ ranges: [LocalSpeechChunk], audioSamples: [Float], maxChunkLength: Int, sampleRate: Int
+    ) -> [LocalSpeechChunk] {
+        guard maxChunkLength > 0, sampleRate > 0 else { return ranges }
+        let frameSize = max(1, sampleRate / 10)
+        var chunks: [LocalSpeechChunk] = []
+        for range in ranges {
+            var start = range.startSample
+            while start < range.endSample {
+                var end = min(start + maxChunkLength, range.endSample)
+                if end < range.endSample {
+                    let searchStart = max(start + frameSize, end - 2 * sampleRate)
+                    if searchStart <= end - frameSize {
+                        for frameStart in stride(from: end - frameSize, through: searchStart, by: -frameSize) {
+                            let frame = audioSamples[frameStart..<(frameStart + frameSize)]
+                            let meanSquare = frame.reduce(Float(0)) { $0 + $1 * $1 } / Float(frameSize)
+                            if meanSquare <= 0.000064 {
+                                end = frameStart + frameSize / 2
+                                break
+                            }
+                        }
+                    }
+                }
+                chunks.append(LocalSpeechChunk(startSample: start, endSample: end))
+                start = end
+            }
+        }
+        return chunks
+    }
 
     nonisolated static func encodePlan(_ plan: LocalSpeechChunkPlan) -> String? {
         let encoder = JSONEncoder()
@@ -236,7 +281,9 @@ actor LocalAudioPreprocessor {
         mergeGapSeconds: Double,
         leadingPaddingSeconds: Double,
         trailingPaddingSeconds: Double,
-        minimumChunkDurationSeconds: Double
+        minimumChunkDurationSeconds: Double,
+        maxChunkLength: Int,
+        preferSilenceBoundaries: Bool
     ) throws -> String {
         let attributes = try FileManager.default.attributesOfItem(atPath: audioURL.path)
         let fileSize = attributes[.size] as? NSNumber
@@ -250,7 +297,9 @@ actor LocalAudioPreprocessor {
             String(mergeGapSeconds),
             String(leadingPaddingSeconds),
             String(trailingPaddingSeconds),
-            String(minimumChunkDurationSeconds)
+            String(minimumChunkDurationSeconds),
+            String(maxChunkLength),
+            String(preferSilenceBoundaries)
         ].joined(separator: "|")
 
         let digest = SHA256.hash(data: Data(source.utf8))

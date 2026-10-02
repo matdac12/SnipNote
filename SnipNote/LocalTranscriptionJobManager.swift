@@ -518,23 +518,7 @@ actor LocalTranscriptionJobManager {
     private func handleTranscriptionProgress(for meetingId: UUID, progress: AudioChunkerProgress) async {
         do {
             _ = try await updateMeeting(meetingId) { meeting, _ in
-                let currentPercent = meeting.displayedProgressPercent
-                let nextPercent = max(currentPercent, progress.percentComplete)
-                if let partialTranscript = progress.partialTranscript,
-                   !partialTranscript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    let existingTranscript = meeting.hasTranscriptContent ? meeting.audioTranscript : ""
-                    meeting.audioTranscript = LocalTranscriptionService.mergePartialTranscript(
-                        existingTranscript,
-                        with: partialTranscript
-                    )
-                }
-
-                meeting.updateDetailedProgress(
-                    completed: progress.currentChunk,
-                    total: progress.totalChunks,
-                    percent: nextPercent,
-                    stage: progress.currentStage
-                )
+                meeting.applyLocalTranscriptionProgress(progress)
             }
         } catch {
             print("❌ [LocalJobManager] Failed to save transcription progress for meeting \(meetingId): \(error)")

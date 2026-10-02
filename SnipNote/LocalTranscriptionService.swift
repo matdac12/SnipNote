@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import FluidAudio
 
 #if canImport(WhisperKit)
 import WhisperKit
@@ -18,6 +19,8 @@ enum LocalTranscriptionError: LocalizedError {
     case failedToLoadModel
     case downloadIncomplete
     case emptyTranscript
+    case modelBusy
+    case unsupportedParakeetLanguage(String)
 
     var errorDescription: String? {
         switch self {
@@ -32,6 +35,10 @@ enum LocalTranscriptionError: LocalizedError {
             return LocalizationManager.localizedAppString("transcription.local.error.failedToLoadModel")
         case .downloadIncomplete:
             return LocalizationManager.localizedAppString("transcription.local.error.downloadIncomplete")
+        case .modelBusy:
+            return LocalizationManager.localizedAppString("transcription.local.error.modelBusy")
+        case .unsupportedParakeetLanguage(let language):
+            return LocalizationManager.localizedAppString("transcription.local.error.unsupportedParakeetLanguage", language)
         case .emptyTranscript:
             return LocalizationManager.localizedAppString("transcription.local.error.emptyTranscript")
         }
@@ -49,7 +56,8 @@ actor LocalTranscriptionService {
     private let defaults = UserDefaults.standard
     private let repoName = "argmaxinc/whisperkit-coreml"
 
-    func status(for model: LocalTranscriptionModel) -> LocalModelStatus {
+    func status(for model: LocalTranscriptionModel) async -> LocalModelStatus {
+        if model == .parakeetUltra { return await ParakeetTranscriptionService.shared.status() }
         #if canImport(WhisperKit)
         let status: LocalModelStatus = resolvedModelDirectory(for: model) != nil ? .installed : .notInstalled
         if case .notInstalled = status {
@@ -65,6 +73,10 @@ actor LocalTranscriptionService {
         _ model: LocalTranscriptionModel,
         statusHandler: @escaping @Sendable (LocalModelStatus) -> Void
     ) async throws {
+        if model == .parakeetUltra {
+            try await ParakeetTranscriptionService.shared.downloadModel(statusHandler: statusHandler)
+            return
+        }
         #if canImport(WhisperKit)
         do {
             try ensureModelDirectories()
@@ -121,7 +133,11 @@ actor LocalTranscriptionService {
         #endif
     }
 
-    func deleteModel(_ model: LocalTranscriptionModel) throws {
+    func deleteModel(_ model: LocalTranscriptionModel) async throws {
+        if model == .parakeetUltra {
+            try await ParakeetTranscriptionService.shared.deleteModel()
+            return
+        }
         #if canImport(WhisperKit)
         loadedModels[model] = nil
         try cleanupInstalledArtifacts(for: model)
@@ -141,11 +157,65 @@ actor LocalTranscriptionService {
         existingTranscript: String? = nil,
         progressCallback: @escaping @Sendable (AudioChunkerProgress) -> Void
     ) async throws -> String {
+        if model == .parakeetUltra {
+            _ = try ParakeetTranscriptionService.languageHint(for: language)
+            progressCallback(AudioChunkerProgress(
+                currentChunk: 0, totalChunks: 0,
+                currentStage: LocalizationManager.localizedAppString("transcription.local.progress.loadingModel"),
+                percentComplete: 1, partialTranscript: nil
+            ))
+            // Release idle Whisper weights before preparing Ultra on a memory-limited phone.
+            #if canImport(WhisperKit)
+            loadedModels.removeAll()
+            #endif
+            let session = try await ParakeetTranscriptionService.shared.makeSession()
+            do {
+                let transcript = try await transcribePreparedAudio(
+                    from: audioURL, model: model, language: language, meetingId: meetingId,
+                    resumeFromCompletedChunks: resumeFromCompletedChunks, existingTranscript: existingTranscript,
+                    parakeetSession: session, progressCallback: progressCallback
+                )
+                await ParakeetTranscriptionService.shared.finishSession(session)
+                return transcript
+            } catch {
+                await ParakeetTranscriptionService.shared.finishSession(session)
+                throw error
+            }
+        }
+        return try await transcribePreparedAudio(
+            from: audioURL, model: model, language: language, meetingId: meetingId,
+            resumeFromCompletedChunks: resumeFromCompletedChunks, existingTranscript: existingTranscript,
+            parakeetSession: nil, progressCallback: progressCallback
+        )
+    }
+
+    private func transcribePreparedAudio(
+        from audioURL: URL,
+        model: LocalTranscriptionModel,
+        language: String?,
+        meetingId: UUID?,
+        resumeFromCompletedChunks: Int,
+        existingTranscript: String?,
+        parakeetSession: AsrManager?,
+        progressCallback: @escaping @Sendable (AudioChunkerProgress) -> Void
+    ) async throws -> String {
         #if canImport(WhisperKit)
         let transcriptionStart = Date()
-        let whisperKit = try await ensureLoadedModel(model)
-        let decodeOptions = Self.makeLocalDecodeOptions(model: model, language: language)
-        let maxChunkLength = whisperKit.featureExtractor.windowSamples ?? 480_000
+        let whisperKit: WhisperKit?
+        let decodeOptions: DecodingOptions?
+        let maxChunkLength: Int
+        if parakeetSession != nil {
+            whisperKit = nil
+            decodeOptions = nil
+            // Use resumable one-minute units; FluidAudio handles its overlapping
+            // 15-second windows and word reconciliation inside each call.
+            maxChunkLength = 960_000
+        } else {
+            let loaded = try await ensureLoadedModel(model)
+            whisperKit = loaded
+            decodeOptions = Self.makeLocalDecodeOptions(model: model, language: language)
+            maxChunkLength = loaded.featureExtractor.windowSamples ?? 480_000
+        }
         let cachedPlanJSON: String? = if let meetingId {
             await readStoredSpeechPlan(for: meetingId)
         } else {
@@ -164,6 +234,7 @@ actor LocalTranscriptionService {
             from: audioURL,
             maxChunkLength: maxChunkLength,
             cachedPlanJSON: cachedPlanJSON,
+            preferSilenceBoundaries: parakeetSession != nil,
             progressHandler: { stage in
                 let percent: Double
                 switch stage {
@@ -190,7 +261,7 @@ actor LocalTranscriptionService {
         }
 
         Self.logPreprocessingDiagnostics(preparedAudio.diagnostics, model: model, audioURL: audioURL)
-        Self.logDecodeDiagnostics(decodeOptions, model: model)
+        if let decodeOptions { Self.logDecodeDiagnostics(decodeOptions, model: model) }
 
         let totalChunks = preparedAudio.plan.totalChunks
         let safeCompletedChunks = min(max(0, resumeFromCompletedChunks), totalChunks)
@@ -235,14 +306,22 @@ actor LocalTranscriptionService {
             ))
 
             let samples = Array(preparedAudio.audioSamples[chunk.startSample..<chunk.endSample])
-            let result = try await whisperKit.transcribe(audioArray: samples, decodeOptions: decodeOptions)
-            let transcript = Self.sanitizeTranscript(
-                result
-                    .flatMap { $0.segments }
-                    .map { $0.text }
-                    .joined(separator: " ")
-                    .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-            )
+            let text: String
+            if let parakeetSession {
+                var decoderState = try TdtDecoderState()
+                let result = try await parakeetSession.transcribe(
+                    ParakeetTranscriptionService.prepareChunkSamples(samples), decoderState: &decoderState,
+                    language: ParakeetTranscriptionService.languageHint(for: language)
+                )
+                text = result.text
+            } else if let whisperKit, let decodeOptions {
+                let result = try await whisperKit.transcribe(audioArray: samples, decodeOptions: decodeOptions)
+                text = result.flatMap { $0.segments }.map { $0.text }.joined(separator: " ")
+            } else {
+                throw LocalTranscriptionError.failedToLoadModel
+            }
+            try Task.checkCancellation()
+            let transcript = Self.sanitizeTranscript(text)
 
             if transcript.isEmpty {
                 progressCallback(AudioChunkerProgress(
@@ -253,7 +332,9 @@ actor LocalTranscriptionService {
                         Int64(chunkNumber)
                     ),
                     percentComplete: 10.0 + (Double(chunkNumber) / Double(totalChunks)) * 90.0,
-                    partialTranscript: nil
+                    partialTranscript: nil,
+                    completedChunks: chunkNumber,
+                    cumulativeTranscript: Self.sanitizeTranscript(Self.mergeChunkTranscripts(transcripts))
                 ))
                 skippedEmptyChunks += 1
                 continue
@@ -270,7 +351,9 @@ actor LocalTranscriptionService {
                     Int64(chunkNumber)
                 ),
                 percentComplete: 10.0 + (Double(chunkNumber) / Double(totalChunks)) * 90.0,
-                partialTranscript: transcript
+                partialTranscript: transcript,
+                completedChunks: chunkNumber,
+                cumulativeTranscript: Self.sanitizeTranscript(Self.mergeChunkTranscripts(transcripts))
             ))
         }
 
@@ -693,7 +776,7 @@ actor LocalTranscriptionService {
                 firstTokenLogProbThreshold: -1.1,
                 noSpeechThreshold: 0.5
             )
-        case .small:
+        case .small, .parakeetUltra:
             return (
                 temperatureFallbackCount: 1,
                 compressionRatioThreshold: 2.1,

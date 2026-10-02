@@ -1037,6 +1037,9 @@
     "Cancel Transcription?" : {
 
     },
+    "CC BY 4.0" : {
+
+    },
     "Choose Your Pack" : {
 
     },
@@ -4057,6 +4060,23 @@
         }
       }
     },
+    "transcription.local.error.modelBusy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This model is in use. Wait for transcription or preparation to finish, then try again."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo modello è in uso. Attendi il termine della trascrizione o della preparazione, poi riprova."
+          }
+        }
+      }
+    },
     "transcription.local.error.modelNotInstalled" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4091,6 +4111,23 @@
         }
       }
     },
+    "transcription.local.error.unsupportedParakeetLanguage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Ultra does not support the selected language (%@). Choose a supported European language or use Whisper."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Ultra non supporta la lingua selezionata (%@). Scegli una lingua europea supportata oppure usa Whisper."
+          }
+        }
+      }
+    },
     "transcription.local.model.base.detail" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4121,6 +4158,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Base"
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetUltra.attribution" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Ultra by Moondream, based on NVIDIA Parakeet. Core ML conversion by Fluid Inference."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Ultra di Moondream, basato su NVIDIA Parakeet. Conversione Core ML di Fluid Inference."
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetUltra.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On-device transcription in 25 European languages, including Italian and English. Automatically detects the language."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizione sul dispositivo in 25 lingue europee, tra cui italiano e inglese. Rileva automaticamente la lingua."
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetUltra.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep SnipNote open while downloading and preparing the model. First-time preparation may take a few minutes."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantieni SnipNote aperto durante il download e la preparazione del modello. La prima preparazione può richiedere alcuni minuti."
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetUltra.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Ultra"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Ultra"
           }
         }
       }
@@ -4274,6 +4379,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Caricamento audio locale"
+          }
+        }
+      }
+    },
+    "transcription.local.progress.loadingModel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing Parakeet Ultra…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparazione di Parakeet Ultra…"
           }
         }
       }

@@ -27,6 +27,7 @@ enum TranscriptionMode: String, CaseIterable, Identifiable {
 enum LocalTranscriptionModel: String, CaseIterable, Identifiable {
     case base
     case small
+    case parakeetUltra
 
     var id: String { rawValue }
 
@@ -36,6 +37,8 @@ enum LocalTranscriptionModel: String, CaseIterable, Identifiable {
             return LocalizationManager.localizedAppString("transcription.local.model.base.name")
         case .small:
             return LocalizationManager.localizedAppString("transcription.local.model.small.name")
+        case .parakeetUltra:
+            return LocalizationManager.localizedAppString("transcription.local.model.parakeetUltra.name")
         }
     }
 
@@ -45,6 +48,8 @@ enum LocalTranscriptionModel: String, CaseIterable, Identifiable {
             return LocalizationManager.localizedAppString("transcription.local.model.base.detail")
         case .small:
             return LocalizationManager.localizedAppString("transcription.local.model.small.detail")
+        case .parakeetUltra:
+            return LocalizationManager.localizedAppString("transcription.local.model.parakeetUltra.detail")
         }
     }
 
@@ -54,6 +59,8 @@ enum LocalTranscriptionModel: String, CaseIterable, Identifiable {
             return "~142 MB"
         case .small:
             return "~466 MB"
+        case .parakeetUltra:
+            return "~630 MB"
         }
     }
 
@@ -194,7 +201,8 @@ final class LocalTranscriptionManager: ObservableObject {
         do {
             try await service.downloadModel(model) { [weak self] status in
                 Task { @MainActor in
-                    self?.modelStatuses[model] = status
+                    guard let self, self.downloadingModels.contains(model) else { return }
+                    self.modelStatuses[model] = status
                 }
             }
 

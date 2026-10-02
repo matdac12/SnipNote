@@ -1072,6 +1072,17 @@ struct LocalModelCard: View {
                     Text("\(model.approximateSizeDescription) • \(model.detailText)")
                         .themedCaption()
 
+                    if model == .parakeetUltra {
+                        Text(localized("transcription.local.model.parakeetUltra.hint"))
+                            .themedCaption()
+                        Text(localized("transcription.local.model.parakeetUltra.attribution"))
+                            .themedCaption()
+                        if let licenseURL = URL(string: "https://creativecommons.org/licenses/by/4.0/") {
+                            Link("CC BY 4.0", destination: licenseURL)
+                                .font(.caption)
+                        }
+                    }
+
                     Text(status.statusText)
                         .themedCaption()
                         .foregroundColor(statusColor)
@@ -1091,7 +1102,8 @@ struct LocalModelCard: View {
                        : localized("settings.localTranscription.model.useButton")) {
                     onSelect()
                 }
-                .disabled(isSelected)
+                .disabled(isSelected || isBusy)
+                .accessibilityIdentifier("settings.localTranscription.select.\(model.rawValue)")
                 .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 12)
@@ -1114,6 +1126,7 @@ struct LocalModelCard: View {
                         Button(localized("settings.localTranscription.model.deleteButton")) {
                             onDelete()
                         }
+                        .accessibilityIdentifier("settings.localTranscription.delete.\(model.rawValue)")
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.destructiveColor)
                         .padding(.horizontal, 12)
@@ -1142,6 +1155,7 @@ struct LocalModelCard: View {
                         Button(localized("settings.localTranscription.model.downloadButton")) {
                             onDownload()
                         }
+                        .accessibilityIdentifier("settings.localTranscription.download.\(model.rawValue)")
                         .font(.system(.caption, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
                         .foregroundColor(themeManager.currentTheme.accentColor)
                         .padding(.horizontal, 12)

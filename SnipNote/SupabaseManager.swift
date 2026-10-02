@@ -338,6 +338,20 @@ class SupabaseManager {
             throw SupabaseError.authRequired
         }
 
+        // Stop cloud work before removing the meeting. The server checks this
+        // terminal status before every transcription request and result update.
+        try await client
+            .from("transcription_jobs")
+            .update([
+                "status": "failed",
+                "error_message": "Cancelled by user",
+                "current_stage": "Cancelled by user"
+            ])
+            .eq("meeting_id", value: id.uuidString)
+            .eq("user_id", value: userId.uuidString)
+            .in("status", values: ["pending", "processing"])
+            .execute()
+
         try await client
             .from("meetings")
             .delete()

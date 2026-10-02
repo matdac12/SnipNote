@@ -23,6 +23,19 @@ struct AudioChunkerProgress: Sendable {
     let currentStage: String
     let percentComplete: Double
     let partialTranscript: String? // Optional field for completed chunk transcripts
+    let completedChunks: Int?
+    let cumulativeTranscript: String?
+
+    init(currentChunk: Int, totalChunks: Int, currentStage: String, percentComplete: Double,
+         partialTranscript: String?, completedChunks: Int? = nil, cumulativeTranscript: String? = nil) {
+        self.currentChunk = currentChunk
+        self.totalChunks = totalChunks
+        self.currentStage = currentStage
+        self.percentComplete = percentComplete
+        self.partialTranscript = partialTranscript
+        self.completedChunks = completedChunks
+        self.cumulativeTranscript = cumulativeTranscript
+    }
 }
 
 class AudioChunker {

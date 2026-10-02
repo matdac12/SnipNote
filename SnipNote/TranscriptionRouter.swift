@@ -27,7 +27,11 @@ final class TranscriptionRouter {
         localResumeCompletedChunks: Int = 0,
         localExistingTranscript: String? = nil
     ) async throws -> String {
-        let mode = await MainActor.run { LocalTranscriptionManager.shared.transcriptionMode }
+        let mode: TranscriptionMode = if localModel != nil {
+            .local
+        } else {
+            await MainActor.run { LocalTranscriptionManager.shared.transcriptionMode }
+        }
 
         switch mode {
         case .cloud:

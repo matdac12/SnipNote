@@ -60,3 +60,13 @@ token; the API validates it remotely and checks meeting ownership. No client tab
 permissions or existing RLS/bucket policies change. The server gate defaults off and
 an empty allowlist enables nobody. See the background upload verification report
 for local rehearsal evidence and the production approval checkpoint.
+
+## Cancelling cloud transcription on meeting deletion
+
+The app marks the user's pending/processing transcription jobs as `failed` with
+`Cancelled by user` before deleting meeting metadata. The server checks job state
+before transcription requests and only updates jobs still pending/processing,
+preventing a stale worker from requeuing or completing cancelled work. A request
+already in flight can finish. This uses the existing job UPDATE ownership policy
+and requires no schema migration. Rebuild the iOS app to enable deletion-triggered
+cancellation.

@@ -1,7 +1,52 @@
 import XCTest
+import AVFoundation
 @testable import SnipNote
 
 final class LocalAudioPreprocessorTests: XCTestCase {
+    func testPrepareStereoAudioResamplesAndKeepsSpeechAtTheTail() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("wav")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 2))
+        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 96_000))
+        buffer.frameLength = 96_000
+        let channels = try XCTUnwrap(buffer.floatChannelData)
+        for channel in 0..<2 {
+            for index in 0..<96_000 {
+                channels[channel][index] = index >= 48_000 ? 0.25 : 0
+            }
+        }
+        do {
+            let file = try AVAudioFile(forWriting: url, settings: format.settings)
+            try file.write(from: buffer)
+        }
+        let prepared = try await LocalAudioPreprocessor.shared.prepareAudio(from: url, maxChunkLength: 16_000)
+        XCTAssertEqual(prepared.plan.sampleRate, 16_000)
+        XCTAssertEqual(Double(prepared.audioSamples.count), 32_000, accuracy: 20)
+        XCTAssertEqual(prepared.plan.chunks.last?.endSample, prepared.audioSamples.count)
+        XCTAssertTrue(prepared.plan.chunks.allSatisfy { $0.sampleCount <= 16_000 })
+        XCTAssertGreaterThan(prepared.audioSamples.last ?? 0, 0.1)
+    }
+
+    func testSilentAudioDoesNotProduceATranscriptionPlan() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("wav")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let format = try XCTUnwrap(AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1))
+        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16_000))
+        buffer.frameLength = 16_000
+        let channel = try XCTUnwrap(buffer.floatChannelData)[0]
+        channel.initialize(repeating: 0, count: 16_000)
+        do {
+            let file = try AVAudioFile(forWriting: url, settings: format.settings)
+            try file.write(from: buffer)
+        }
+        do {
+            _ = try await LocalAudioPreprocessor.shared.prepareAudio(from: url, maxChunkLength: 16_000)
+            XCTFail("Silence must not produce a speech plan")
+        } catch LocalTranscriptionError.emptyTranscript {
+            // Expected: silence has no speech to transcribe.
+        }
+    }
+
     func testMergeActiveRangesPadsAndMergesCloseSpeech() {
         let merged = LocalAudioPreprocessor.mergeActiveRanges(
             [

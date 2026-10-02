@@ -25,47 +25,29 @@ enum TranscriptionMode: String, CaseIterable, Identifiable {
 }
 
 enum LocalTranscriptionModel: String, CaseIterable, Identifiable {
-    case base
-    case small
     case parakeetUltra
+    case parakeetRedux
 
     var id: String { rawValue }
 
     var displayName: String {
-        switch self {
-        case .base:
-            return LocalizationManager.localizedAppString("transcription.local.model.base.name")
-        case .small:
-            return LocalizationManager.localizedAppString("transcription.local.model.small.name")
-        case .parakeetUltra:
-            return LocalizationManager.localizedAppString("transcription.local.model.parakeetUltra.name")
-        }
+        LocalizationManager.localizedAppString("transcription.local.model.\(rawValue).name")
     }
 
     var detailText: String {
-        switch self {
-        case .base:
-            return LocalizationManager.localizedAppString("transcription.local.model.base.detail")
-        case .small:
-            return LocalizationManager.localizedAppString("transcription.local.model.small.detail")
-        case .parakeetUltra:
-            return LocalizationManager.localizedAppString("transcription.local.model.parakeetUltra.detail")
-        }
+        LocalizationManager.localizedAppString("transcription.local.model.\(rawValue).detail")
     }
 
     var approximateSizeDescription: String {
-        switch self {
-        case .base:
-            return "~142 MB"
-        case .small:
-            return "~466 MB"
-        case .parakeetUltra:
-            return "~630 MB"
-        }
+        self == .parakeetUltra ? "~630 MB" : "~220 MB"
     }
 
-    var whisperVariant: String {
-        rawValue
+    static func restoredSelection(_ rawValue: String?) -> Self {
+        rawValue.flatMap(Self.init(rawValue:)) ?? .parakeetUltra
+    }
+
+    static func isRetiredWhisper(_ rawValue: String?) -> Bool {
+        rawValue == "base" || rawValue == "small"
     }
 }
 
@@ -125,15 +107,14 @@ final class LocalTranscriptionManager: ObservableObject {
         static let downloadInFlightPrefix = "localTranscription.downloadInFlight."
     }
 
-    private init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
         let storedMode = defaults.string(forKey: Keys.transcriptionMode)
             .flatMap(TranscriptionMode.init(rawValue:))
             ?? .cloud
-        let storedModel = defaults.string(forKey: Keys.selectedModel)
-            .flatMap(LocalTranscriptionModel.init(rawValue:))
-            ?? .base
+        let storedModel = LocalTranscriptionModel.restoredSelection(defaults.string(forKey: Keys.selectedModel))
+        defaults.set(storedModel.rawValue, forKey: Keys.selectedModel)
 
         transcriptionMode = storedMode
         selectedModel = storedModel
@@ -142,6 +123,15 @@ final class LocalTranscriptionManager: ObservableObject {
         )
 
         Task {
+            do {
+                try await service.removeRetiredWhisperModels()
+                for variant in ["base", "small"] {
+                    defaults.removeObject(forKey: "localTranscription.modelPath.\(variant)")
+                    defaults.removeObject(forKey: Keys.downloadInFlightPrefix + variant)
+                }
+            } catch {
+                print("Local transcription: retired model cleanup will retry on next launch: \(error)")
+            }
             await restoreInterruptedDownloads()
             await refreshModelStatuses()
         }

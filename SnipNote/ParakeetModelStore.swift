@@ -1,15 +1,18 @@
 import Foundation
 
-/// Owns only SnipNote's Ultra files. A completed download is promoted atomically
+/// Owns only one of SnipNote's Parakeet models. A completed download is promoted atomically
 /// after the caller has verified that Core ML can load it.
 struct ParakeetModelStore: Sendable {
   private let rootDirectory: URL
   // FluidAudio strips "-coreml" from the repository name for its download folder.
-  private let folderName = "parakeet-ultra"
+  let model: LocalTranscriptionModel
+  private var folderName: String { model == .parakeetUltra ? "parakeet-ultra" : "parakeet-redux" }
 
-  init(rootDirectory: URL? = nil) {
+  init(model: LocalTranscriptionModel = .parakeetUltra, rootDirectory: URL? = nil) {
+    self.model = model
+    let storageName = model == .parakeetUltra ? "ParakeetUltra" : "ParakeetRedux"
     self.rootDirectory = rootDirectory ?? URL.applicationSupportDirectory
-      .appendingPathComponent("SnipNote/LocalModels/ParakeetUltra", isDirectory: true)
+      .appendingPathComponent("SnipNote/LocalModels/\(storageName)", isDirectory: true)
   }
 
   var stagingRootDirectory: URL { rootDirectory.appendingPathComponent("Staging", isDirectory: true) }
@@ -35,7 +38,7 @@ struct ParakeetModelStore: Sendable {
     }
     try FileManager.default.moveItem(at: stagedModelDirectory, to: installedModelDirectory)
     try excludeFromBackup(installedModelDirectory)
-    try Data("ultra-v1".utf8).write(to: markerURL, options: .atomic)
+    try Data("\(model.rawValue)-v1".utf8).write(to: markerURL, options: .atomic)
   }
 
   func deleteModel() throws {

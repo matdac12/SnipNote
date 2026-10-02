@@ -8,9 +8,8 @@
 import Foundation
 import CryptoKit
 
-#if canImport(WhisperKit)
-import WhisperKit
-#endif
+import FluidAudio
+import Accelerate
 
 struct LocalSpeechChunk: Codable, Sendable, Equatable {
     let startSample: Int
@@ -54,8 +53,7 @@ struct LocalSpeechChunkDiagnostics: Sendable {
 actor LocalAudioPreprocessor {
     static let shared = LocalAudioPreprocessor()
 
-    #if canImport(WhisperKit)
-    private let sampleRate = WhisperKit.sampleRate
+    private let sampleRate = 16_000
     private let frameLengthSeconds: Float = 0.1
     private let frameOverlapSeconds: Float = 0.03
     private let energyThreshold: Float = 0.008
@@ -73,7 +71,7 @@ actor LocalAudioPreprocessor {
     ) async throws -> PreparedLocalAudio {
         progressHandler?(LocalizationManager.localizedAppString("transcription.local.progress.loadingAudio"))
         let audioSamples = try await Task.detached(priority: .userInitiated) {
-            try AudioProcessor.loadAudioAsFloatArray(fromPath: audioURL.path, channelMode: .sumChannels(nil))
+            try AudioConverter().resampleAudioFile(audioURL)
         }.value
         let totalDurationSeconds = Double(audioSamples.count) / Double(sampleRate)
 
@@ -108,14 +106,11 @@ actor LocalAudioPreprocessor {
         }
 
         progressHandler?(LocalizationManager.localizedAppString("transcription.local.progress.detectingSpeech"))
-        let detector = EnergyVAD(
-            sampleRate: sampleRate,
-            frameLength: frameLengthSeconds,
-            frameOverlap: frameOverlapSeconds,
+        let activeRanges = Self.detectActiveRanges(
+            in: audioSamples, sampleRate: sampleRate,
+            frameLengthSeconds: frameLengthSeconds, frameOverlapSeconds: frameOverlapSeconds,
             energyThreshold: energyThreshold
         )
-
-        let activeRanges = detector.calculateActiveChunks(in: audioSamples)
         let mergedRanges = Self.mergeActiveRanges(
             activeRanges,
             totalSampleCount: audioSamples.count,
@@ -158,7 +153,40 @@ actor LocalAudioPreprocessor {
 
         return PreparedLocalAudio(audioSamples: audioSamples, plan: plan, diagnostics: diagnostics)
     }
-    #endif
+
+    /// Energy-based speech segmentation, including a short lookahead to catch
+    /// speech at frame boundaries. Keep the existing chunk-plan timing contract.
+    nonisolated static func detectActiveRanges(
+        in samples: [Float], sampleRate: Int,
+        frameLengthSeconds: Float, frameOverlapSeconds: Float, energyThreshold: Float
+    ) -> [(startIndex: Int, endIndex: Int)] {
+        let frameLength = max(1, Int(frameLengthSeconds * Float(sampleRate)))
+        let overlap = max(0, Int(frameOverlapSeconds * Float(sampleRate)))
+        var ranges: [(startIndex: Int, endIndex: Int)] = []
+        var previousWasActive = false
+        for start in stride(from: 0, to: samples.count, by: frameLength) {
+            let end = min(start + frameLength + overlap, samples.count)
+            let rms = samples.withUnsafeBufferPointer { buffer -> Float in
+                var value: Float = 0
+                if let address = buffer.baseAddress {
+                    vDSP_rmsqv(address + start, 1, &value, vDSP_Length(end - start))
+                }
+                return value
+            }
+            if rms > energyThreshold {
+                let frameEnd = min(start + frameLength, samples.count)
+                if previousWasActive {
+                    ranges[ranges.count - 1].endIndex = frameEnd
+                } else {
+                    ranges.append((startIndex: start, endIndex: frameEnd))
+                }
+                previousWasActive = true
+            } else {
+                previousWasActive = false
+            }
+        }
+        return ranges
+    }
 
     nonisolated static func isValidCachedPlan(
         _ plan: LocalSpeechChunkPlan, totalSampleCount: Int, maxChunkLength: Int
@@ -273,7 +301,6 @@ actor LocalAudioPreprocessor {
         return chunks
     }
 
-    #if canImport(WhisperKit)
     private nonisolated static func makeFingerprint(
         for audioURL: URL,
         sampleRate: Int,
@@ -305,5 +332,4 @@ actor LocalAudioPreprocessor {
         let digest = SHA256.hash(data: Data(source.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
     }
-    #endif
 }

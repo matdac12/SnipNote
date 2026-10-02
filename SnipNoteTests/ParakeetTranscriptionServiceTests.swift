@@ -3,6 +3,22 @@ import Testing
 @testable import SnipNote
 
 struct ParakeetTranscriptionServiceTests {
+  @Test func uninstalledReduxReportsTheSelectedModelWithoutDownloading() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let service = ParakeetTranscriptionService(store: ParakeetModelStore(model: .parakeetRedux, rootDirectory: root))
+    do {
+      _ = try await service.makeSession()
+      Issue.record("Missing Redux files must prevent inference")
+    } catch let error as LocalTranscriptionError {
+      guard case .modelNotInstalled(.parakeetRedux) = error else {
+        Issue.record("Unexpected error: \(error)")
+        return
+      }
+    }
+    #expect(!FileManager.default.fileExists(atPath: root.path))
+  }
+
   @Test func tinyTailChunkIsPaddedWithoutDroppingItsAudio() throws {
     let padded = try ParakeetTranscriptionService.prepareChunkSamples([0.25, -0.25])
     #expect(padded.count == 4_800)

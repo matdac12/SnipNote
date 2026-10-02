@@ -265,6 +265,7 @@ actor LocalTranscriptionJobManager {
                 return nil
             }
 
+            meeting.migrateRetiredLocalModel()
             let model: LocalTranscriptionModel
             if let storedModel = meeting.localTranscriptionModel {
                 model = storedModel

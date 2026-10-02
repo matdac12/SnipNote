@@ -3,6 +3,13 @@ import FluidAudio
 
 actor ParakeetTranscriptionService {
   static let shared = ParakeetTranscriptionService()
+  static let redux = ParakeetTranscriptionService(store: ParakeetModelStore(model: .parakeetRedux))
+
+  static func service(for model: LocalTranscriptionModel) -> ParakeetTranscriptionService {
+    model == .parakeetUltra ? shared : redux
+  }
+
+  private var version: AsrModelVersion { store.model == .parakeetUltra ? .ultra : .redux }
 
   private let store: ParakeetModelStore
   private var isDownloading = false
@@ -38,7 +45,7 @@ actor ParakeetTranscriptionService {
     try store.prepareDirectories()
     statusHandler(.downloading(0))
     // The SDK resumes interrupted byte transfers in this staging directory.
-    try await ModelHub.download(.parakeetUltra, to: store.stagingRootDirectory) { progress in
+    try await ModelHub.download(store.model == .parakeetUltra ? .parakeetUltra : .parakeetRedux, to: store.stagingRootDirectory) { progress in
       switch progress.phase {
       case .listing, .downloading:
         statusHandler(.downloading(min(1, progress.fractionCompleted * 2)))
@@ -50,10 +57,11 @@ actor ParakeetTranscriptionService {
     statusHandler(.verifying)
     guard store.isComplete(at: store.stagedModelDirectory) else { throw LocalTranscriptionError.downloadIncomplete }
     let directory = store.stagedModelDirectory
+    let modelVersion = version
     // loadLocal never downloads or repairs files. Verify on the destination device
     // before writing the installed marker; keep Core ML preparation off the UI actor.
     _ = try await Task.detached(priority: .userInitiated) {
-      try AsrModels.loadLocal(from: directory, version: .ultra)
+      try AsrModels.loadLocal(from: directory, version: modelVersion)
     }.value
     try Task.checkCancellation()
     try store.installDownloadedModel()
@@ -66,12 +74,13 @@ actor ParakeetTranscriptionService {
 
   func makeSession() async throws -> AsrManager {
     guard !isDownloading else { throw LocalTranscriptionError.modelBusy }
-    guard store.isInstalled else { throw LocalTranscriptionError.modelNotInstalled(.parakeetUltra) }
+    guard store.isInstalled else { throw LocalTranscriptionError.modelNotInstalled(store.model) }
     activeSessions += 1
     do {
       let directory = store.installedModelDirectory
+      let modelVersion = version
       let models = try await Task.detached(priority: .userInitiated) {
-        try AsrModels.loadLocal(from: directory, version: .ultra)
+        try AsrModels.loadLocal(from: directory, version: modelVersion)
       }.value
       try Task.checkCancellation()
       // Each job gets a separate decoder state; simultaneous jobs cannot mix text.

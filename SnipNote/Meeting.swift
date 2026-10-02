@@ -139,10 +139,31 @@ final class Meeting {
 
     var localTranscriptionModel: LocalTranscriptionModel? {
         get {
-            localTranscriptionModelRaw.flatMap(LocalTranscriptionModel.init(rawValue:))
+            localTranscriptionModelRaw.map { LocalTranscriptionModel.restoredSelection($0) }
         }
         set {
             localTranscriptionModelRaw = newValue?.rawValue
+        }
+    }
+
+    /// A Whisper checkpoint cannot resume against Parakeet's different chunk plan.
+    func migrateRetiredLocalModel() {
+        guard LocalTranscriptionModel.isRetiredWhisper(localTranscriptionModelRaw) else { return }
+        localTranscriptionModel = .parakeetUltra
+        let phase = (processingPhase == .paused || processingPhase == .failed) ? resumePhase : processingPhase
+        if phase == .transcribing || phase == .preparing || phase == .queued || phase == .idle {
+            // Failure clears the saved resume phase even when only analysis failed.
+            // A complete transcription checkpoint lets us safely reuse the text.
+            if hasTranscriptContent, totalChunks > 0, lastProcessedChunk >= totalChunks {
+                resumePhase = .generatingOverview
+                return
+            }
+            audioTranscript = ""
+            lastProcessedChunk = 0
+            totalChunks = 0
+            progressPercent = 0
+            localSpeechPlanJSON = nil
+            localSpeechPlanFingerprint = nil
         }
     }
 

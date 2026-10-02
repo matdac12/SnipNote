@@ -9,12 +9,7 @@ import Foundation
 import SwiftData
 import FluidAudio
 
-#if canImport(WhisperKit)
-import WhisperKit
-#endif
-
 enum LocalTranscriptionError: LocalizedError {
-    case whisperKitUnavailable
     case modelNotInstalled(LocalTranscriptionModel)
     case failedToLoadModel
     case downloadIncomplete
@@ -24,8 +19,6 @@ enum LocalTranscriptionError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .whisperKitUnavailable:
-            return LocalizationManager.localizedAppString("transcription.local.error.unavailable")
         case .modelNotInstalled(let model):
             return LocalizationManager.localizedAppString(
                 "transcription.local.error.modelNotInstalled",
@@ -48,104 +41,42 @@ enum LocalTranscriptionError: LocalizedError {
 actor LocalTranscriptionService {
     static let shared = LocalTranscriptionService()
 
-    #if canImport(WhisperKit)
-    private var loadedModels: [LocalTranscriptionModel: WhisperKit] = [:]
-    #endif
+    func removeRetiredWhisperModels() throws {
+        try Self.removeRetiredWhisperModels(
+            modelRoot: URL.applicationSupportDirectory.appendingPathComponent("SnipNote/LocalModels"),
+            documentsDirectory: URL.documentsDirectory
+        )
+    }
 
-    private let fileManager = FileManager.default
-    private let defaults = UserDefaults.standard
-    private let repoName = "argmaxinc/whisperkit-coreml"
+    /// Remove only known model folders owned by the retired local download flow.
+    nonisolated static func removeRetiredWhisperModels(modelRoot: URL, documentsDirectory: URL) throws {
+        for variant in ["base", "small"] {
+            let folder = "openai_whisper-\(variant)"
+            let repoPath = "huggingface/models/argmaxinc/whisperkit-coreml/\(folder)"
+            let directories = [
+                modelRoot.appendingPathComponent("Installed/\(folder)"),
+                modelRoot.appendingPathComponent("Staging/\(repoPath)"),
+                documentsDirectory.appendingPathComponent(repoPath)
+            ]
+            for directory in directories where FileManager.default.fileExists(atPath: directory.path) {
+                try FileManager.default.removeItem(at: directory)
+            }
+        }
+    }
 
     func status(for model: LocalTranscriptionModel) async -> LocalModelStatus {
-        if model == .parakeetUltra { return await ParakeetTranscriptionService.shared.status() }
-        #if canImport(WhisperKit)
-        let status: LocalModelStatus = resolvedModelDirectory(for: model) != nil ? .installed : .notInstalled
-        if case .notInstalled = status {
-            defaults.removeObject(forKey: storageKey(for: model))
-        }
-        return status
-        #else
-        return .failed(LocalTranscriptionError.whisperKitUnavailable.localizedDescription)
-        #endif
+        await ParakeetTranscriptionService.service(for: model).status()
     }
 
     func downloadModel(
         _ model: LocalTranscriptionModel,
         statusHandler: @escaping @Sendable (LocalModelStatus) -> Void
     ) async throws {
-        if model == .parakeetUltra {
-            try await ParakeetTranscriptionService.shared.downloadModel(statusHandler: statusHandler)
-            return
-        }
-        #if canImport(WhisperKit)
-        do {
-            try ensureModelDirectories()
-            try cleanupLegacyModelDirectory(for: model)
-            try cleanupStagingDirectory(for: model)
-
-            let whisperKit = try await WhisperKit(
-                verbose: true,
-                logLevel: .error,
-                prewarm: false,
-                load: false,
-                download: false
-            )
-
-            statusHandler(.downloading(0))
-
-            let downloadedModelFolder = try await WhisperKit.download(
-                variant: model.whisperVariant,
-                downloadBase: stagingDownloadBaseDirectory(),
-                from: repoName
-            ) { progress in
-                statusHandler(.downloading(progress.fractionCompleted))
-            }
-
-            statusHandler(.verifying)
-
-            let installedModelFolder = installedModelDirectory(for: model)
-
-            do {
-                try excludeFromBackup(localModelRootDirectory())
-                try excludeFromBackup(stagingRootDirectory())
-                try validateDownloadedModel(at: downloadedModelFolder)
-
-                if fileManager.fileExists(atPath: installedModelFolder.path) {
-                    try fileManager.removeItem(at: installedModelFolder)
-                }
-
-                try fileManager.moveItem(at: downloadedModelFolder, to: installedModelFolder)
-                try excludeFromBackup(installedModelFolder)
-                try writeInstalledMarker(for: model, in: installedModelFolder)
-
-                defaults.set(installedModelFolder.path, forKey: storageKey(for: model))
-                whisperKit.modelFolder = installedModelFolder
-            } catch {
-                try? cleanupInstalledArtifacts(for: model)
-                throw error is LocalTranscriptionError ? error : LocalTranscriptionError.downloadIncomplete
-            }
-        } catch {
-            try? cleanupStagingDirectory(for: model)
-            throw error
-        }
-        #else
-        throw LocalTranscriptionError.whisperKitUnavailable
-        #endif
+        try await ParakeetTranscriptionService.service(for: model).downloadModel(statusHandler: statusHandler)
     }
 
     func deleteModel(_ model: LocalTranscriptionModel) async throws {
-        if model == .parakeetUltra {
-            try await ParakeetTranscriptionService.shared.deleteModel()
-            return
-        }
-        #if canImport(WhisperKit)
-        loadedModels[model] = nil
-        try cleanupInstalledArtifacts(for: model)
-        try cleanupLegacyModelDirectory(for: model)
-        defaults.removeObject(forKey: storageKey(for: model))
-        #else
-        throw LocalTranscriptionError.whisperKitUnavailable
-        #endif
+        try await ParakeetTranscriptionService.service(for: model).deleteModel()
     }
 
     func transcribeAudio(
@@ -157,36 +88,26 @@ actor LocalTranscriptionService {
         existingTranscript: String? = nil,
         progressCallback: @escaping @Sendable (AudioChunkerProgress) -> Void
     ) async throws -> String {
-        if model == .parakeetUltra {
-            _ = try ParakeetTranscriptionService.languageHint(for: language)
-            progressCallback(AudioChunkerProgress(
-                currentChunk: 0, totalChunks: 0,
-                currentStage: LocalizationManager.localizedAppString("transcription.local.progress.loadingModel"),
-                percentComplete: 1, partialTranscript: nil
-            ))
-            // Release idle Whisper weights before preparing Ultra on a memory-limited phone.
-            #if canImport(WhisperKit)
-            loadedModels.removeAll()
-            #endif
-            let session = try await ParakeetTranscriptionService.shared.makeSession()
-            do {
-                let transcript = try await transcribePreparedAudio(
-                    from: audioURL, model: model, language: language, meetingId: meetingId,
-                    resumeFromCompletedChunks: resumeFromCompletedChunks, existingTranscript: existingTranscript,
-                    parakeetSession: session, progressCallback: progressCallback
-                )
-                await ParakeetTranscriptionService.shared.finishSession(session)
-                return transcript
-            } catch {
-                await ParakeetTranscriptionService.shared.finishSession(session)
-                throw error
-            }
+        _ = try ParakeetTranscriptionService.languageHint(for: language)
+        progressCallback(AudioChunkerProgress(
+            currentChunk: 0, totalChunks: 0,
+            currentStage: LocalizationManager.localizedAppString("transcription.local.progress.loadingModel", model.displayName),
+            percentComplete: 1, partialTranscript: nil
+        ))
+        let service = ParakeetTranscriptionService.service(for: model)
+        let session = try await service.makeSession()
+        do {
+            let transcript = try await transcribePreparedAudio(
+                from: audioURL, model: model, language: language, meetingId: meetingId,
+                resumeFromCompletedChunks: resumeFromCompletedChunks, existingTranscript: existingTranscript,
+                parakeetSession: session, progressCallback: progressCallback
+            )
+            await service.finishSession(session)
+            return transcript
+        } catch {
+            await service.finishSession(session)
+            throw error
         }
-        return try await transcribePreparedAudio(
-            from: audioURL, model: model, language: language, meetingId: meetingId,
-            resumeFromCompletedChunks: resumeFromCompletedChunks, existingTranscript: existingTranscript,
-            parakeetSession: nil, progressCallback: progressCallback
-        )
     }
 
     private func transcribePreparedAudio(
@@ -196,26 +117,13 @@ actor LocalTranscriptionService {
         meetingId: UUID?,
         resumeFromCompletedChunks: Int,
         existingTranscript: String?,
-        parakeetSession: AsrManager?,
+        parakeetSession: AsrManager,
         progressCallback: @escaping @Sendable (AudioChunkerProgress) -> Void
     ) async throws -> String {
-        #if canImport(WhisperKit)
         let transcriptionStart = Date()
-        let whisperKit: WhisperKit?
-        let decodeOptions: DecodingOptions?
-        let maxChunkLength: Int
-        if parakeetSession != nil {
-            whisperKit = nil
-            decodeOptions = nil
-            // Use resumable one-minute units; FluidAudio handles its overlapping
-            // 15-second windows and word reconciliation inside each call.
-            maxChunkLength = 960_000
-        } else {
-            let loaded = try await ensureLoadedModel(model)
-            whisperKit = loaded
-            decodeOptions = Self.makeLocalDecodeOptions(model: model, language: language)
-            maxChunkLength = loaded.featureExtractor.windowSamples ?? 480_000
-        }
+        // Resumable one-minute units; FluidAudio handles overlapping 15-second
+        // windows and word reconciliation inside each call.
+        let maxChunkLength = 960_000
         let cachedPlanJSON: String? = if let meetingId {
             await readStoredSpeechPlan(for: meetingId)
         } else {
@@ -234,7 +142,7 @@ actor LocalTranscriptionService {
             from: audioURL,
             maxChunkLength: maxChunkLength,
             cachedPlanJSON: cachedPlanJSON,
-            preferSilenceBoundaries: parakeetSession != nil,
+            preferSilenceBoundaries: true,
             progressHandler: { stage in
                 let percent: Double
                 switch stage {
@@ -261,7 +169,6 @@ actor LocalTranscriptionService {
         }
 
         Self.logPreprocessingDiagnostics(preparedAudio.diagnostics, model: model, audioURL: audioURL)
-        if let decodeOptions { Self.logDecodeDiagnostics(decodeOptions, model: model) }
 
         let totalChunks = preparedAudio.plan.totalChunks
         let safeCompletedChunks = min(max(0, resumeFromCompletedChunks), totalChunks)
@@ -306,20 +213,12 @@ actor LocalTranscriptionService {
             ))
 
             let samples = Array(preparedAudio.audioSamples[chunk.startSample..<chunk.endSample])
-            let text: String
-            if let parakeetSession {
-                var decoderState = try TdtDecoderState()
-                let result = try await parakeetSession.transcribe(
-                    ParakeetTranscriptionService.prepareChunkSamples(samples), decoderState: &decoderState,
-                    language: ParakeetTranscriptionService.languageHint(for: language)
-                )
-                text = result.text
-            } else if let whisperKit, let decodeOptions {
-                let result = try await whisperKit.transcribe(audioArray: samples, decodeOptions: decodeOptions)
-                text = result.flatMap { $0.segments }.map { $0.text }.joined(separator: " ")
-            } else {
-                throw LocalTranscriptionError.failedToLoadModel
-            }
+            var decoderState = try TdtDecoderState()
+            let result = try await parakeetSession.transcribe(
+                ParakeetTranscriptionService.prepareChunkSamples(samples), decoderState: &decoderState,
+                language: ParakeetTranscriptionService.languageHint(for: language)
+            )
+            let text = result.text
             try Task.checkCancellation()
             let transcript = Self.sanitizeTranscript(text)
 
@@ -384,9 +283,6 @@ actor LocalTranscriptionService {
         )
 
         return mergedTranscript
-        #else
-        throw LocalTranscriptionError.whisperKitUnavailable
-        #endif
     }
 
     nonisolated static func mergePartialTranscript(_ existing: String, with next: String) -> String {
@@ -401,188 +297,6 @@ actor LocalTranscriptionService {
 
         let separator = sanitizedExisting.last?.isWhitespace == true ? "" : " "
         return sanitizeTranscript(sanitizedExisting + separator + deduplicated)
-    }
-
-    #if canImport(WhisperKit)
-    private func ensureLoadedModel(_ model: LocalTranscriptionModel) async throws -> WhisperKit {
-        if let loaded = loadedModels[model] {
-            return loaded
-        }
-
-        guard let modelDirectory = resolvedModelDirectory(for: model) else {
-            throw LocalTranscriptionError.modelNotInstalled(model)
-        }
-
-        guard fileManager.fileExists(atPath: modelDirectory.path),
-              hasInstalledMarker(for: model, in: modelDirectory) else {
-            defaults.removeObject(forKey: storageKey(for: model))
-            throw LocalTranscriptionError.modelNotInstalled(model)
-        }
-
-        do {
-            let whisperKit = try await WhisperKit(
-                verbose: true,
-                logLevel: .error,
-                prewarm: false,
-                load: false,
-                download: false
-            )
-            whisperKit.modelFolder = modelDirectory
-            try await whisperKit.prewarmModels()
-            try await whisperKit.loadModels()
-            loadedModels[model] = whisperKit
-            return whisperKit
-        } catch {
-            throw LocalTranscriptionError.failedToLoadModel
-        }
-    }
-
-    private func ensureModelDirectories() throws {
-        for directory in [localModelRootDirectory(), installedRootDirectory(), stagingRootDirectory()] {
-            if !fileManager.fileExists(atPath: directory.path) {
-                try fileManager.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
-            }
-            try excludeFromBackup(directory)
-        }
-    }
-
-    private func localModelRootDirectory() -> URL {
-        let baseDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? fileManager.temporaryDirectory
-        return baseDirectory
-            .appendingPathComponent("SnipNote", isDirectory: true)
-            .appendingPathComponent("LocalModels", isDirectory: true)
-    }
-
-    private func installedRootDirectory() -> URL {
-        localModelRootDirectory().appendingPathComponent("Installed", isDirectory: true)
-    }
-
-    private func stagingRootDirectory() -> URL {
-        localModelRootDirectory().appendingPathComponent("Staging", isDirectory: true)
-    }
-
-    private func stagingDownloadBaseDirectory() -> URL {
-        stagingRootDirectory()
-    }
-
-    private func installedModelDirectory(for model: LocalTranscriptionModel) -> URL {
-        installedRootDirectory()
-            .appendingPathComponent("openai_whisper-\(model.whisperVariant)", isDirectory: true)
-    }
-
-    private func legacyModelDirectory(for model: LocalTranscriptionModel) -> URL {
-        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first
-            ?? fileManager.temporaryDirectory
-        return legacyModelDirectory(forVariant: model.whisperVariant, documentsDirectory: documentsDirectory)
-    }
-
-    private func resolvedModelDirectory(for model: LocalTranscriptionModel) -> URL? {
-        if let storedPath = defaults.string(forKey: storageKey(for: model)),
-           fileManager.fileExists(atPath: storedPath) {
-            let storedURL = URL(fileURLWithPath: storedPath, isDirectory: true)
-            if hasInstalledMarker(for: model, in: storedURL) {
-                return storedURL
-            }
-        }
-
-        let installedDirectory = installedModelDirectory(for: model)
-        if fileManager.fileExists(atPath: installedDirectory.path),
-           hasInstalledMarker(for: model, in: installedDirectory) {
-            return installedDirectory
-        }
-
-        return nil
-    }
-
-    private func storageKey(for model: LocalTranscriptionModel) -> String {
-        "localTranscription.modelPath.\(model.rawValue)"
-    }
-
-    private func installedMarkerURL(for model: LocalTranscriptionModel, in directory: URL) -> URL {
-        directory.appendingPathComponent(".snipnote-\(model.rawValue)-installed")
-    }
-
-    private func hasInstalledMarker(for model: LocalTranscriptionModel, in directory: URL) -> Bool {
-        fileManager.fileExists(atPath: installedMarkerURL(for: model, in: directory).path)
-    }
-
-    private func writeInstalledMarker(for model: LocalTranscriptionModel, in directory: URL) throws {
-        let markerURL = installedMarkerURL(for: model, in: directory)
-        try Data("ok".utf8).write(to: markerURL, options: .atomic)
-        try excludeFromBackup(directory)
-    }
-
-    private func cleanupInstalledArtifacts(for model: LocalTranscriptionModel) throws {
-        let installedDirectory = installedModelDirectory(for: model)
-        if fileManager.fileExists(atPath: installedDirectory.path) {
-            try fileManager.removeItem(at: installedDirectory)
-        }
-
-        let stagingDirectory = stagingModelDirectory(for: model)
-        if fileManager.fileExists(atPath: stagingDirectory.path) {
-            try fileManager.removeItem(at: stagingDirectory)
-        }
-    }
-
-    private func cleanupLegacyModelDirectory(for model: LocalTranscriptionModel) throws {
-        let legacyDirectory = legacyModelDirectory(for: model)
-        if fileManager.fileExists(atPath: legacyDirectory.path) {
-            try fileManager.removeItem(at: legacyDirectory)
-        }
-    }
-
-    private func cleanupStagingDirectory(for model: LocalTranscriptionModel) throws {
-        let stagingDirectory = stagingModelDirectory(for: model)
-        if fileManager.fileExists(atPath: stagingDirectory.path) {
-            try fileManager.removeItem(at: stagingDirectory)
-        }
-    }
-
-    private func stagingModelDirectory(for model: LocalTranscriptionModel) -> URL {
-        let variantPath = "huggingface/models/argmaxinc/whisperkit-coreml/openai_whisper-\(model.whisperVariant)"
-        return stagingRootDirectory().appendingPathComponent(variantPath, isDirectory: true)
-    }
-
-    private func legacyModelDirectory(forVariant variant: String, documentsDirectory: URL) -> URL {
-        documentsDirectory
-            .appendingPathComponent("huggingface", isDirectory: true)
-            .appendingPathComponent("models", isDirectory: true)
-            .appendingPathComponent("argmaxinc", isDirectory: true)
-            .appendingPathComponent("whisperkit-coreml", isDirectory: true)
-            .appendingPathComponent("openai_whisper-\(variant)", isDirectory: true)
-    }
-
-    private func excludeFromBackup(_ url: URL) throws {
-        var values = URLResourceValues()
-        values.isExcludedFromBackup = true
-        var mutableURL = url
-        try mutableURL.setResourceValues(values)
-    }
-
-    private func validateDownloadedModel(at directory: URL) throws {
-        let requiredNames = ["MelSpectrogram", "AudioEncoder", "TextDecoder"]
-
-        for name in requiredNames {
-            let modelBundle = directory.appendingPathComponent("\(name).mlmodelc", isDirectory: true)
-            guard fileManager.fileExists(atPath: modelBundle.path) else {
-                throw LocalTranscriptionError.downloadIncomplete
-            }
-
-            let modelMIL = modelBundle.appendingPathComponent("model.mil")
-            guard fileManager.fileExists(atPath: modelMIL.path) else {
-                throw LocalTranscriptionError.downloadIncomplete
-            }
-        }
-
-        let encoderWeights = directory
-            .appendingPathComponent("AudioEncoder.mlmodelc", isDirectory: true)
-            .appendingPathComponent("weights", isDirectory: true)
-            .appendingPathComponent("weight.bin")
-
-        guard fileManager.fileExists(atPath: encoderWeights.path) else {
-            throw LocalTranscriptionError.downloadIncomplete
-        }
     }
 
     private func makeModelContainer() throws -> ModelContainer {
@@ -626,7 +340,6 @@ actor LocalTranscriptionService {
             print("⚠️ [LocalTranscriptionService] Failed to persist speech plan for meeting \(meetingId): \(error)")
         }
     }
-    #endif
 
     private static func mergeChunkTranscripts(_ transcripts: [String]) -> String {
         guard let firstNonEmptyIndex = transcripts.firstIndex(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
@@ -735,69 +448,4 @@ actor LocalTranscriptionService {
         String(format: "%.1fs", seconds)
     }
 
-    private static func makeLocalDecodeOptions(
-        model: LocalTranscriptionModel,
-        language: String?
-    ) -> DecodingOptions {
-        let thresholds = decodeThresholds(for: model)
-
-        return DecodingOptions(
-            task: .transcribe,
-            language: language,
-            temperature: 0,
-            temperatureIncrementOnFallback: 0.2,
-            temperatureFallbackCount: thresholds.temperatureFallbackCount,
-            topK: 5,
-            usePrefillPrompt: language != nil,
-            detectLanguage: language == nil,
-            skipSpecialTokens: true,
-            suppressBlank: true,
-            compressionRatioThreshold: thresholds.compressionRatioThreshold,
-            logProbThreshold: thresholds.logProbThreshold,
-            firstTokenLogProbThreshold: thresholds.firstTokenLogProbThreshold,
-            noSpeechThreshold: thresholds.noSpeechThreshold,
-            chunkingStrategy: ChunkingStrategy.none
-        )
-    }
-
-    private static func decodeThresholds(for model: LocalTranscriptionModel) -> (
-        temperatureFallbackCount: Int,
-        compressionRatioThreshold: Float,
-        logProbThreshold: Float,
-        firstTokenLogProbThreshold: Float,
-        noSpeechThreshold: Float
-    ) {
-        switch model {
-        case .base:
-            return (
-                temperatureFallbackCount: 1,
-                compressionRatioThreshold: 2.2,
-                logProbThreshold: -0.9,
-                firstTokenLogProbThreshold: -1.1,
-                noSpeechThreshold: 0.5
-            )
-        case .small, .parakeetUltra:
-            return (
-                temperatureFallbackCount: 1,
-                compressionRatioThreshold: 2.1,
-                logProbThreshold: -0.85,
-                firstTokenLogProbThreshold: -1.05,
-                noSpeechThreshold: 0.45
-            )
-        }
-    }
-
-    private static func logDecodeDiagnostics(
-        _ options: DecodingOptions,
-        model: LocalTranscriptionModel
-    ) {
-        print(
-            "🎛️ [LocalTranscription] Decode options for \(model.rawValue) " +
-            "(temp: \(options.temperature), fallbacks: \(options.temperatureFallbackCount), " +
-            "compression: \(options.compressionRatioThreshold ?? -1), " +
-            "logprob: \(options.logProbThreshold ?? -1), " +
-            "first-token: \(options.firstTokenLogProbThreshold ?? -1), " +
-            "no-speech: \(options.noSpeechThreshold ?? -1), suppressBlank: \(options.suppressBlank))"
-        )
-    }
 }

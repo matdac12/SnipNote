@@ -10,9 +10,7 @@
     "-%@" : {
 
     },
-    "\"...%@...\"" : {
-
-    },
+    "\"...%@...\"" : {},
     "%" : {
 
     },
@@ -4094,70 +4092,19 @@
         }
       }
     },
-    "transcription.local.error.unavailable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Local transcription is unavailable in this build."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La trascrizione locale non è disponibile in questa build."
-          }
-        }
-      }
-    },
     "transcription.local.error.unsupportedParakeetLanguage" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Parakeet Ultra does not support the selected language (%@). Choose a supported European language or use Whisper."
+            "value" : "Parakeet does not support the selected language (%@). Choose a supported European language."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Parakeet Ultra non supporta la lingua selezionata (%@). Scegli una lingua europea supportata oppure usa Whisper."
-          }
-        }
-      }
-    },
-    "transcription.local.model.base.detail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Best for fast local transcription with modest storage use."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ideale per trascrizioni locali rapide con un uso contenuto dello spazio."
-          }
-        }
-      }
-    },
-    "transcription.local.model.base.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Base"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Base"
+            "value" : "Parakeet non supporta la lingua selezionata (%@). Scegli una lingua europea supportata."
           }
         }
       }
@@ -4226,40 +4173,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Parakeet Ultra"
-          }
-        }
-      }
-    },
-    "transcription.local.model.small.detail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Better transcript quality with a larger download."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Qualità di trascrizione migliore, con un download più grande."
-          }
-        }
-      }
-    },
-    "transcription.local.model.small.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Small"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Small"
           }
         }
       }
@@ -4389,13 +4302,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Preparing Parakeet Ultra…"
+            "value" : "Preparing %@…"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Preparazione di Parakeet Ultra…"
+            "value" : "Preparazione di %@…"
           }
         }
       }
@@ -4651,6 +4564,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hai raggiunto il tuo limite gratuito di %lld trascrizioni. Passa a Pro per accesso illimitato."
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetRedux.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Redux"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Redux"
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetRedux.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compact multilingual model"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello multilingue compatto"
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetRedux.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "25 European languages, including English and Italian. Uses less storage than Ultra. Initial setup may take several minutes."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "25 lingue europee, tra cui inglese e italiano. Occupa meno spazio di Ultra. La configurazione iniziale può richiedere diversi minuti."
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetRedux.attribution" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Redux by Moondream, based on NVIDIA Parakeet. Core ML conversion by Fluid Inference."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Redux di Moondream, basato su NVIDIA Parakeet. Conversione Core ML di Fluid Inference."
           }
         }
       }

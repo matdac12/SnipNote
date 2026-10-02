@@ -1072,10 +1072,10 @@ struct LocalModelCard: View {
                     Text("\(model.approximateSizeDescription) • \(model.detailText)")
                         .themedCaption()
 
-                    if model == .parakeetUltra {
-                        Text(localized("transcription.local.model.parakeetUltra.hint"))
+                    Group {
+                        Text(localized("transcription.local.model.\(model.rawValue).hint"))
                             .themedCaption()
-                        Text(localized("transcription.local.model.parakeetUltra.attribution"))
+                        Text(localized("transcription.local.model.\(model.rawValue).attribution"))
                             .themedCaption()
                         if let licenseURL = URL(string: "https://creativecommons.org/licenses/by/4.0/") {
                             Link("CC BY 4.0", destination: licenseURL)

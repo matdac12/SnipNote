@@ -3,6 +3,16 @@ import XCTest
 final class TranscriptionSettingsUITests: XCTestCase {
   @MainActor
   func testParakeetUltraCanBeSelectedAndPersistsAfterRelaunch() throws {
+    try verifyModelSelectionPersists("parakeetUltra")
+  }
+
+  @MainActor
+  func testParakeetReduxCanBeSelectedAndPersistsAfterRelaunch() throws {
+    try verifyModelSelectionPersists("parakeetRedux")
+  }
+
+  @MainActor
+  private func verifyModelSelectionPersists(_ model: String) throws {
     continueAfterFailure = false
     let app = XCUIApplication()
     app.launch()
@@ -17,7 +27,7 @@ final class TranscriptionSettingsUITests: XCTestCase {
     let local = mode.buttons.matching(NSPredicate(format: "label IN %@", ["Local", "Locale"])).firstMatch
     let wasLocal = local.isSelected
     local.tap()
-    let previousModel = ["base", "small", "parakeetUltra"].first {
+    let previousModel = ["parakeetUltra", "parakeetRedux"].first {
       let button = app.buttons["settings.localTranscription.select.\($0)"]
       return button.exists && !button.isEnabled
     }
@@ -32,7 +42,7 @@ final class TranscriptionSettingsUITests: XCTestCase {
         mode.buttons["Cloud"].tap()
       }
     }
-    let ultra = app.buttons["settings.localTranscription.select.parakeetUltra"]
+    let ultra = app.buttons["settings.localTranscription.select.\(model)"]
     for _ in 0..<8 where !ultra.isHittable { app.swipeUp() }
     XCTAssertTrue(ultra.waitForExistence(timeout: 5))
     if ultra.isEnabled { ultra.tap() }

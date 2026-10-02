@@ -3,6 +3,26 @@ import Testing
 @testable import SnipNote
 
 struct ParakeetModelStoreTests {
+  @Test func deletingReduxLeavesInstalledUltraUntouched() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let ultra = ParakeetModelStore(rootDirectory: root.appendingPathComponent("ParakeetUltra"))
+    let redux = ParakeetModelStore(model: .parakeetRedux, rootDirectory: root.appendingPathComponent("ParakeetRedux"))
+    for store in [ultra, redux] {
+      try store.prepareDirectories()
+      try makeModelFixture(at: store.stagedModelDirectory)
+      try store.installDownloadedModel()
+    }
+    #expect(ultra.isInstalled)
+    #expect(redux.isInstalled)
+    #expect(redux.installedModelDirectory.lastPathComponent == "parakeet-redux")
+    try makeModelFixture(at: ultra.stagedModelDirectory)
+    try redux.deleteModel()
+    #expect(!redux.isInstalled)
+    #expect(ultra.isInstalled)
+    #expect(ultra.isComplete(at: ultra.stagedModelDirectory))
+  }
+
   @Test func installsFilesFromFluidAudioDownloadFolder() throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: root) }

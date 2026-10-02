@@ -238,13 +238,12 @@ struct SettingsView: View {
                              }
 
                              if !localTranscriptionManager.isLocalModeEnabled {
-                                 VStack(alignment: .leading, spacing: 4) {
-                                     Picker(localized("settings.cloudTranscription.provider.title"), selection: $cloudTranscriptionSettings.selectedProvider) {
-                                         ForEach(CloudTranscriptionProvider.allCases) { provider in
-                                             Text(provider.displayName).tag(provider)
-                                         }
-                                     }
-                                     .accessibilityIdentifier("settings.cloudTranscription.provider")
+                                 VStack(alignment: .leading, spacing: 12) {
+                                     Text(localized("settings.cloudTranscription.provider.title"))
+                                         .font(.subheadline)
+                                         .bold()
+                                         .foregroundStyle(themeManager.currentTheme.textColor)
+                                     CloudTranscriptionProviderPickerView(selectedProvider: $cloudTranscriptionSettings.selectedProvider)
                                      Text(localized("settings.cloudTranscription.provider.description"))
                                          .themedCaption()
                                  }

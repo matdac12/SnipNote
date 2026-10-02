@@ -17,33 +17,37 @@ final class TranscriptionSettingsUITests: XCTestCase {
     let cloud = mode.buttons["Cloud"]
     let wasLocal = mode.buttons.matching(NSPredicate(format: "label IN %@", ["Local", "Locale"])).firstMatch.isSelected
     cloud.tap()
-    let provider = app.buttons["settings.cloudTranscription.provider"]
-    XCTAssertTrue(provider.waitForExistence(timeout: 5))
-    let previousProvider = provider.label.contains("xAI") ? "xAI (Grok)" : "OpenAI"
+    let openAI = app.buttons["settings.cloudTranscription.provider.openai"]
+    let xAI = app.buttons["settings.cloudTranscription.provider.xai"]
+    XCTAssertTrue(xAI.waitForExistence(timeout: 5))
+    XCTAssertTrue(openAI.exists)
+    let previousProvider = xAI.isSelected ? xAI : openAI
+    let nextProvider = xAI.isSelected ? openAI : xAI
     defer {
-      if provider.exists {
-        provider.tap()
-        app.buttons[previousProvider].firstMatch.tap()
+      if previousProvider.exists {
+        previousProvider.tap()
       }
       if wasLocal {
         mode.buttons.matching(NSPredicate(format: "label IN %@", ["Local", "Locale"])).firstMatch.tap()
       }
     }
-    provider.tap()
-    app.buttons["xAI (Grok)"].firstMatch.tap()
-    XCTAssertTrue(provider.label.contains("xAI (Grok)"))
+    nextProvider.tap()
+    XCTAssertTrue(nextProvider.isSelected)
+    XCTAssertFalse(previousProvider.isSelected)
+    XCTAssertGreaterThanOrEqual(nextProvider.frame.height, 44)
     app.terminate()
     app.launch()
     XCTAssertTrue(settingsTab.waitForExistence(timeout: 15))
     settingsTab.tap()
     for _ in 0..<8 where !mode.isHittable { app.swipeUp() }
-    XCTAssertTrue(provider.waitForExistence(timeout: 5))
-    XCTAssertTrue(provider.label.contains("xAI (Grok)"))
+    XCTAssertTrue(nextProvider.waitForExistence(timeout: 5))
+    XCTAssertTrue(nextProvider.isSelected)
     let local = mode.buttons.matching(NSPredicate(format: "label IN %@", ["Local", "Locale"])).firstMatch
     local.tap()
-    XCTAssertFalse(provider.exists)
+    XCTAssertFalse(openAI.exists)
+    XCTAssertFalse(xAI.exists)
     cloud.tap()
-    XCTAssertTrue(provider.waitForExistence(timeout: 5))
-    XCTAssertTrue(provider.label.contains("xAI (Grok)"))
+    XCTAssertTrue(nextProvider.waitForExistence(timeout: 5))
+    XCTAssertTrue(nextProvider.isSelected)
   }
 }

@@ -20,7 +20,6 @@ import Foundation
     do { enabled = try await capabilities().backgroundUploadEnabled }
     catch BackgroundUploadFailure.accountMismatch { throw BackgroundUploadFailure.accountMismatch }
     catch { onLegacySelected(); return .legacy }
-    settings.serverOffered = enabled
     guard settings.shouldStartBackgroundUpload(serverEnabled: enabled) else { onLegacySelected(); return .legacy }
     do { try await startBackground(); return .background }
     catch BackgroundUploadFailure.disabled {

@@ -4,9 +4,8 @@ import Testing
 @testable import SnipNote
 
 @MainActor struct BackgroundUploadRoutingTests {
-  private func router(enabled: Bool?, existing: Bool = false, optOut: Bool = false, failure: BackgroundUploadFailure? = nil, starts: @escaping () -> Void = {}) -> BackgroundUploadRouting {
-    let settings = BackgroundUploadSettings(defaults: UserDefaults(suiteName: UUID().uuidString)!)
-    settings.useLegacyUpload = optOut
+  private func router(enabled: Bool?, existing: Bool = false, failure: BackgroundUploadFailure? = nil, starts: @escaping () -> Void = {}) -> BackgroundUploadRouting {
+    let settings = BackgroundUploadSettings()
     return BackgroundUploadRouting(settings: settings, capabilities: {
       guard let enabled else { throw BackgroundUploadFailure.unavailable }
       return UploadCapabilities(backgroundUploadEnabled: enabled)
@@ -29,15 +28,13 @@ import Testing
   @Test func disabledBootstrapBeforeSessionCreationUsesLegacy() async throws {
     #expect(try await router(enabled: true, failure: .disabled).start() == .legacy)
   }
-  @Test func flagOffOrOptOutDoesNotDuplicateExistingSession() async throws {
-    for optOut in [true, false] {
-      var recoveries = 0
-      #expect(try await router(enabled: false, existing: true, optOut: optOut, starts: { recoveries += 1 }).start() == .background)
-      #expect(recoveries == 1)
-    }
+  @Test func flagOffDoesNotDuplicateExistingSession() async throws {
+    var recoveries = 0
+    #expect(try await router(enabled: false, existing: true, starts: { recoveries += 1 }).start() == .background)
+    #expect(recoveries == 1)
   }
   @Test func capabilityAuthenticationFailureDoesNotFallBack() async throws {
-    let settings = BackgroundUploadSettings(defaults: UserDefaults(suiteName: UUID().uuidString)!)
+    let settings = BackgroundUploadSettings()
     let router = BackgroundUploadRouting(settings: settings, capabilities: { throw BackgroundUploadFailure.accountMismatch }, hasExisting: { false }, startBackground: {}, recover: {})
     await #expect(throws: BackgroundUploadFailure.self) { try await router.start() }
   }
@@ -145,11 +142,9 @@ import Testing
     try context.save()
     #expect(try context.fetch(FetchDescriptor<Meeting>()).isEmpty)
   }
-  @Test(arguments: ["off", "opt-out", "unavailable", "disabled"])
+  @Test(arguments: ["off", "unavailable", "disabled"])
   func legacyCallbackPrecedesForegroundWork(reason: String) async throws {
-    let defaults = try #require(UserDefaults(suiteName: UUID().uuidString))
-    let settings = BackgroundUploadSettings(defaults: defaults)
-    settings.useLegacyUpload = reason == "opt-out"
+    let settings = BackgroundUploadSettings()
     var events: [String] = []
     let route = BackgroundUploadRouting(settings: settings, capabilities: {
       if reason == "unavailable" { throw BackgroundUploadFailure.unavailable }
@@ -162,7 +157,7 @@ import Testing
     #expect(events == ["legacy", "foreground"])
   }
   @Test func ambiguousFailureDoesNotReportLegacy() async throws {
-    let settings = BackgroundUploadSettings(defaults: try #require(UserDefaults(suiteName: UUID().uuidString)))
+    let settings = BackgroundUploadSettings()
     for failure in [BackgroundUploadFailure.unavailable, .accountMismatch] {
       var legacy = 0
       let route = BackgroundUploadRouting(settings: settings, capabilities: { .init(backgroundUploadEnabled: true) }, hasExisting: { false }, startBackground: { throw failure }, recover: {}, onLegacySelected: { legacy += 1 })
@@ -171,7 +166,7 @@ import Testing
     }
   }
   @Test func existingSessionNeverReportsLegacy() async throws {
-    let settings = BackgroundUploadSettings(defaults: try #require(UserDefaults(suiteName: UUID().uuidString)))
+    let settings = BackgroundUploadSettings()
     var recoveries = 0, legacy = 0
     let route = BackgroundUploadRouting(settings: settings, capabilities: { .init(backgroundUploadEnabled: false) }, hasExisting: { true }, startBackground: {}, recover: { recoveries += 1 }, onLegacySelected: { legacy += 1 })
     #expect(try await route.start() == .background)

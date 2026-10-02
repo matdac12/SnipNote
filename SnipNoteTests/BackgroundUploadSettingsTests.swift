@@ -4,18 +4,12 @@ import Testing
 
 @MainActor struct BackgroundUploadSettingsTests {
   private func settings() -> BackgroundUploadSettings {
-    BackgroundUploadSettings(defaults: UserDefaults(suiteName: UUID().uuidString)!)
+    BackgroundUploadSettings()
   }
   @Test func serverDisabledUsesLegacyUpload() {
     #expect(!settings().shouldStartBackgroundUpload(serverEnabled: false))
   }
-  @Test func localOptOutUsesLegacyUpload() {
-    let setting = settings()
-    setting.useLegacyUpload = true
-    #expect(!setting.shouldStartBackgroundUpload(serverEnabled: true))
-    #expect(!setting.shouldStartBackgroundUpload(serverEnabled: false))
-  }
-  @Test func serverEnabledAndNoOptOutUsesBackgroundUpload() {
+  @Test func serverEnabledUsesBackgroundUpload() {
     #expect(settings().shouldStartBackgroundUpload(serverEnabled: true))
   }
 }

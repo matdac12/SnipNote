@@ -545,23 +545,6 @@
         }
       }
     },
-    "background_upload.legacy" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use legacy audio upload"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usa il caricamento audio precedente"
-          }
-        }
-      }
-    },
     "export.content.everything" : {
       "extractionState" : "manual",
       "localizations" : {

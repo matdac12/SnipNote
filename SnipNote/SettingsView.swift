@@ -36,7 +36,6 @@ struct SettingsView: View {
     @StateObject private var cloudTranscriptionSettings = CloudTranscriptionSettings.shared
     @StateObject private var localTranscriptionManager = LocalTranscriptionManager.shared
     @StateObject private var meetingAnalysisManager = MeetingAnalysisManager.shared
-    @StateObject private var backgroundUploadSettings = BackgroundUploadSettings.shared
     @Query private var meetings: [Meeting]
     @State private var showingLogoutConfirmation = false
     @State private var userUsage: UserUsage?
@@ -78,10 +77,6 @@ struct SettingsView: View {
                  VStack(alignment: .leading, spacing: 20) {
                      Spacer().frame(height: 8) // Add some top spacing
                     
-                     if backgroundUploadSettings.serverOffered {
-                         Toggle(localized("background_upload.legacy"), isOn: $backgroundUploadSettings.useLegacyUpload)
-                             .padding()
-                     }
                      // SUBSCRIPTION STATUS SECTION
                      VStack(alignment: .leading, spacing: 16) {
                          HStack {
@@ -625,12 +620,6 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingAboutSheet) {
             AboutSheetView()
-        }
-        .task {
-            let user = SupabaseManager.shared.client.auth.currentUser?.id
-            let capability = try? await BackgroundUploadAPI().capabilities()
-            guard SupabaseManager.shared.client.auth.currentUser?.id == user else { return }
-            backgroundUploadSettings.serverOffered = capability?.backgroundUploadEnabled ?? false
         }
         .onAppear {
             fetchUsageStats()

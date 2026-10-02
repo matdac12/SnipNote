@@ -94,3 +94,6 @@ Config.swift
 
 # Supabase
 supabase/.temp/
+
+# macOS Finder metadata
+.DS_Store

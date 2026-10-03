@@ -21,8 +21,8 @@ final class TranscriptionSettingsUITests: XCTestCase {
       throw XCTSkip("Requires a signed-in test account with onboarding completed on this simulator.")
     }
     settingsTab.tap()
+    openTranscriptionSettings(app)
     let mode = app.segmentedControls["settings.transcription.mode"]
-    for _ in 0..<8 where !mode.isHittable { app.swipeUp() }
     XCTAssertTrue(mode.waitForExistence(timeout: 5))
     let local = mode.buttons.matching(NSPredicate(format: "label IN %@", ["Local", "Locale"])).firstMatch
     let wasLocal = local.isSelected
@@ -51,6 +51,7 @@ final class TranscriptionSettingsUITests: XCTestCase {
     app.launch()
     XCTAssertTrue(settingsTab.waitForExistence(timeout: 15))
     settingsTab.tap()
+    openTranscriptionSettings(app)
     for _ in 0..<10 where !ultra.isHittable { app.swipeUp() }
     XCTAssertTrue(ultra.waitForExistence(timeout: 5))
     XCTAssertFalse(ultra.isEnabled)
@@ -66,8 +67,8 @@ final class TranscriptionSettingsUITests: XCTestCase {
       throw XCTSkip("Requires a signed-in test account with onboarding completed on this simulator.")
     }
     settingsTab.tap()
+    openTranscriptionSettings(app)
     let mode = app.segmentedControls["settings.transcription.mode"]
-    for _ in 0..<8 where !mode.isHittable { app.swipeUp() }
     XCTAssertTrue(mode.waitForExistence(timeout: 5))
     let cloud = mode.buttons["Cloud"]
     let wasLocal = mode.buttons.matching(NSPredicate(format: "label IN %@", ["Local", "Locale"])).firstMatch.isSelected
@@ -94,7 +95,7 @@ final class TranscriptionSettingsUITests: XCTestCase {
     app.launch()
     XCTAssertTrue(settingsTab.waitForExistence(timeout: 15))
     settingsTab.tap()
-    for _ in 0..<8 where !mode.isHittable { app.swipeUp() }
+    openTranscriptionSettings(app)
     XCTAssertTrue(nextProvider.waitForExistence(timeout: 5))
     XCTAssertTrue(nextProvider.isSelected)
     let local = mode.buttons.matching(NSPredicate(format: "label IN %@", ["Local", "Locale"])).firstMatch
@@ -104,5 +105,17 @@ final class TranscriptionSettingsUITests: XCTestCase {
     cloud.tap()
     XCTAssertTrue(nextProvider.waitForExistence(timeout: 5))
     XCTAssertTrue(nextProvider.isSelected)
+  }
+
+  /// Transcription setup lives on its own page, opened from the Transcription menu in Settings.
+  @MainActor
+  private func openTranscriptionSettings(_ app: XCUIApplication) {
+    let menu = app.buttons["settings.transcription.menu"]
+    for _ in 0..<6 where !menu.isHittable { app.swipeUp() }
+    XCTAssertTrue(menu.waitForExistence(timeout: 5))
+    menu.tap()
+    let manage = app.buttons["settings.transcription.manage"]
+    XCTAssertTrue(manage.waitForExistence(timeout: 5))
+    manage.tap()
   }
 }

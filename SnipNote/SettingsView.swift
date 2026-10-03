@@ -315,7 +315,7 @@ struct SettingsView: View {
                                  Spacer()
 
                                  Picker(localized("settings.aiAnalysis.provider"), selection: Binding(
-                                     get: { meetingAnalysisManager.selectedProvider },
+                                     get: { meetingAnalysisManager.effectiveProvider },
                                      set: { meetingAnalysisManager.setSelectedProvider($0) }
                                  )) {
                                      ForEach(MeetingAnalysisProviderType.allCases) { provider in
@@ -324,6 +324,7 @@ struct SettingsView: View {
                                  }
                                  .pickerStyle(.segmented)
                                  .frame(width: 220)
+                                 .disabled(!storeManager.canUseCloudAnalysis)
                              }
 
                              Text("\(localized("settings.aiAnalysis.appleIntelligenceStatus")): \(meetingAnalysisManager.appleIntelligenceStatusText)")

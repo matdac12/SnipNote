@@ -3058,13 +3058,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose a local model to balance speed, quality, and storage."
+            "value" : "Free and unlimited: local transcription doesn't use your minutes. Choose a model to balance speed, quality, and storage."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli un modello locale per bilanciare velocità, qualità e spazio di archiviazione."
+            "value" : "Gratis e illimitata: la trascrizione locale non consuma i tuoi minuti. Scegli un modello per bilanciare velocità, qualità e spazio di archiviazione."
           }
         }
       }

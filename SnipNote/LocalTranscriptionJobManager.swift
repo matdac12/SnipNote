@@ -422,41 +422,14 @@ actor LocalTranscriptionJobManager {
             meeting.updateProcessingPhase(.generatingOverview, stage: "Generating overview...", progressPercent: max(meeting.displayedProgressPercent, 90))
         }
 
-        var debitSucceeded = true
-        if duration > 0 {
-            let durationSeconds = Int(duration)
-            let meetingID = meetingId.uuidString
-            let alreadyDebited = await didDebitMinutesAlready(for: meetingId)
-            if alreadyDebited {
-                debitSucceeded = true
-            } else {
-                let debitResult = await MinutesManager.shared.debitMinutes(seconds: durationSeconds, meetingID: meetingID)
-                debitSucceeded = debitResult.didDebitImmediately
-            }
-
-            if !debitSucceeded {
-                print("⚠️ [LocalJobManager] Minutes debit delayed for meeting \(meetingId)")
-            }
-
-            try await updateMeeting(meetingId) { meeting, _ in
-                if debitSucceeded {
-                    meeting.markMinutesDebitSettled()
-                } else {
-                    meeting.markMinutesDebitPending(
-                        message: "Transcription completed. We’re retrying the minutes sync in the background."
-                    )
-                }
-            }
-
-            if debitSucceeded && !alreadyDebited {
-                await UsageTracker.shared.trackMeetingCreated(
-                    transcribed: true,
-                    meetingSeconds: durationSeconds
-                )
-            }
+        // Local (on-device) transcription is free: no minutes are debited and no
+        // cloud transcription usage is tracked. Mark the debit as settled so the
+        // pending-debit retry machinery never picks this meeting up.
+        try await updateMeeting(meetingId) { meeting, _ in
+            meeting.markMinutesDebitSettled()
         }
 
-        return debitSucceeded
+        return true
     }
 
     private func finalizeSuccess(

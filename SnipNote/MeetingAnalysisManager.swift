@@ -46,6 +46,12 @@ final class MeetingAnalysisManager: ObservableObject {
             ?? .openAI
     }
 
+    /// Provider actually used for analysis. Users who have never paid are always routed to
+    /// the on-device provider so the free tier incurs no API cost.
+    var effectiveProvider: MeetingAnalysisProviderType {
+        StoreManager.shared.canUseCloudAnalysis ? selectedProvider : .appleIntelligence
+    }
+
     func setSelectedProvider(_ provider: MeetingAnalysisProviderType) {
         selectedProvider = provider
         defaults.set(provider.rawValue, forKey: Keys.selectedProvider)

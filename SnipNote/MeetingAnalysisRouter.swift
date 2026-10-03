@@ -44,7 +44,7 @@ final class MeetingAnalysisRouter {
     }
 
     func selectedProviderType() async -> MeetingAnalysisProviderType {
-        await MainActor.run { MeetingAnalysisManager.shared.selectedProvider }
+        await MainActor.run { MeetingAnalysisManager.shared.effectiveProvider }
     }
 
     func failureDescription(for error: Error) -> String {

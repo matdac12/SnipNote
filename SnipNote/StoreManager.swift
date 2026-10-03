@@ -23,6 +23,12 @@ class StoreManager: ObservableObject {
     @Published var purchasedSubscriptions: Set<String> = []
     @Published var lastProductsFetchAt: Date?
     @Published var diagnosticsText: String = ""
+    /// True once the user has bought a subscription or minutes pack (persisted, so it
+    /// survives launches before StoreKit has reported). Gates paid cloud AI features.
+    @Published private(set) var hasEverPaid: Bool = UserDefaults.standard.bool(forKey: "store.hasEverPaid")
+
+    /// Cloud (API-cost) AI analysis is reserved for users who have paid at least once.
+    var canUseCloudAnalysis: Bool { hasActiveSubscription || hasEverPaid }
 
     // MARK: - Properties
     static let shared = StoreManager()
@@ -216,10 +222,29 @@ class StoreManager: ObservableObject {
         }
         purchasedSubscriptions = active
         hasActiveSubscription = !active.isEmpty
+        if hasActiveSubscription {
+            markAsPaid()
+        } else if !hasEverPaid {
+            // Covers expired subscriptions and past pack purchases (e.g. after reinstall)
+            for await result in Transaction.all {
+                if case .verified(let transaction) = result,
+                   transaction.productType == .autoRenewable || transaction.productType == .consumable,
+                   transaction.revocationDate == nil {
+                    markAsPaid()
+                    break
+                }
+            }
+        }
         print("🛒 [StoreKit] Active subscriptions=\(Array(active))")
     }
 
     // MARK: - Helpers
+    private func markAsPaid() {
+        guard !hasEverPaid else { return }
+        hasEverPaid = true
+        UserDefaults.standard.set(true, forKey: "store.hasEverPaid")
+    }
+
     private func listenForTransactions() -> Task<Void, Never> {
         Task { [weak self] in
             guard let self else { return }
@@ -370,6 +395,8 @@ class StoreManager: ObservableObject {
                 print("❌ [StoreKit] Failed to credit pack minutes for \(product.id)")
             }
         }
+
+        if success { markAsPaid() }
 
         // CRITICAL: Complete processing (removes from in-flight, marks as processed if successful)
         ProcessedTransactions.shared.completeProcessing(transactionID, success: success)

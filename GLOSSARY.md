@@ -43,3 +43,7 @@ _Avoid_: Plan
 **Minutes pack**:
 A one-time purchase that credits a fixed amount of Minutes.
 _Avoid_: Top-up, bundle
+
+**Transcript-only**:
+The outcome of a Local mode recording on a device where Apple Intelligence cannot summarise (device, setting, language or iOS version). The meeting is complete and the transcript is saved; only the overview and summary are missing, and the app says so plainly. Not an error, and never falls back to Cloud mode.
+_Avoid_: Failed analysis, degraded mode

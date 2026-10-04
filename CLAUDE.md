@@ -640,6 +640,33 @@ enum TranscriptionError: LocalizedError {
 - Custom optimization settings (speed multiplier, compression quality)
 - Background upload progress UI (kept simple intentionally)
 - A/B testing infrastructure (premature at current scale)
+## October 4, 2026 - Free Local Mode, Guest Accounts, Anonymous Analytics & Security Lockdown
+
+Decisions are in `docs/adr/0001-local-mode-free-and-accountless.md` and vocabulary in `GLOSSARY.md` (Local mode, Cloud mode, Guest, Account, Minutes, Trial grant, Pro). Linear: team Matdac6, project SnipNote. Everything below is merged to `main` (`d90882c`), builds, and is **not yet verified on a device**: the hand checks live in Linear **MAT-1674 "VISUAL CHECKS"** (a living list; delete a line when it passes).
+
+### What shipped
+- **MAT-1658 Safe sync.** `MeetingSyncService.syncFromServer` no longer deletes local meetings that are merely absent from the server. Deletions use tombstones: table `meeting_deletions`, written by an `AFTER DELETE` trigger on `meetings` (so web, workers and iOS all produce one). Order: fetch remote + tombstones, delete tombstoned locals, push local-only meetings, then merge. The first account to sync claims the device's local meetings (`sync.localMeetingsOwnerId`). A failed tombstone fetch skips delete and push but still pulls. `syncFromServer` returns false when skipped because a sync was already running.
+- **MAT-1659 / MAT-1669 Local by default.** `LocalTranscriptionManager.registerInitialModeIfNeeded()` saves Local for new installs. Onboarding has a model-download step; a banner on Home and the record screen shows progress and Start Recording stays disabled until the Parakeet model is installed.
+- **MAT-1660 Analytics.** `AnalyticsService` posts to the insert-only RPC `track_analytics_event` with the anon key and no user token (works for a Guest). Table `analytics_events` has RLS and no client policies; allowlist of 8 events, strict property shape, rate limits; nightly pg_cron purge (400 days). Nothing is sent before onboarding completes or when the Settings toggle is off. Queries: `docs/analytics-queries.sql`; privacy text: `docs/analytics-privacy-wording.md`.
+- **MAT-1661 Apple Intelligence fallback.** When analysis is unavailable the meeting finishes as completed with its transcript and a neutral card (`Meeting.effectiveAnalysisUnavailableReason`, derived from "completed + transcript + no summary" so it also works on a synced device). Six reasons, "Try again" for the fixable ones, no Minutes, no Cloud fallback. Single analytics funnel: `Meeting.markAnalysisUnavailable`. Store wording: `docs/app-store-wording-local-mode.md`.
+- **MAT-1664 Guest mode.** No login wall; `AccountGate.swift` presents the sign-up sheet at Cloud entry points (Cloud mode switch, paywalls, Buy Minutes, Restore Purchases). `AccountSetup` runs the Trial grant, re-drives unfinished StoreKit transactions, then syncs (push first). Every way a session ends resets to Local mode. Pending-debit queue entries record their account.
+- **MAT-1670 Security.** Migration `20261004190000` revoked anon (and for write paths authenticated) access to money functions and minutes tables; `20261004200000` moved the cleanup secret into Vault (`get_cleanup_internal_secret()`, Edge Function `cleanup-audio-storage` v6). Source of the function is in `supabase/functions/cleanup-audio-storage/`.
+
+### Open security items
+- **MAT-1672:** signed-in users can still call `credit_minutes` with any amount (planned fix: credit via `validate-storekit-transaction` with the service role, then revoke). Do this before MAT-1665 (Pro gating).
+- Telegram bot token is hard-coded in `handle_new_user_signup` and `handle_subscription_change`; MAT-1673 was canceled on purpose.
+- Read-only legacy functions still anon-executable (list in MAT-1672); `search_path` warnings, leaked-password protection and a Postgres patch are outstanding in the advisor.
+
+### Lessons
+- A trigger is the right place to write tombstones when several writers delete rows.
+- Supabase advisor (`get_advisors`) surfaced real exposure; run it after every migration.
+- A transcript-only state should be derived from data, not stored only locally.
+- Several agents editing one tree works with clear file boundaries; run one combined code review before confirming, and a second independent review of a worktree before merging.
+- Agents were told never to build; one still ran `xcodebuild`. Mattia builds manually.
+
+### Next
+MAT-1672, then MAT-1666 (Cloud trial prompt), MAT-1665 (Pro gating), release, MAT-1667. Manual release to-dos are in MAT-1671.
+
 ## Agent skills
 
 ### Issue tracker

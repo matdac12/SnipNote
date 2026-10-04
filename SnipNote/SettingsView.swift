@@ -53,6 +53,9 @@ struct SettingsView: View {
     @State private var showingAboutSheet = false
     @State private var showingPlanSettings = false
     @State private var showingTranscriptionSettings = false
+    @State private var showingAccountSheet = false
+    @State private var accountSheetIsSignIn = false
+    @State private var pendingAccountAction: (() -> Void)?
     @AppStorage(AnalyticsService.enabledDefaultsKey) private var analyticsEnabled = true
     
     var body: some View {
@@ -63,30 +66,32 @@ struct SettingsView: View {
                 preferencesSection
                 accountSection
 
-                Section {
-                    Button(role: .destructive) {
-                        showingLogoutConfirmation = true
-                    } label: {
-                        Text(localized("settings.account.logoutButton"))
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-
-                Section {
-                    Button(role: .destructive) {
-                        showingDeleteAccountAlert = true
-                    } label: {
-                        HStack {
-                            Spacer()
-                            if isDeletingAccount {
-                                ProgressView()
-                            } else {
-                                Text(localized("settings.account.deleteAccount"))
-                            }
-                            Spacer()
+                if authManager.isAuthenticated {
+                    Section {
+                        Button(role: .destructive) {
+                            showingLogoutConfirmation = true
+                        } label: {
+                            Text(localized("settings.account.logoutButton"))
+                                .frame(maxWidth: .infinity)
                         }
                     }
-                    .disabled(isDeletingAccount)
+
+                    Section {
+                        Button(role: .destructive) {
+                            showingDeleteAccountAlert = true
+                        } label: {
+                            HStack {
+                                Spacer()
+                                if isDeletingAccount {
+                                    ProgressView()
+                                } else {
+                                    Text(localized("settings.account.deleteAccount"))
+                                }
+                                Spacer()
+                            }
+                        }
+                        .disabled(isDeletingAccount)
+                    }
                 }
             }
             .listStyle(.insetGrouped)
@@ -169,6 +174,14 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingAboutSheet) {
             AboutSheetView()
+        }
+        .accountSheet(
+            isPresented: $showingAccountSheet,
+            startInSignUp: !accountSheetIsSignIn,
+            reason: accountSheetIsSignIn ? AccountReason.signIn : AccountReason.cloud
+        ) {
+            pendingAccountAction?()
+            pendingAccountAction = nil
         }
         .onAppear {
             fetchUsageStats()
@@ -352,6 +365,17 @@ struct SettingsView: View {
                 } label: {
                     SettingsIconLabel(title: localized("settings.account.email"), systemImage: "envelope.fill", tint: .gray)
                 }
+            } else {
+                Button {
+                    pendingAccountAction = nil
+                    accountSheetIsSignIn = true
+                    showingAccountSheet = true
+                } label: {
+                    navigationRow(value: nil) {
+                        SettingsIconLabel(title: localized("settings.account.signIn"), systemImage: "person.crop.circle.fill", tint: .blue)
+                    }
+                }
+                .accessibilityIdentifier("settings.account.signIn")
             }
             Button {
                 showingAboutSheet = true
@@ -414,14 +438,28 @@ struct SettingsView: View {
             set: { choice in
                 switch choice {
                 case .cloud(let provider):
-                    cloudTranscriptionSettings.selectedProvider = provider
-                    localTranscriptionManager.setTranscriptionMode(.cloud)
+                    requireAccount {
+                        cloudTranscriptionSettings.selectedProvider = provider
+                        localTranscriptionManager.setTranscriptionMode(.cloud)
+                    }
                 case .local(let model):
                     localTranscriptionManager.setSelectedModel(model)
                     localTranscriptionManager.setTranscriptionMode(.local)
                 }
             }
         )
+    }
+
+    /// Runs `action` now for an Account holder. A Guest is asked to create an Account first and the
+    /// action runs once it exists.
+    private func requireAccount(_ action: @escaping () -> Void) {
+        guard authManager.isAuthenticated else {
+            pendingAccountAction = action
+            accountSheetIsSignIn = false
+            showingAccountSheet = true
+            return
+        }
+        action()
     }
 
     private var installedModels: [LocalTranscriptionModel] {
@@ -471,6 +509,7 @@ struct SettingsView: View {
     }
 
     private func fetchUsageStats() {
+        guard authManager.isAuthenticated else { return }
         isLoadingStats = true
         Task {
             do {
@@ -489,6 +528,14 @@ struct SettingsView: View {
     }
     
     private func restorePurchases() async {
+        // A Guest has no Account to restore into: ask for one first, then restore
+        guard authManager.isAuthenticated else {
+            await MainActor.run {
+                requireAccount { Task { await restorePurchases() } }
+            }
+            return
+        }
+
         do {
             try await storeManager.restorePurchases()
             await refreshSubscriptionAndBalance()

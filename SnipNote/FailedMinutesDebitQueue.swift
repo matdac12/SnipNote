@@ -23,7 +23,7 @@ final class FailedMinutesDebitQueue: ObservableObject {
         cleanupOldDebits()
     }
 
-    func addDebit(meetingID: String, seconds: Int, errorMessage: String?) {
+    func addDebit(meetingID: String, seconds: Int, errorMessage: String?, userID: String? = nil) {
         if let index = pendingDebits.firstIndex(where: { $0.meetingID == meetingID }) {
             pendingDebits[index].seconds = seconds
             pendingDebits[index].lastError = errorMessage
@@ -36,7 +36,8 @@ final class FailedMinutesDebitQueue: ObservableObject {
                     retryCount: 0,
                     createdAt: Date(),
                     updatedAt: Date(),
-                    lastError: errorMessage
+                    lastError: errorMessage,
+                    userID: userID
                 )
             )
         }
@@ -112,6 +113,9 @@ struct FailedMinutesDebitData: Codable {
     let createdAt: Date
     var updatedAt: Date
     var lastError: String?
+    /// Account that owed the debit. Only that account's balance may be charged when it is retried;
+    /// nil for entries queued before this field existed.
+    var userID: String?
 
     enum CodingKeys: String, CodingKey {
         case meetingID = "meeting_id"
@@ -120,5 +124,6 @@ struct FailedMinutesDebitData: Codable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case lastError = "last_error"
+        case userID = "user_id"
     }
 }

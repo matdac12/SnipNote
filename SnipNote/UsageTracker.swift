@@ -32,7 +32,13 @@ class UsageTracker {
     
     // MARK: - Meeting Tracking
     
+    /// Usage rows belong to an Account. A Guest writes nothing to Supabase.
+    private var hasAccount: Bool {
+        SupabaseManager.shared.client.auth.currentUser != nil
+    }
+
     func trackMeetingCreated(transcribed: Bool = false, meetingSeconds: Int = 0) async {
+        guard hasAccount else { return }
         do {
             let params = MeetingUsageParams(
                 p_transcribed: transcribed,
@@ -49,6 +55,7 @@ class UsageTracker {
     // MARK: - AI Usage Tracking
     
     func trackAIUsage(summaries: Int = 0, tokensUsed: Int = 0) async {
+        guard hasAccount else { return }
         do {
             let params = AIUsageParams(
                 p_summaries: summaries,
@@ -65,6 +72,7 @@ class UsageTracker {
     // MARK: - Get Usage Stats
     
     func getMyUsageStats() async -> UsageStats? {
+        guard hasAccount else { return nil }
         do {
             let response = try await SupabaseManager.shared.client
                 .rpc("get_my_usage")

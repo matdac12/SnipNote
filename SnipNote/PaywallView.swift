@@ -29,6 +29,12 @@ struct PaywallView: View {
     }
 
     var body: some View {
+        AccountRequired(dismissible: dismissible) {
+            paywallContent
+        }
+    }
+
+    private var paywallContent: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 16) {

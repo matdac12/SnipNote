@@ -18,7 +18,6 @@ struct MeetingsView: View {
     @StateObject private var storeManager = StoreManager.shared
     @StateObject private var syncService = MeetingSyncService.shared
 
-    @State private var hasSyncedOnLaunch = false
     @State private var createRoute: CreateMeetingRoute?
     @State private var queuedImportRequest: SharedAudioImportRequest?
     @State private var createMeetingActivityState: CreateMeetingActivityState = .idle
@@ -205,12 +204,7 @@ struct MeetingsView: View {
             handlePendingImportOnAppear()
         }
         .task {
-            // Auto-sync from Supabase on app launch (only once per session)
-            if !hasSyncedOnLaunch && authManager.isAuthenticated {
-                hasSyncedOnLaunch = true
-                await performSync()
-            }
-
+            // The launch sync runs from AccountSetup (after the Trial grant), so a Guest never syncs
             handlePendingImportOnAppear()
         }
         .onChange(of: sharedAudioImportRequest?.id) { _, _ in

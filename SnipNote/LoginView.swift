@@ -22,6 +22,27 @@ struct LoginView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var localizationManager: LocalizationManager
 
+    /// Why an Account is needed here, shown under the title. Nil hides it.
+    var reason: String?
+    /// Called once the user is signed in or signed up. `createdAccount` is true after a sign-up.
+    var onAuthenticated: ((_ createdAccount: Bool) -> Void)?
+    /// Shows a close button; nil when the screen cannot be dismissed.
+    var onClose: (() -> Void)?
+
+    init(
+        authManager: AuthenticationManager,
+        startInSignUp: Bool = false,
+        reason: String? = nil,
+        onAuthenticated: ((_ createdAccount: Bool) -> Void)? = nil,
+        onClose: (() -> Void)? = nil
+    ) {
+        self.authManager = authManager
+        self.reason = reason
+        self.onAuthenticated = onAuthenticated
+        self.onClose = onClose
+        _isSignUp = State(initialValue: startInSignUp)
+    }
+
     enum Field {
         case email
         case password
@@ -42,6 +63,14 @@ struct LoginView: View {
                 Text(isSignUp ? "Create Account" : "Sign In")
                     .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
                     .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+
+                if let reason {
+                    Text(reason)
+                        .font(.system(.subheadline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
+                        .foregroundColor(themeManager.currentTheme.secondaryTextColor)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 30)
+                }
             }
             .padding(.top, 60)
             
@@ -168,6 +197,17 @@ struct LoginView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .topTrailing) {
+            if let onClose {
+                Button(action: onClose) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(themeManager.currentTheme.secondaryTextColor)
+                        .padding()
+                }
+                .accessibilityLabel(localizationManager.localizedString("account.close"))
+            }
+        }
         .alert(localizationManager.localizedString("auth.resetPassword.title"), isPresented: $showingForgotPassword) {
             TextField(localizationManager.localizedString("auth.resetPassword.emailPlaceholder"), text: $forgotPasswordEmail)
                 .textContentType(.emailAddress)
@@ -247,11 +287,13 @@ struct LoginView: View {
         errorMessage = ""
         
         do {
-            if isSignUp {
+            let createdAccount = isSignUp
+            if createdAccount {
                 try await authManager.signUp(email: email, password: password)
             } else {
                 try await authManager.signIn(email: email, password: password)
             }
+            onAuthenticated?(createdAccount)
         } catch {
             errorMessage = error.localizedDescription
         }

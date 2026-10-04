@@ -13,6 +13,8 @@ struct TranscriptionSettingsView: View {
     @EnvironmentObject private var localizationManager: LocalizationManager
     @ObservedObject private var cloudTranscriptionSettings = CloudTranscriptionSettings.shared
     @ObservedObject private var localTranscriptionManager = LocalTranscriptionManager.shared
+    @ObservedObject private var authManager = AuthenticationManager.shared
+    @State private var showingAccountSheet = false
 
     var body: some View {
         ScrollView {
@@ -21,7 +23,13 @@ struct TranscriptionSettingsView: View {
                 card {
                     Picker(localized("settings.localTranscription.backendTitle"), selection: Binding(
                         get: { localTranscriptionManager.transcriptionMode },
-                        set: { localTranscriptionManager.setTranscriptionMode($0) }
+                        set: { mode in
+                            if mode == .cloud && !authManager.isAuthenticated {
+                                showingAccountSheet = true
+                            } else {
+                                localTranscriptionManager.setTranscriptionMode(mode)
+                            }
+                        }
                     )) {
                         ForEach(TranscriptionMode.allCases) { mode in
                             Text(mode.displayName).tag(mode)
@@ -68,6 +76,9 @@ struct TranscriptionSettingsView: View {
         }
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(localized("settings.transcription.title"))
+        .accountSheet(isPresented: $showingAccountSheet) {
+            localTranscriptionManager.setTranscriptionMode(.cloud)
+        }
         .navigationBarTitleDisplayMode(.inline)
         .task { await localTranscriptionManager.refreshModelStatuses() }
     }

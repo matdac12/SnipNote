@@ -43,15 +43,27 @@ class MinutesManager: ObservableObject {
     static let shared = MinutesManager()
 
     private var scheduledDebitRetryTask: Task<Void, Never>?
+    /// The launch refresh and Trial grant currently running, so concurrent callers share one run.
+    private var launchTask: Task<Bool, Never>?
 
     private init() {}
 
     // MARK: - Balance Management
 
+    /// Forget the previous account's balance so a Guest, or the next account, never sees it.
+    func resetForSignOut() {
+        scheduledDebitRetryTask?.cancel()
+        scheduledDebitRetryTask = nil
+        launchTask = nil
+        currentBalance = 0
+        lastError = nil
+        UserDefaults.standard.removeObject(forKey: "lastBalanceRefreshTime")
+    }
+
     /// Refresh the current balance from Supabase
     @discardableResult
     func refreshBalance() async -> Bool {
-        guard SupabaseManager.shared.client.auth.currentUser != nil else {
+        guard let userID = SupabaseManager.shared.client.auth.currentUser?.id else {
             print("ℹ️ [MinutesManager] Skipping balance refresh - no authenticated session")
             return false
         }
@@ -63,6 +75,9 @@ class MinutesManager: ObservableObject {
             let response = try await SupabaseManager.shared.client
                 .rpc("get_user_minutes_balance")
                 .execute()
+
+            // The user may have signed out while the request was in flight
+            guard SupabaseManager.shared.client.auth.currentUser?.id == userID else { return false }
 
             let data = response.data
             if let balanceValue = try? JSONDecoder().decode(Int.self, from: data) {
@@ -83,7 +98,7 @@ class MinutesManager: ObservableObject {
 
     /// Grant free tier minutes (30 minutes, one-time per user)
     func grantFreeTierMinutes() async -> Bool {
-        guard SupabaseManager.shared.client.auth.currentUser != nil else {
+        guard let userID = SupabaseManager.shared.client.auth.currentUser?.id else {
             print("ℹ️ [MinutesManager] Skipping free tier grant - no authenticated session")
             return false
         }
@@ -92,6 +107,9 @@ class MinutesManager: ObservableObject {
             let response = try await SupabaseManager.shared.client
                 .rpc("grant_free_tier_minutes")
                 .execute()
+
+            // The grant itself is recorded on the server; only skip showing it if the user changed
+            guard SupabaseManager.shared.client.auth.currentUser?.id == userID else { return true }
 
             let data = response.data
             if let newBalance = try? JSONDecoder().decode(Int.self, from: data) {
@@ -231,7 +249,8 @@ class MinutesManager: ObservableObject {
             FailedMinutesDebitQueue.shared.addDebit(
                 meetingID: meetingID,
                 seconds: seconds,
-                errorMessage: errorMessage
+                errorMessage: errorMessage,
+                userID: SupabaseManager.shared.client.auth.currentUser?.id.uuidString
             )
             await updateMeetingDebitState(meetingID: meetingID, pending: true, message: errorMessage)
             schedulePendingDebitRetry()
@@ -380,10 +399,26 @@ extension MinutesManager {
     }
 
     /// Handle app launch - refresh balance and grant free tier if needed
-    func handleAppLaunch() async {
-        guard SupabaseManager.shared.client.auth.currentUser != nil else {
+    /// Returns false when the balance refresh or the Trial grant failed, so callers can retry.
+    /// Several launch paths call this at once, so concurrent callers share one run.
+    @discardableResult
+    func handleAppLaunch() async -> Bool {
+        if let launchTask {
+            return await launchTask.value
+        }
+
+        let task = Task { @MainActor in await self.performAppLaunch() }
+        launchTask = task
+        let result = await task.value
+        launchTask = nil
+        return result
+    }
+
+    private func performAppLaunch() async -> Bool {
+        var succeeded = true
+        guard let userID = SupabaseManager.shared.client.auth.currentUser?.id else {
             print("ℹ️ [MinutesManager] Skipping launch balance refresh - user not authenticated")
-            return
+            return true
         }
 
         // Add cooldown to prevent rapid refreshes on multiple view appears
@@ -394,17 +429,32 @@ extension MinutesManager {
            Date().timeIntervalSince(lastRefresh) < cooldownSeconds {
             let elapsed = Date().timeIntervalSince(lastRefresh)
             print("⏱️ [MinutesManager] Skipping refresh, last refresh was \(Int(elapsed))s ago (cooldown: \(Int(cooldownSeconds))s)")
-            return
+            return true
         }
 
         print("🔄 [MinutesManager] Refreshing balance on app launch")
         let refreshSucceeded = await refreshBalance()
         if refreshSucceeded {
             UserDefaults.standard.set(Date(), forKey: lastRefreshKey)
+        } else {
+            succeeded = false
         }
 
-        // Only grant free tier if never granted before (don't rely on balance == 0)
-        let freeGrantedKey = "freeTierGranted"
+        // Only grant the Trial grant if this account never got it. The flag is per user because the
+        // server grants once per account, and a new account on a shared device must not be blocked
+        // by the previous one. The legacy global key is still written for install detection.
+        let freeGrantedKey = "freeTierGranted.\(userID.uuidString)"
+
+        // Carry the old device-wide flag over to the account that was signed in when this version
+        // first ran, once, so an existing user who spent their Trial grant is not granted again.
+        let legacyMigratedKey = "freeTierGranted.legacyMigrated"
+        if !UserDefaults.standard.bool(forKey: legacyMigratedKey) {
+            if UserDefaults.standard.bool(forKey: "freeTierGranted") {
+                UserDefaults.standard.set(true, forKey: freeGrantedKey)
+            }
+            UserDefaults.standard.set(true, forKey: legacyMigratedKey)
+        }
+
         if refreshSucceeded,
            currentBalance == 0,
            !UserDefaults.standard.bool(forKey: freeGrantedKey) {
@@ -412,15 +462,19 @@ extension MinutesManager {
             let granted = await grantFreeTierMinutes()
             if granted {
                 UserDefaults.standard.set(true, forKey: freeGrantedKey)
+                UserDefaults.standard.set(true, forKey: "freeTierGranted")
+                AnalyticsService.track(.cloudTrialClaimed)
                 print("✅ [MinutesManager] Free tier granted and marked as complete")
             } else {
                 print("⚠️ [MinutesManager] Free tier grant failed (may already be granted)")
+                succeeded = false
             }
         } else if UserDefaults.standard.bool(forKey: freeGrantedKey) {
             print("✅ [MinutesManager] Free tier already granted for this user")
         }
 
         await retryPendingDebits()
+        return succeeded
     }
 }
 
@@ -428,9 +482,12 @@ extension MinutesManager {
 
 extension MinutesManager {
     func retryPendingDebits() async {
-        guard SupabaseManager.shared.client.auth.currentUser != nil else { return }
+        guard let currentUserID = SupabaseManager.shared.client.auth.currentUser?.id.uuidString else { return }
 
-        let pendingDebits = FailedMinutesDebitQueue.shared.getPendingDebits()
+        // Never charge one account for another account's meeting
+        let pendingDebits = FailedMinutesDebitQueue.shared.getPendingDebits().filter {
+            $0.userID == nil || $0.userID == currentUserID
+        }
         guard !pendingDebits.isEmpty else { return }
 
         print("🔄 [MinutesManager] Retrying \(pendingDebits.count) pending minute debit(s)")
@@ -466,7 +523,10 @@ extension MinutesManager {
             }
         }
 
-        if !FailedMinutesDebitQueue.shared.getPendingDebits().isEmpty {
+        let stillPending = FailedMinutesDebitQueue.shared.getPendingDebits().contains {
+            $0.userID == nil || $0.userID == currentUserID
+        }
+        if stillPending {
             schedulePendingDebitRetry()
         }
     }

@@ -28,7 +28,9 @@ class StoreManager: ObservableObject {
     @Published private(set) var hasEverPaid: Bool = UserDefaults.standard.bool(forKey: "store.hasEverPaid")
 
     /// Cloud (API-cost) AI analysis is reserved for users who have paid at least once.
-    var canUseCloudAnalysis: Bool { hasActiveSubscription || hasEverPaid }
+    var canUseCloudAnalysis: Bool {
+        (hasActiveSubscription || hasEverPaid) && SupabaseManager.shared.client.auth.currentUser != nil
+    }
 
     // MARK: - Properties
     static let shared = StoreManager()
@@ -254,47 +256,66 @@ class StoreManager: ObservableObject {
             guard let self else { return }
             for await update in Transaction.updates {
                 if case .verified(let transaction) = update {
-                    await self.updateSubscriptionStatus()
-
-                    // Get product - check cache first, then load on-demand if needed
-                    var product = self.products.first(where: { $0.id == transaction.productID })
-
-                    // CRITICAL: If product not in cache, try loading it on-demand
-                    if product == nil {
-                        print("⚠️ [StoreKit] Product not in cache, loading on-demand: \(transaction.productID)")
-                        do {
-                            let loadedProducts = try await Product.products(for: [transaction.productID])
-                            product = loadedProducts.first
-                            if let loadedProduct = product {
-                                print("✅ [StoreKit] Successfully loaded product on-demand: \(loadedProduct.id)")
-                            } else {
-                                print("❌ [StoreKit] Failed to load product on-demand: \(transaction.productID)")
-                            }
-                        } catch {
-                            print("❌ [StoreKit] Error loading product on-demand: \(error)")
-                        }
-                    }
-
-                    // Only process if we have the product
-                    var credited = false
-                    if let product = product {
-                        credited = await self.handleMinutesForTransaction(transaction, product: product)
-                    } else {
-                        print("❌ [StoreKit] Cannot process transaction - product unavailable: \(transaction.productID)")
-                    }
-
-                    // CRITICAL: Only finish transaction if we successfully credited minutes
-                    if credited {
-                        await transaction.finish()
-                        _ = await self.syncTransactionToSupabase(transaction)
-                        print("✅ [StoreKit] Transaction update finished successfully: \(transaction.id) product=\(transaction.productID)")
-                    } else {
-                        print("⚠️ [StoreKit] Transaction update NOT finished - will retry: \(transaction.id) product=\(transaction.productID)")
-                        // Don't finish - StoreKit will retry this transaction
-                    }
+                    await self.processTransactionUpdate(transaction)
                 }
             }
         }
+    }
+
+    /// Credits Minutes for a verified transaction and finishes it only once the credit succeeded.
+    private func processTransactionUpdate(_ transaction: Transaction) async {
+        await updateSubscriptionStatus()
+
+        // Get product - check cache first, then load on-demand if needed
+        var product = products.first(where: { $0.id == transaction.productID })
+
+        // CRITICAL: If product not in cache, try loading it on-demand
+        if product == nil {
+            print("⚠️ [StoreKit] Product not in cache, loading on-demand: \(transaction.productID)")
+            do {
+                let loadedProducts = try await Product.products(for: [transaction.productID])
+                product = loadedProducts.first
+                if let loadedProduct = product {
+                    print("✅ [StoreKit] Successfully loaded product on-demand: \(loadedProduct.id)")
+                } else {
+                    print("❌ [StoreKit] Failed to load product on-demand: \(transaction.productID)")
+                }
+            } catch {
+                print("❌ [StoreKit] Error loading product on-demand: \(error)")
+            }
+        }
+
+        // Only process if we have the product
+        var credited = false
+        if let product = product {
+            credited = await handleMinutesForTransaction(transaction, product: product)
+        } else {
+            print("❌ [StoreKit] Cannot process transaction - product unavailable: \(transaction.productID)")
+        }
+
+        // CRITICAL: Only finish transaction if we successfully credited minutes
+        if credited {
+            await transaction.finish()
+            _ = await syncTransactionToSupabase(transaction)
+            print("✅ [StoreKit] Transaction update finished successfully: \(transaction.id) product=\(transaction.productID)")
+        } else {
+            print("⚠️ [StoreKit] Transaction update NOT finished - will retry: \(transaction.id) product=\(transaction.productID)")
+            // Don't finish - StoreKit will retry this transaction
+        }
+    }
+
+    /// Re-drives transactions left unfinished while there was no Account (a purchase or renewal that
+    /// arrived for a Guest) and pushes the current entitlements, which a Guest could not sync.
+    /// Call after sign-in: `Transaction.updates` only redelivers at launch.
+    func reprocessUnfinishedTransactions() async {
+        guard SupabaseManager.shared.client.auth.currentUser != nil else { return }
+
+        for await unfinished in Transaction.unfinished {
+            if case .verified(let transaction) = unfinished {
+                await processTransactionUpdate(transaction)
+            }
+        }
+        await syncAllTransactionsToSupabase()
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
@@ -360,6 +381,13 @@ class StoreManager: ObservableObject {
     private func handleMinutesForTransaction(_ transaction: Transaction, product: Product) async -> Bool {
         let transactionID = String(transaction.id)
 
+        // A Guest has no Account to credit. Leave the transaction unfinished: StoreKit delivers it
+        // again at the next launch after the user signs in.
+        guard SupabaseManager.shared.client.auth.currentUser != nil else {
+            print("ℹ️ [StoreKit] No Account yet - leaving transaction \(transactionID) unfinished")
+            return false
+        }
+
         if let revocationDate = transaction.revocationDate {
             let reason = transaction.revocationReason.map { String(describing: $0) } ?? "unknown"
             print("⚠️ [StoreKit] Skipping revoked transaction \(transactionID) (reason: \(reason)) on \(revocationDate)")
@@ -411,6 +439,7 @@ class StoreManager: ObservableObject {
     // MARK: - Supabase Sync
 
     private func syncTransactionToSupabase(_ transaction: Transaction) async -> Bool {
+        guard SupabaseManager.shared.client.auth.currentUser != nil else { return false }
         let transactionID = String(transaction.id)
 
         do {

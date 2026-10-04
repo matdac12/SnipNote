@@ -28,10 +28,13 @@ class MeetingSyncService: ObservableObject {
     ///   Guest who creates an Account keeps every recording
     /// - Server wins on conflicts for meetings present on both sides
     /// - Meetings being processed locally are neither overwritten, pushed nor deleted
-    func syncFromServer(modelContext: ModelContext) async throws {
+    /// Returns false when another sync was already running and this call did nothing, so callers
+    /// that need the push to have happened (account setup) can retry instead of assuming it ran.
+    @discardableResult
+    func syncFromServer(modelContext: ModelContext) async throws -> Bool {
         guard !isSyncing else {
             print("⚠️ [Sync] Already syncing, skipping...")
-            return
+            return false
         }
 
         isSyncing = true
@@ -97,6 +100,7 @@ class MeetingSyncService: ObservableObject {
 
         lastSyncDate = Date()
         print("✅ [Sync] Complete: \(syncedCount) updated, \(createdCount) created, \(skippedCount) skipped, \(pushedCount) pushed, \(deletedCount) deleted")
+        return true
     }
 
     // MARK: - Private Helpers

@@ -118,6 +118,7 @@ struct SnipNoteApp: App {
                 handleDeepLink(url)
             }
             .onAppear {
+                AnalyticsService.track(.appOpened)
                 _ = StoreManager.shared
                 Task {
                     // Initialize minutes manager - grant free tier if needed and refresh balance
@@ -128,6 +129,7 @@ struct SnipNoteApp: App {
             .onChange(of: scenePhase) { _, newPhase in
                 BackgroundTaskManager.shared.handleScenePhaseChange(newPhase)
                 if newPhase == .active {
+                    AnalyticsService.track(.appOpened)
                     checkForSharedAudio()
                     if let user = SupabaseManager.shared.client.auth.currentUser?.id {
                         Task { await BackgroundUploadReconciler.shared.activate(context: sharedModelContainer.mainContext, userID: user) }
@@ -221,6 +223,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         if ProcessInfo.processInfo.arguments.contains("--analysis-preview") { return true }
 #endif
         UNUserNotificationCenter.current().delegate = self
+
+        // Decide Local vs Cloud mode for this install before onboarding writes any marker
+        LocalTranscriptionManager.registerInitialModeIfNeeded()
 
         // Register background tasks for transcription
         BackgroundTaskManager.shared.registerBackgroundTasks()

@@ -47,6 +47,12 @@ final class MeetingAnalysisRouter {
         await MainActor.run { MeetingAnalysisManager.shared.effectiveProvider }
     }
 
+    /// Non-nil when analysis was skipped because Apple Intelligence is unavailable. That is a
+    /// transcript-only outcome, not a failure, and must never fall back to Cloud analysis.
+    func unavailableReason(for error: Error) -> AnalysisUnavailableReason? {
+        (error as? MeetingAnalysisError)?.unavailableReason
+    }
+
     func failureDescription(for error: Error) -> String {
         if let localizedError = error as? LocalizedError,
            let description = localizedError.errorDescription,

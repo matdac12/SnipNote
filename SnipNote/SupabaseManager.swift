@@ -332,6 +332,23 @@ class SupabaseManager {
         return meetings
     }
 
+    /// IDs of meetings deleted on any device or the web app. The server records these
+    /// (trigger on `meetings`), and a device removes a local meeting only if its id is here.
+    func getMeetingDeletions() async throws -> Set<UUID> {
+        guard let userId = client.auth.currentUser?.id else {
+            throw SupabaseError.authRequired
+        }
+
+        let deletions: [MeetingDeletionRecord] = try await client
+            .from("meeting_deletions")
+            .select("meeting_id")
+            .eq("user_id", value: userId.uuidString)
+            .execute()
+            .value
+
+        return Set(deletions.map(\.meetingId))
+    }
+
     /// Delete meeting metadata from Supabase
     func deleteMeeting(id: UUID) async throws {
         guard let userId = client.auth.currentUser?.id else {
@@ -879,6 +896,14 @@ private struct ExistingTranscriptionJob: Codable {
     let id: UUID
 }
 
+private struct MeetingDeletionRecord: Decodable {
+    let meetingId: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case meetingId = "meeting_id"
+    }
+}
+
 struct CompletedTranscriptionJobPayload: Codable {
     let userId: UUID
     let meetingId: UUID
@@ -912,11 +937,9 @@ struct CompletedTranscriptionJobPayload: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(userId, forKey: .userId)
         try container.encode(meetingId, forKey: .meetingId)
-        if let audioURL {
-            try container.encode(audioURL, forKey: .audioURL)
-        } else {
-            try container.encodeNil(forKey: .audioURL)
-        }
+        // Omit the key when there is no path: an update must not null out an audio link that an
+        // earlier upload already stored, and an insert gets NULL from the column default.
+        try container.encodeIfPresent(audioURL, forKey: .audioURL)
         try container.encode(status, forKey: .status)
         try container.encode(transcript, forKey: .transcript)
         try container.encode(duration, forKey: .duration)

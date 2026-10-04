@@ -17,7 +17,10 @@ struct OnboardingView: View {
     @State private var microphonePermissionGranted = false
     @State private var notificationPermissionGranted = false
 
-    let totalPages = 4
+    /// Fresh installs default to Local mode, which needs the model downloaded before the first recording.
+    @State private var includesModelStep = LocalTranscriptionManager.shared.isLocalModeEnabled
+
+    private var totalPages: Int { includesModelStep ? 5 : 4 }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -43,11 +46,16 @@ struct OnboardingView: View {
                 AIFeaturesScreen()
                     .tag(2)
 
+                if includesModelStep {
+                    LocalModelScreen()
+                        .tag(3)
+                }
+
                 PermissionsScreen(
                     microphoneGranted: $microphonePermissionGranted,
                     notificationGranted: $notificationPermissionGranted
                 )
-                .tag(3)
+                .tag(totalPages - 1)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             .animation(.easeInOut(duration: 0.5), value: currentPage)
@@ -95,6 +103,8 @@ struct OnboardingView: View {
 
     private func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+        // Analytics stays silent until onboarding is done, so this is the first open it reports.
+        AnalyticsService.track(.appOpened)
         dismiss()
     }
 }
@@ -284,6 +294,37 @@ struct OnboardingFeatureRow: View {
 
             Spacer()
         }
+    }
+}
+
+struct LocalModelScreen: View {
+    @EnvironmentObject var themeManager: ThemeManager
+
+    var body: some View {
+        VStack(spacing: 30) {
+            Spacer()
+
+            Image(systemName: "arrow.down.circle")
+                .font(.system(size: 80))
+                .foregroundColor(themeManager.currentTheme.accentColor)
+
+            VStack(spacing: 16) {
+                Text(LocalizationManager.localizedAppString("onboarding.localModel.title"))
+                    .themedTitle()
+                    .multilineTextAlignment(.center)
+
+                Text(LocalizationManager.localizedAppString("onboarding.localModel.body"))
+                    .themedBody()
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+            }
+
+            LocalModelDownloadBanner()
+                .padding(.horizontal, 20)
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
     }
 }
 

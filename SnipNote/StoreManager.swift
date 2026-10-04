@@ -181,6 +181,10 @@ class StoreManager: ObservableObject {
                 await transaction.finish()
                 print("✅ [StoreKit] Transaction finished after successful credit: \(transaction.id)")
                 await MainActor.run { HapticService.shared.success() }
+                AnalyticsService.track(.purchaseCompleted(
+                    kind: product.type == .consumable ? .minutesPack : .subscription,
+                    productID: product.id
+                ))
 
                 // Sync transaction to Supabase after successful credit
                 let syncSuccess = await syncTransactionToSupabase(transaction)

@@ -27,4 +27,29 @@ final class MeetingStateTests: XCTestCase {
         meeting.localAudioPath = nil
         XCTAssertFalse(meeting.canRetryAnalysis)
     }
+
+    func testAnalysisUnavailableCompletesWithTranscriptAndNoError() {
+        let meeting = Meeting()
+        meeting.audioTranscript = "Actual transcript content"
+        meeting.shortSummary = "Generating overview..."
+        meeting.aiSummary = "Generating meeting summary..."
+        meeting.updateProcessingState(.generatingSummary)
+
+        meeting.markAnalysisUnavailable(.appleIntelligenceNotEnabled)
+
+        XCTAssertEqual(meeting.processingState, .completed)
+        XCTAssertNil(meeting.processingError)
+        XCTAssertEqual(meeting.analysisUnavailableReason, .appleIntelligenceNotEnabled)
+        XCTAssertTrue(meeting.shortSummary.isEmpty)
+        XCTAssertTrue(meeting.aiSummary.isEmpty)
+        XCTAssertTrue(meeting.hasTranscriptContent)
+        XCTAssertFalse(meeting.canRetryAnalysis)
+        XCTAssertTrue(meeting.canGenerateSummaryAfterUnavailable)
+
+        meeting.markAnalysisUnavailable(.deviceNotEligible)
+        XCTAssertFalse(meeting.canGenerateSummaryAfterUnavailable)
+
+        meeting.markCompleted()
+        XCTAssertNil(meeting.analysisUnavailableReason)
+    }
 }

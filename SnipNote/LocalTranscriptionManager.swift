@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import Network
 
 enum TranscriptionMode: String, CaseIterable, Identifiable {
     case cloud
@@ -40,6 +41,15 @@ enum LocalTranscriptionModel: String, CaseIterable, Identifiable {
 
     var approximateSizeDescription: String {
         self == .parakeetUltra ? "~630 MB" : "~220 MB"
+    }
+
+    var approximateBytes: Int64 {
+        self == .parakeetUltra ? 630_000_000 : 220_000_000
+    }
+
+    /// Free space needed before a download: the staged files plus the installed copy and Core ML compile output.
+    var requiredFreeBytes: Int64 {
+        approximateBytes * 2
     }
 
     static func restoredSelection(_ rawValue: String?) -> Self {
@@ -107,9 +117,34 @@ final class LocalTranscriptionManager: ObservableObject {
         static let downloadInFlightPrefix = "localTranscription.downloadInFlight."
     }
 
+    /// Settings written by earlier versions of the app. Before Local mode became the default every
+    /// install was effectively in Cloud mode, so any of these means the user is not a new install.
+    nonisolated private static let existingInstallMarkers = [
+        "hasCompletedOnboarding",
+        Keys.selectedModel,
+        "freeTierGranted",
+        "lastBalanceRefreshTime",
+        "store.hasEverPaid",
+        "hasSeenVoiceMemosTip",
+    ]
+
+    /// Saves the mode for this install the first time it runs: Local for a new install, Cloud for an
+    /// existing one that never picked a mode. It must run once at launch, before onboarding sets any
+    /// marker, and it saves the result so later launches never re-derive it. Does nothing once a mode is saved.
+    nonisolated static func registerInitialModeIfNeeded(defaults: UserDefaults = .standard) {
+        guard defaults.string(forKey: Keys.transcriptionMode) == nil else { return }
+
+        let isExistingInstall = existingInstallMarkers.contains { defaults.object(forKey: $0) != nil }
+        defaults.set(
+            (isExistingInstall ? TranscriptionMode.cloud : TranscriptionMode.local).rawValue,
+            forKey: Keys.transcriptionMode
+        )
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
+        Self.registerInitialModeIfNeeded(defaults: defaults)
         let storedMode = defaults.string(forKey: Keys.transcriptionMode)
             .flatMap(TranscriptionMode.init(rawValue:))
             ?? .cloud
@@ -202,6 +237,29 @@ final class LocalTranscriptionManager: ObservableObject {
         }
     }
 
+    /// Starts a download after checking free space and the network type. Returns true when nothing started
+    /// because the device is on cellular or a constrained network; call again with `allowCellular: true`
+    /// once the user confirms. A low-storage failure is reported through `modelStatuses`.
+    func startDownload(_ model: LocalTranscriptionModel, allowCellular: Bool = false) async -> Bool {
+        guard !downloadingModels.contains(model) else { return false }
+
+        if let available = availableDiskBytes(), available < model.requiredFreeBytes {
+            interruptedModels.remove(model)
+            let needed = ByteCountFormatter.string(fromByteCount: model.requiredFreeBytes, countStyle: .file)
+            modelStatuses[model] = .failed(
+                LocalizationManager.localizedAppString("transcription.local.error.insufficientSpace", needed)
+            )
+            return false
+        }
+
+        if !allowCellular, await isOnMeteredNetwork() {
+            return true
+        }
+
+        await download(model)
+        return false
+    }
+
     func delete(_ model: LocalTranscriptionModel) async {
         guard !downloadingModels.contains(model) else { return }
 
@@ -229,6 +287,27 @@ final class LocalTranscriptionManager: ObservableObject {
 
             interruptedModels.insert(model)
             modelStatuses[model] = .failed(interruptedDownloadMessage())
+        }
+    }
+
+    private func availableDiskBytes() -> Int64? {
+        let values = try? URL(fileURLWithPath: NSHomeDirectory())
+            .resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+        return values?.volumeAvailableCapacityForImportantUsage
+    }
+
+    private func isOnMeteredNetwork() async -> Bool {
+        final class Probe: @unchecked Sendable { var answered = false }
+        let probe = Probe()
+        return await withCheckedContinuation { continuation in
+            let monitor = NWPathMonitor()
+            monitor.pathUpdateHandler = { path in
+                guard !probe.answered else { return }
+                probe.answered = true
+                monitor.cancel()
+                continuation.resume(returning: path.isExpensive || path.isConstrained)
+            }
+            monitor.start(queue: DispatchQueue(label: "LocalTranscriptionManager.networkProbe"))
         }
     }
 

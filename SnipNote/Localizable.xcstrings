@@ -4,15 +4,24 @@
     "" : {
 
     },
-    " • " : {
-
-    },
     "-%@" : {
 
     },
-    "\"...%@...\"" : {},
+    "\"...%@...\"" : {
+
+    },
     "%" : {
 
+    },
+    "%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
     },
     "%@ / %@" : {
       "localizations" : {
@@ -44,13 +53,36 @@
         }
       }
     },
+    "%@: %lld min" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$lld min"
+          }
+        }
+      }
+    },
     "%@×" : {
 
     },
     "%lld" : {
 
     },
+    "%lld %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@"
+          }
+        }
+      }
+    },
     "%lld Minutes" : {
+
+    },
+    "%lld recording days in the last 4 weeks" : {
 
     },
     "%lld%%" : {
@@ -63,686 +95,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld%% Completato"
-          }
-        }
-      }
-    },
-    "settings.account.about" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "About SnipNote"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Info su SnipNote"
-          }
-        }
-      }
-    },
-    "settings.aiAnalysis.option.apple" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple Intelligence"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apple Intelligence"
-          }
-        }
-      }
-    },
-    "settings.aiAnalysis.short" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI summaries"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riepiloghi AI"
-          }
-        }
-      }
-    },
-    "settings.pass.accessibilityHint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Double-tap to show your usage"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tocca due volte per vedere il tuo utilizzo"
-          }
-        }
-      }
-    },
-    "settings.pass.allTime" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All time"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Totale"
-          }
-        }
-      }
-    },
-    "settings.pass.buyMinutes" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buy minutes"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Acquista minuti"
-          }
-        }
-      }
-    },
-    "settings.pass.managePlan" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manage plan"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gestisci piano"
-          }
-        }
-      }
-    },
-    "settings.pass.minutesLeft" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minutes left"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minuti rimasti"
-          }
-        }
-      }
-    },
-    "settings.pass.outOfMinutes" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Out of minutes"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minuti esauriti"
-          }
-        }
-      }
-    },
-    "settings.pass.planLine.free" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minute packs never expire"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I pacchetti di minuti non scadono"
-          }
-        }
-      }
-    },
-    "settings.pass.planLine.pro" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unused minutes roll over"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I minuti non usati si accumulano"
-          }
-        }
-      }
-    },
-    "settings.pass.planType.free" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minutes-based"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A minuti"
-          }
-        }
-      }
-    },
-    "settings.pass.tapForUsage" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap for usage"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tocca per l'utilizzo"
-          }
-        }
-      }
-    },
-    "settings.pass.upgrade" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Upgrade to Pro"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Passa a Pro"
-          }
-        }
-      }
-    },
-    "settings.pass.usageTitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your usage"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il tuo utilizzo"
-          }
-        }
-      }
-    },
-    "settings.plan.active" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Active"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Attivo"
-          }
-        }
-      }
-    },
-    "settings.plan.annual.allowance" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "9,600 minutes per year"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "9.600 minuti all'anno"
-          }
-        }
-      }
-    },
-    "settings.plan.annual.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro Annual"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro Annuale"
-          }
-        }
-      }
-    },
-    "settings.plan.buyExtra" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buy extra minutes"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Acquista minuti extra"
-          }
-        }
-      }
-    },
-    "settings.plan.footer.free" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro plans include minutes every period. Minute packs work with or without Pro."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I piani Pro includono minuti a ogni periodo. I pacchetti di minuti funzionano con o senza Pro."
-          }
-        }
-      }
-    },
-    "settings.plan.footer.pro" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change plan, cancel or see renewal dates in your App Store subscriptions."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cambia piano, annulla o controlla il rinnovo nei tuoi abbonamenti App Store."
-          }
-        }
-      }
-    },
-    "settings.plan.footer.restore" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restore if you bought on another device or reinstalled SnipNote."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ripristina se hai acquistato su un altro dispositivo o hai reinstallato SnipNote."
-          }
-        }
-      }
-    },
-    "settings.plan.free.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pay as you go with minute packs. Packs never expire."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paghi solo ciò che usi con i pacchetti di minuti. I pacchetti non scadono."
-          }
-        }
-      }
-    },
-    "settings.plan.minutePacks" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Minute packs"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pacchetti di minuti"
-          }
-        }
-      }
-    },
-    "settings.plan.minutePacks.value" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Never expire"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non scadono"
-          }
-        }
-      }
-    },
-    "settings.plan.monthly.allowance" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "800 minutes per month"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "800 minuti al mese"
-          }
-        }
-      }
-    },
-    "settings.plan.monthly.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro Monthly"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro Mensile"
-          }
-        }
-      }
-    },
-    "settings.plan.pro.description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unused minutes roll over, and you can buy extra packs anytime."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I minuti non usati si accumulano e puoi acquistare pacchetti extra in qualsiasi momento."
-          }
-        }
-      }
-    },
-    "settings.plan.refreshStatus" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Refresh subscription status"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiorna stato abbonamento"
-          }
-        }
-      }
-    },
-    "settings.plan.section.purchases" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Purchases"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Acquisti"
-          }
-        }
-      }
-    },
-    "settings.plan.seePlans" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "See Pro plans"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vedi i piani Pro"
-          }
-        }
-      }
-    },
-    "settings.plan.subscription" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Subscription"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abbonamento"
-          }
-        }
-      }
-    },
-    "settings.plan.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your plan"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il tuo piano"
-          }
-        }
-      }
-    },
-    "settings.plan.weekly.allowance" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "200 minutes per week"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "200 minuti a settimana"
-          }
-        }
-      }
-    },
-    "settings.plan.weekly.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro Weekly"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro Settimanale"
-          }
-        }
-      }
-    },
-    "settings.section.planBilling.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plan & billing"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Piano e pagamenti"
-          }
-        }
-      }
-    },
-    "settings.section.preferences.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preferences"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preferenze"
-          }
-        }
-      }
-    },
-    "settings.transcription.menu.local" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "On this iPhone"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Su questo iPhone"
-          }
-        }
-      }
-    },
-    "settings.transcription.menu.manage" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manage models…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gestisci modelli…"
-          }
-        }
-      }
-    },
-    "settings.transcription.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcription"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione"
           }
         }
       }
@@ -1670,16 +1022,7 @@
     "BEST VALUE" : {
 
     },
-    "Buy Extra Minutes" : {
-
-    },
     "Buy Minutes" : {
-
-    },
-    "Buy Minutes Packs" : {
-
-    },
-    "Buy Packs" : {
 
     },
     "Cancel" : {
@@ -1775,6 +1118,9 @@
           }
         }
       }
+    },
+    "Couldn't write a summary this time. Please try again in a moment." : {
+
     },
     "Create Account" : {
       "localizations" : {
@@ -2083,9 +1429,6 @@
         }
       }
     },
-    "EXTRA MINUTES" : {
-
-    },
     "Extracting..." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2142,9 +1485,6 @@
         }
       }
     },
-    "Free Tier - Minutes-based usage" : {
-
-    },
     "Full Transcript" : {
       "localizations" : {
         "it" : {
@@ -2154,9 +1494,6 @@
           }
         }
       }
-    },
-    "Get instant minutes that never expire" : {
-
     },
     "Get premium features with generous minute allowances" : {
 
@@ -2873,6 +2210,9 @@
         }
       }
     },
+    "min" : {
+
+    },
     "minutes" : {
 
     },
@@ -2905,9 +2245,6 @@
 
     },
     "Need More Minutes?" : {
-
-    },
-    "NEED MORE MINUTES?" : {
 
     },
     "New Transcription" : {
@@ -2943,6 +2280,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "onboarding.localModel.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SnipNote transcribes on your device, free and without an account. Download the model once; you can keep going while it downloads."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SnipNote trascrive sul tuo dispositivo, gratis e senza account. Scarica il modello una volta sola; puoi continuare mentre scarica."
+          }
+        }
+      }
+    },
+    "onboarding.localModel.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get Local mode ready"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prepara la modalità locale"
           }
         }
       }
@@ -3443,6 +2814,23 @@
         }
       }
     },
+    "settings.account.about" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About SnipNote"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Info su SnipNote"
+          }
+        }
+      }
+    },
     "settings.account.deleteAccount" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3766,6 +3154,23 @@
         }
       }
     },
+    "settings.aiAnalysis.option.apple" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple Intelligence"
+          }
+        }
+      }
+    },
     "settings.aiAnalysis.provider" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3796,6 +3201,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Scegli quale provider genera panoramiche e riassunti delle trascrizioni."
+          }
+        }
+      }
+    },
+    "settings.aiAnalysis.short" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI summaries"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riepiloghi AI"
+          }
+        }
+      }
+    },
+    "settings.analytics.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sends anonymous usage events, like opening the app. Never your email, account, recordings or transcripts."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia eventi d'uso anonimi, come l'apertura dell'app. Mai la tua email, il tuo account, le registrazioni o le trascrizioni."
+          }
+        }
+      }
+    },
+    "settings.analytics.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share Anonymous Usage Data"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi dati d'uso anonimi"
           }
         }
       }
@@ -4361,6 +3817,550 @@
         }
       }
     },
+    "settings.pass.accessibilityHint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double-tap to show your usage"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocca due volte per vedere il tuo utilizzo"
+          }
+        }
+      }
+    },
+    "settings.pass.allTime" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All time"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Totale"
+          }
+        }
+      }
+    },
+    "settings.pass.buyMinutes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buy minutes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acquista minuti"
+          }
+        }
+      }
+    },
+    "settings.pass.managePlan" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestisci piano"
+          }
+        }
+      }
+    },
+    "settings.pass.minutesLeft" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minutes left"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minuti rimasti"
+          }
+        }
+      }
+    },
+    "settings.pass.outOfMinutes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Out of minutes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minuti esauriti"
+          }
+        }
+      }
+    },
+    "settings.pass.planLine.free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minute packs never expire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I pacchetti di minuti non scadono"
+          }
+        }
+      }
+    },
+    "settings.pass.planLine.pro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unused minutes roll over"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I minuti non usati si accumulano"
+          }
+        }
+      }
+    },
+    "settings.pass.planType.free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minutes-based"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A minuti"
+          }
+        }
+      }
+    },
+    "settings.pass.tapForUsage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap for usage"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tocca per l'utilizzo"
+          }
+        }
+      }
+    },
+    "settings.pass.upgrade" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade to Pro"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passa a Pro"
+          }
+        }
+      }
+    },
+    "settings.pass.usageTitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your usage"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo utilizzo"
+          }
+        }
+      }
+    },
+    "settings.plan.active" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attivo"
+          }
+        }
+      }
+    },
+    "settings.plan.annual.allowance" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "9,600 minutes per year"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "9.600 minuti all'anno"
+          }
+        }
+      }
+    },
+    "settings.plan.annual.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Annual"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Annuale"
+          }
+        }
+      }
+    },
+    "settings.plan.buyExtra" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buy extra minutes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acquista minuti extra"
+          }
+        }
+      }
+    },
+    "settings.plan.footer.free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro plans include minutes every period. Minute packs work with or without Pro."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I piani Pro includono minuti a ogni periodo. I pacchetti di minuti funzionano con o senza Pro."
+          }
+        }
+      }
+    },
+    "settings.plan.footer.pro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change plan, cancel or see renewal dates in your App Store subscriptions."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambia piano, annulla o controlla il rinnovo nei tuoi abbonamenti App Store."
+          }
+        }
+      }
+    },
+    "settings.plan.footer.restore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore if you bought on another device or reinstalled SnipNote."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripristina se hai acquistato su un altro dispositivo o hai reinstallato SnipNote."
+          }
+        }
+      }
+    },
+    "settings.plan.free.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pay as you go with minute packs. Packs never expire."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paghi solo ciò che usi con i pacchetti di minuti. I pacchetti non scadono."
+          }
+        }
+      }
+    },
+    "settings.plan.minutePacks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minute packs"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pacchetti di minuti"
+          }
+        }
+      }
+    },
+    "settings.plan.minutePacks.value" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Never expire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non scadono"
+          }
+        }
+      }
+    },
+    "settings.plan.monthly.allowance" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "800 minutes per month"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "800 minuti al mese"
+          }
+        }
+      }
+    },
+    "settings.plan.monthly.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Monthly"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Mensile"
+          }
+        }
+      }
+    },
+    "settings.plan.pro.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unused minutes roll over, and you can buy extra packs anytime."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I minuti non usati si accumulano e puoi acquistare pacchetti extra in qualsiasi momento."
+          }
+        }
+      }
+    },
+    "settings.plan.refreshStatus" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh subscription status"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorna stato abbonamento"
+          }
+        }
+      }
+    },
+    "settings.plan.section.purchases" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Purchases"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acquisti"
+          }
+        }
+      }
+    },
+    "settings.plan.seePlans" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See Pro plans"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vedi i piani Pro"
+          }
+        }
+      }
+    },
+    "settings.plan.subscription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscription"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbonamento"
+          }
+        }
+      }
+    },
+    "settings.plan.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your plan"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il tuo piano"
+          }
+        }
+      }
+    },
+    "settings.plan.weekly.allowance" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "200 minutes per week"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "200 minuti a settimana"
+          }
+        }
+      }
+    },
+    "settings.plan.weekly.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Weekly"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Settimanale"
+          }
+        }
+      }
+    },
     "settings.section.account.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4425,6 +4425,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifiche"
+          }
+        }
+      }
+    },
+    "settings.section.planBilling.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plan & billing"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piano e pagamenti"
+          }
+        }
+      }
+    },
+    "settings.section.preferences.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preferences"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preferenze"
           }
         }
       }
@@ -4561,6 +4595,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impostazioni"
+          }
+        }
+      }
+    },
+    "settings.transcription.menu.local" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On this iPhone"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Su questo iPhone"
+          }
+        }
+      }
+    },
+    "settings.transcription.menu.manage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage models…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gestisci modelli…"
+          }
+        }
+      }
+    },
+    "settings.transcription.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcription"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizione"
           }
         }
       }
@@ -4722,9 +4807,6 @@
           }
         }
       }
-    },
-    "SnipNote" : {
-
     },
     "SNIPNOTE" : {
 
@@ -4959,6 +5041,176 @@
         }
       }
     },
+    "transcription.local.banner.cellular.cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not now"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non ora"
+          }
+        }
+      }
+    },
+    "transcription.local.banner.cellular.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Local model is %@. You're not on Wi-Fi, so this will use mobile data."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il modello locale pesa %@. Non sei su Wi-Fi, quindi userà dati mobili."
+          }
+        }
+      }
+    },
+    "transcription.local.banner.cellular.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download over cellular?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scaricare con rete cellulare?"
+          }
+        }
+      }
+    },
+    "transcription.local.banner.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One-time download of %@. Recording unlocks when it's ready."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download una tantum di %@. La registrazione si sblocca quando è pronto."
+          }
+        }
+      }
+    },
+    "transcription.local.banner.download" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica"
+          }
+        }
+      }
+    },
+    "transcription.local.banner.downloading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading Local model… %lld%%"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download del modello locale… %lld%%"
+          }
+        }
+      }
+    },
+    "transcription.local.banner.recordingLocked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording unlocks when the model is ready."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La registrazione si sblocca quando il modello è pronto."
+          }
+        }
+      }
+    },
+    "transcription.local.banner.retry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova"
+          }
+        }
+      }
+    },
+    "transcription.local.banner.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download the Local model"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica il modello locale"
+          }
+        }
+      }
+    },
+    "transcription.local.banner.verifying" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing the Local model…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparazione del modello locale…"
+          }
+        }
+      }
+    },
     "transcription.local.error.downloadIncomplete" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5027,6 +5279,23 @@
         }
       }
     },
+    "transcription.local.error.insufficientSpace" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough free space. Free up about %@ and try again."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spazio libero insufficiente. Libera circa %@ e riprova."
+          }
+        }
+      }
+    },
     "transcription.local.error.modelBusy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5074,6 +5343,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Parakeet non supporta la lingua selezionata (%@). Scegli una lingua europea supportata."
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetRedux.attribution" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Redux by Moondream, based on NVIDIA Parakeet. Core ML conversion by Fluid Inference."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Redux di Moondream, basato su NVIDIA Parakeet. Conversione Core ML di Fluid Inference."
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetRedux.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compact multilingual model"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello multilingue compatto"
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetRedux.hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "25 European languages, including English and Italian. Uses less storage than Ultra. Initial setup may take several minutes."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "25 lingue europee, tra cui inglese e italiano. Occupa meno spazio di Ultra. La configurazione iniziale può richiedere diversi minuti."
+          }
+        }
+      }
+    },
+    "transcription.local.model.parakeetRedux.name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Redux"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Parakeet Redux"
           }
         }
       }
@@ -5451,6 +5788,9 @@
     "Try a different search term" : {
 
     },
+    "Try again" : {
+
+    },
     "Two Ways to Capture" : {
       "localizations" : {
         "it" : {
@@ -5533,74 +5873,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hai raggiunto il tuo limite gratuito di %lld trascrizioni. Passa a Pro per accesso illimitato."
-          }
-        }
-      }
-    },
-    "transcription.local.model.parakeetRedux.name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Parakeet Redux"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Parakeet Redux"
-          }
-        }
-      }
-    },
-    "transcription.local.model.parakeetRedux.detail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Compact multilingual model"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modello multilingue compatto"
-          }
-        }
-      }
-    },
-    "transcription.local.model.parakeetRedux.hint" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "25 European languages, including English and Italian. Uses less storage than Ultra. Initial setup may take several minutes."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "25 lingue europee, tra cui inglese e italiano. Occupa meno spazio di Ultra. La configurazione iniziale può richiedere diversi minuti."
-          }
-        }
-      }
-    },
-    "transcription.local.model.parakeetRedux.attribution" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Parakeet Redux by Moondream, based on NVIDIA Parakeet. Core ML conversion by Fluid Inference."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Parakeet Redux di Moondream, basato su NVIDIA Parakeet. Conversione Core ML di Fluid Inference."
           }
         }
       }

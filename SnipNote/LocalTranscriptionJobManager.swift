@@ -190,6 +190,12 @@ actor LocalTranscriptionJobManager {
                 notifyUser: false
             )
         } catch {
+            // Apple Intelligence unavailable is a transcript-only outcome, not a failure.
+            if let reason = MeetingAnalysisRouter.shared.unavailableReason(for: error) {
+                await finishTranscriptOnly(for: context, reason: reason)
+                return
+            }
+
             let message = await failureMessage(for: context.meetingId, error: error)
             await failJob(meetingId: context.meetingId, message: message, notifyUser: true)
             print("❌ [LocalJobManager] Local job failed for meeting \(context.meetingId): \(error)")
@@ -348,6 +354,7 @@ actor LocalTranscriptionJobManager {
             for: context.meetingId,
             duration: context.sourceAudioDuration
         )
+        AnalyticsService.track(.localTranscriptCompleted(length: AnalyticsLengthBucket(duration: context.sourceAudioDuration)))
         return (transcript, debitSucceeded)
     }
 
@@ -472,6 +479,39 @@ actor LocalTranscriptionJobManager {
             await sendCompletionNotification(for: context.meetingId, meetingName: context.meetingName)
         } else {
             await sendCompletionNotification(for: context.meetingId, meetingName: context.meetingName)
+        }
+    }
+
+    /// Finishes a meeting whose transcript is saved but whose analysis cannot run (Apple
+    /// Intelligence unavailable). Free-forever promise: transcript only, no Cloud fallback,
+    /// no Minutes. The meeting ends completed, not failed.
+    private func finishTranscriptOnly(for context: JobContext, reason: AnalysisUnavailableReason) async {
+        print("ℹ️ [LocalJobManager] Analysis unavailable (\(reason.rawValue)) for meeting \(context.meetingId) - saving transcript only")
+        do {
+            try await updateMeeting(context.meetingId) { meeting, _ in
+                meeting.markAnalysisUnavailable(reason)
+                // Local transcription is free: nothing to debit.
+                meeting.markMinutesDebitSettled()
+
+                if let localPath = meeting.localAudioPath,
+                   FileManager.default.fileExists(atPath: localPath) {
+                    try? FileManager.default.removeItem(atPath: localPath)
+                    meeting.localAudioPath = nil
+                }
+            }
+
+            let transcript = await readMeetingValue(context.meetingId, value: { $0.audioTranscript }) ?? ""
+            try await syncSuccessfulMeeting(
+                meetingId: context.meetingId,
+                transcript: transcript,
+                overview: "",
+                summary: "",
+                duration: context.sourceAudioDuration
+            )
+
+            await sendCompletionNotification(for: context.meetingId, meetingName: context.meetingName, transcriptOnly: true)
+        } catch {
+            print("❌ [LocalJobManager] Failed to finish transcript-only meeting \(context.meetingId): \(error)")
         }
     }
 
@@ -602,13 +642,14 @@ actor LocalTranscriptionJobManager {
         }
     }
 
-    private func sendCompletionNotification(for meetingId: UUID, meetingName: String) async {
+    private func sendCompletionNotification(for meetingId: UUID, meetingName: String, transcriptOnly: Bool = false) async {
         _ = await MainActor.run {
             NotificationService.shared.cancelEstimatedCompletionNotification(for: meetingId)
             Task {
                 await NotificationService.shared.sendProcessingCompleteNotification(
                     for: meetingId,
-                    meetingName: meetingName
+                    meetingName: meetingName,
+                    transcriptOnly: transcriptOnly
                 )
             }
         }

@@ -240,7 +240,7 @@ struct MeetingsView: View {
             Text("Finish or cancel the current recording or processing before opening the shared audio.")
         }
         .sheet(isPresented: $showingPaywall) {
-            PaywallView()
+            PaywallView(source: .meetings)
         }
     }
     
@@ -397,6 +397,12 @@ struct MeetingRowView: View {
 
             if let preview = meeting.summaryPreview(maxLength: 92) {
                 Text(preview)
+                    .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
+                    .foregroundColor(theme.secondaryTextColor)
+                    .lineLimit(1)
+            } else if let unavailableReason = meeting.effectiveAnalysisUnavailableReason {
+                // Transcript saved without a summary (Apple Intelligence unavailable): not an error.
+                Text(unavailableReason.listLabel)
                     .font(.system(.caption, design: theme.useMonospacedFont ? .monospaced : .default))
                     .foregroundColor(theme.secondaryTextColor)
                     .lineLimit(1)

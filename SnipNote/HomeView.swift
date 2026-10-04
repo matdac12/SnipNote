@@ -67,6 +67,8 @@ struct HomeView: View {
                     greetingHeader
                         .padding(.bottom, 6)
 
+                    LocalModelDownloadBanner()
+
                     // MARK: - Record + Streak
                     RecordStreakWidget(
                         activity: activity,
@@ -156,7 +158,7 @@ struct HomeView: View {
                 }
             }
             .sheet(isPresented: $showingPaywall) {
-                PaywallView()
+                PaywallView(source: .home)
             }
             .fileImporter(
                 isPresented: $showingFileImporter,

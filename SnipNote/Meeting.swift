@@ -117,6 +117,10 @@ final class Meeting {
     var pendingMinutesDebitError: String?
     var localSpeechPlanJSON: String?
     var localSpeechPlanFingerprint: String?
+    /// Set when the meeting finished with a transcript only because Apple Intelligence
+    /// is unavailable (device, Settings or language). Not an error. Optional so existing
+    /// stores migrate without a default value.
+    var analysisUnavailableReasonRaw: String?
 
     // Computed property for processing state
     var processingState: ProcessingState {
@@ -126,6 +130,30 @@ final class Meeting {
         set {
             processingStateRaw = newValue.rawValue
         }
+    }
+
+    var analysisUnavailableReason: AnalysisUnavailableReason? {
+        get {
+            analysisUnavailableReasonRaw.flatMap(AnalysisUnavailableReason.init(rawValue:))
+        }
+        set {
+            analysisUnavailableReasonRaw = newValue?.rawValue
+        }
+    }
+
+    /// The reason to show. The stored reason is local-only, so a meeting that arrived by sync has
+    /// none; a completed meeting with a transcript and no summary is transcript-only on any device.
+    var effectiveAnalysisUnavailableReason: AnalysisUnavailableReason? {
+        if let analysisUnavailableReason {
+            return analysisUnavailableReason
+        }
+
+        let hasNoSummary = shortSummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && aiSummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        guard processingState == .completed, hasTranscriptContent, hasNoSummary else {
+            return nil
+        }
+        return .unknown
     }
 
     var transcriptionBackend: TranscriptionBackend? {
@@ -251,6 +279,7 @@ final class Meeting {
         self.pendingMinutesDebitError = nil
         self.localSpeechPlanJSON = nil
         self.localSpeechPlanFingerprint = nil
+        self.analysisUnavailableReasonRaw = nil
     }
     
     func startRecording() {
@@ -288,6 +317,7 @@ final class Meeting {
     func markCompleted() {
         processingState = .completed
         processingError = nil
+        analysisUnavailableReason = nil
         dateModified = Date()
     }
 
@@ -323,6 +353,7 @@ final class Meeting {
         pausedAt = nil
         pauseReason = nil
         resumePhaseRaw = nil
+        analysisUnavailableReason = nil
         dateModified = Date()
     }
 
@@ -406,6 +437,18 @@ final class Meeting {
         dateModified = Date()
     }
 
+    /// Finishes the meeting as completed with its transcript only. Used when Apple Intelligence
+    /// cannot analyze (free promise: transcript only). Deliberately not an error state and
+    /// never touches Minutes. Summaries are cleared so no placeholder text lingers.
+    func markAnalysisUnavailable(_ reason: AnalysisUnavailableReason) {
+        // Single funnel for every analysis path, so the event is sent here. Reason is an enum only.
+        AnalyticsService.track(.analysisUnavailable(reason: reason.analyticsReason))
+        shortSummary = ""
+        aiSummary = ""
+        markLocalJobCompleted(stage: "Transcript ready")
+        analysisUnavailableReason = reason
+    }
+
     func markLocalJobCompleted(stage: String = "Completed") {
         processingPhase = .completed
         currentStageDescription = stage
@@ -463,6 +506,13 @@ final class Meeting {
             && hasTranscriptContent
             && localAudioPath != nil
             && (overviewPending || summaryPending)
+    }
+
+    /// Completed with a transcript only; the user may be able to fix the cause and generate a summary.
+    var canGenerateSummaryAfterUnavailable: Bool {
+        processingState == .completed
+            && hasTranscriptContent
+            && (effectiveAnalysisUnavailableReason?.canRetry ?? false)
     }
 
     var canRetry: Bool {

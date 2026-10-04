@@ -59,7 +59,7 @@ struct UpgradePromptView: View {
         .background(themeManager.currentTheme.materialStyle)
         .cornerRadius(themeManager.currentTheme.cornerRadius)
         .sheet(isPresented: $showingPaywall) {
-            PaywallView()
+            PaywallView(source: .upgradePrompt)
         }
     }
 }
@@ -86,7 +86,7 @@ struct UpgradeBadge: View {
             .cornerRadius(4)
         }
         .sheet(isPresented: $showingPaywall) {
-            PaywallView()
+            PaywallView(source: .upgradePrompt)
         }
     }
 }

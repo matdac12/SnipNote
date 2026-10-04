@@ -31,6 +31,8 @@ struct MeetingDetailView: View {
 
     // Retry functionality
     @State private var isRetrying = false
+    @State private var isGeneratingSummaryAfterUnavailable = false
+    @State private var summaryAfterUnavailableFailed = false
     @StateObject private var minutesManager = MinutesManager.shared
 
     // Force refresh for processing updates
@@ -105,8 +107,12 @@ struct MeetingDetailView: View {
                             minutesSyncNoticeCard
                         }
 
-                        overviewSection
-                        summarySection
+                        if let unavailableReason = meeting.effectiveAnalysisUnavailableReason {
+                            analysisUnavailableCard(unavailableReason)
+                        } else {
+                            overviewSection
+                            summarySection
+                        }
                         transcriptSection
                     }
                     .padding()
@@ -161,6 +167,7 @@ struct MeetingDetailView: View {
                         meeting.progressPercent != fetchedMeeting.progressPercent ||
                         meeting.currentStageDescription != fetchedMeeting.currentStageDescription ||
                         meeting.processingError != fetchedMeeting.processingError ||
+                        meeting.analysisUnavailableReasonRaw != fetchedMeeting.analysisUnavailableReasonRaw ||
                         meeting.hasPendingMinutesDebit != fetchedMeeting.hasPendingMinutesDebit ||
                         meeting.pendingMinutesDebitError != fetchedMeeting.pendingMinutesDebitError ||
                         meeting.pauseReason != fetchedMeeting.pauseReason ||
@@ -178,6 +185,7 @@ struct MeetingDetailView: View {
                     meeting.progressPercent = fetchedMeeting.progressPercent
                     meeting.currentStageDescription = fetchedMeeting.currentStageDescription
                     meeting.processingError = fetchedMeeting.processingError
+                    meeting.analysisUnavailableReasonRaw = fetchedMeeting.analysisUnavailableReasonRaw
                     meeting.hasPendingMinutesDebit = fetchedMeeting.hasPendingMinutesDebit
                     meeting.pendingMinutesDebitError = fetchedMeeting.pendingMinutesDebitError
                     meeting.pauseReason = fetchedMeeting.pauseReason
@@ -209,6 +217,7 @@ struct MeetingDetailView: View {
                             meeting.progressPercent != fetchedMeeting.progressPercent ||
                             meeting.currentStageDescription != fetchedMeeting.currentStageDescription ||
                             meeting.processingError != fetchedMeeting.processingError ||
+                            meeting.analysisUnavailableReasonRaw != fetchedMeeting.analysisUnavailableReasonRaw ||
                             meeting.hasPendingMinutesDebit != fetchedMeeting.hasPendingMinutesDebit ||
                             meeting.pendingMinutesDebitError != fetchedMeeting.pendingMinutesDebitError ||
                             meeting.pauseReason != fetchedMeeting.pauseReason ||
@@ -226,6 +235,7 @@ struct MeetingDetailView: View {
                         meeting.progressPercent = fetchedMeeting.progressPercent
                         meeting.currentStageDescription = fetchedMeeting.currentStageDescription
                         meeting.processingError = fetchedMeeting.processingError
+                        meeting.analysisUnavailableReasonRaw = fetchedMeeting.analysisUnavailableReasonRaw
                         meeting.hasPendingMinutesDebit = fetchedMeeting.hasPendingMinutesDebit
                         meeting.pendingMinutesDebitError = fetchedMeeting.pendingMinutesDebitError
                         meeting.pauseReason = fetchedMeeting.pauseReason
@@ -509,6 +519,62 @@ struct MeetingDetailView: View {
         .shadow(color: Color.black.opacity(theme.colorScheme == .dark ? 0.5 : 0.18), radius: 4, x: 0, y: 2)
     }
     
+    /// Non-error notice shown instead of Overview/Summary when Apple Intelligence cannot analyze.
+    /// The transcript below is complete; this only explains what is missing and what to do.
+    private func analysisUnavailableCard(_ reason: AnalysisUnavailableReason) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .foregroundColor(theme.accentColor)
+                    .font(.title3)
+
+                Text(reason.title)
+                    .font(.system(.headline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                    .foregroundColor(theme.textColor)
+            }
+
+            Text(reason.message)
+                .font(.system(.subheadline, design: theme.useMonospacedFont ? .monospaced : .default))
+                .foregroundColor(theme.secondaryTextColor)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if meeting.canGenerateSummaryAfterUnavailable {
+                Button {
+                    generateSummaryAfterUnavailable()
+                } label: {
+                    HStack(spacing: 6) {
+                        if isGeneratingSummaryAfterUnavailable {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        Text("Try again")
+                    }
+                    .font(.system(.subheadline, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
+                    .foregroundColor(theme.backgroundColor)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(theme.accentColor)
+                    .cornerRadius(theme.cornerRadius)
+                }
+                .disabled(isGeneratingSummaryAfterUnavailable || isAnalysisPreview)
+                .padding(.top, 4)
+
+                if summaryAfterUnavailableFailed {
+                    Text("Couldn't write a summary this time. Please try again in a moment.")
+                        .font(.system(.footnote, design: theme.useMonospacedFont ? .monospaced : .default))
+                        .foregroundColor(theme.secondaryTextColor)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.materialStyle)
+        .cornerRadius(theme.cornerRadius)
+        .shadow(color: Color.black.opacity(theme.colorScheme == .dark ? 0.5 : 0.18), radius: 4, x: 0, y: 2)
+    }
+
     private var overviewSection: some View {
         editorialSection(
             title: "Overview",
@@ -1392,6 +1458,13 @@ struct MeetingDetailView: View {
         }
     }
 
+    private func generateSummaryAfterUnavailable() {
+        guard !isAnalysisPreview else { return }
+        Task {
+            await performGenerateSummaryAfterUnavailable()
+        }
+    }
+
     private func resumeLocalJob() {
         guard !isAnalysisPreview else { return }
         Task {
@@ -1615,7 +1688,19 @@ struct MeetingDetailView: View {
 
         } catch {
             print("Error during retry: \(error)")
-            if meeting.hasTranscriptContent {
+            if meeting.hasTranscriptContent, let reason = MeetingAnalysisRouter.shared.unavailableReason(for: error) {
+                // Apple Intelligence unavailable: transcript-only outcome, not an error.
+                meeting.markAnalysisUnavailable(reason)
+                try? modelContext.save()
+                syncTranscriptOnlyMeeting()
+                NotificationService.shared.cancelEstimatedCompletionNotification(for: meeting.id)
+                await NotificationService.shared.sendProcessingCompleteNotification(
+                    for: meeting.id,
+                    meetingName: meeting.name,
+                    transcriptOnly: true
+                )
+                return
+            } else if meeting.hasTranscriptContent {
                 let analysisError = MeetingAnalysisRouter.shared.failureDescription(for: error)
                 meeting.setProcessingError("Transcript saved, but AI analysis failed again. \(analysisError)")
             } else {
@@ -1691,9 +1776,102 @@ struct MeetingDetailView: View {
             }
         } catch {
             print("Error during AI retry: \(error)")
-            let analysisError = MeetingAnalysisRouter.shared.failureDescription(for: error)
-            meeting.setProcessingError("Transcript saved, but AI analysis failed again. \(analysisError)")
+            if let reason = MeetingAnalysisRouter.shared.unavailableReason(for: error) {
+                // Apple Intelligence unavailable: transcript-only outcome, not an error.
+                meeting.markAnalysisUnavailable(reason)
+                try? modelContext.save()
+                syncTranscriptOnlyMeeting()
+                return
+            } else {
+                let analysisError = MeetingAnalysisRouter.shared.failureDescription(for: error)
+                meeting.setProcessingError("Transcript saved, but AI analysis failed again. \(analysisError)")
+            }
             try? modelContext.save()
+        }
+    }
+
+    /// Re-runs analysis on the saved transcript for a transcript-only meeting (for example after the
+    /// user turned Apple Intelligence on). Uses the same provider routing as every other analysis
+    /// path and never debits Minutes.
+    @MainActor
+    private func performGenerateSummaryAfterUnavailable() async {
+        guard meeting.canGenerateSummaryAfterUnavailable, !isGeneratingSummaryAfterUnavailable else { return }
+
+        isGeneratingSummaryAfterUnavailable = true
+        summaryAfterUnavailableFailed = false
+        defer {
+            isGeneratingSummaryAfterUnavailable = false
+        }
+
+        let transcript = meeting.audioTranscript
+
+        do {
+            let overview = try await MeetingAnalysisRouter.shared.generateOverview(
+                transcript: transcript,
+                explicitLanguageCode: meeting.transcriptionLanguage
+            )
+            let summary = try await MeetingAnalysisRouter.shared.generateSummary(
+                transcript: transcript,
+                explicitLanguageCode: meeting.transcriptionLanguage
+            )
+
+            meeting.shortSummary = overview
+            meeting.aiSummary = summary
+            meeting.markCompleted() // also clears the unavailable reason
+            HapticService.shared.success()
+
+            do {
+                try modelContext.save()
+
+                Task {
+                    do {
+                        try await SupabaseManager.shared.saveMeeting(meeting)
+                        try await SupabaseManager.shared.saveCompletedTranscriptionJob(
+                            meetingId: meeting.id,
+                            audioStoragePath: nil,
+                            duration: meeting.billingDuration,
+                            transcript: meeting.audioTranscript,
+                            overview: overview,
+                            summary: summary
+                        )
+                    } catch {
+                        print("⚠️ Failed to sync generated summary to Supabase: \(error)")
+                    }
+                }
+            } catch {
+                print("Error saving generated summary: \(error)")
+            }
+        } catch {
+            print("Error generating summary after unavailable: \(error)")
+            // Still unavailable (possibly for a different reason): keep the transcript-only state.
+            // Any other failure leaves the notice in place and tells the user it didn't work.
+            if let reason = MeetingAnalysisRouter.shared.unavailableReason(for: error) {
+                meeting.analysisUnavailableReason = reason
+                try? modelContext.save()
+            } else {
+                summaryAfterUnavailableFailed = true
+                HapticService.shared.error()
+            }
+        }
+    }
+
+    /// Pushes a meeting that finished transcript-only so a later pull-sync does not restore its
+    /// old processing or failed state from the server.
+    private func syncTranscriptOnlyMeeting() {
+        Task {
+            do {
+                try await SupabaseManager.shared.saveMeeting(meeting)
+                try await SupabaseManager.shared.saveCompletedTranscriptionJob(
+                    meetingId: meeting.id,
+                    audioStoragePath: nil,
+                    duration: meeting.billingDuration,
+                    transcript: meeting.audioTranscript,
+                    overview: "",
+                    summary: ""
+                )
+            } catch {
+                print("⚠️ Failed to sync transcript-only meeting to Supabase: \(error)")
+            }
         }
     }
 

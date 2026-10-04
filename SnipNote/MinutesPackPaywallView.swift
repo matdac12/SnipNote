@@ -26,6 +26,7 @@ struct MinutesPackPaywallView: View {
     ]
 
     var dismissible: Bool = true
+    var source: AnalyticsPaywallSource = .unknown
     var onPurchaseComplete: (() -> Void)?
 
     var body: some View {
@@ -79,6 +80,7 @@ struct MinutesPackPaywallView: View {
                 }
             }
             .onAppear {
+                AnalyticsService.track(.paywallViewed(paywall: .minutesPack, source: source))
                 Task {
                     await store.loadProducts()
                     await minutesManager.refreshBalance()

@@ -1069,7 +1069,13 @@ struct CreateMeetingView: View {
 
     @ViewBuilder
     private func idleRecordingCard(theme: AppTheme) -> some View {
+        // While the status is still being checked the banner is hidden, so don't lock the button on it.
+        let isModelMissing = localTranscriptionManager.isLocalModeEnabled
+            && !localTranscriptionManager.isSelectedModelInstalled
+            && localTranscriptionManager.selectedModelStatus != .checking
         VStack(spacing: 16) {
+            LocalModelDownloadBanner()
+
             Button("Start Recording") {
                 startCountdown()
             }
@@ -1078,8 +1084,8 @@ struct CreateMeetingView: View {
             .padding()
             .background(meetingNameTrimmed.isEmpty ? theme.secondaryTextColor.opacity(0.6) : theme.accentColor)
             .cornerRadius(theme.cornerRadius)
-            .disabled(meetingNameTrimmed.isEmpty)
-            .opacity(meetingNameTrimmed.isEmpty ? 0.7 : 1.0)
+            .disabled(meetingNameTrimmed.isEmpty || isModelMissing)
+            .opacity(meetingNameTrimmed.isEmpty || isModelMissing ? 0.7 : 1.0)
         }
     }
 
@@ -1143,10 +1149,10 @@ struct CreateMeetingView: View {
             meetingDatePickerSheet()
         }
         .sheet(isPresented: $showingPaywall) {
-            PaywallView()
+            PaywallView(source: .createMeeting)
         }
         .sheet(isPresented: $showingMinutesPaywall) {
-            MinutesPackPaywallView(onPurchaseComplete: {
+            MinutesPackPaywallView(source: .createMeeting, onPurchaseComplete: {
                 Task { await minutesManager.refreshBalance() }
             })
         }
@@ -1229,6 +1235,9 @@ struct CreateMeetingView: View {
         recordingDuration = 0
         currentRecordingURL = audioRecorder.startRecording()
         HapticService.shared.light()
+        if currentRecordingURL != nil, localTranscriptionManager.isLocalModeEnabled {
+            AnalyticsService.track(.localRecordingStarted)
+        }
 
         // Start timer for duration display
         recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
@@ -1377,6 +1386,10 @@ struct CreateMeetingView: View {
         // Navigation will happen after processing completes
         
         Task {
+            // Kept outside the `do` so a transcript-only finish can still settle the debit and keep the audio link.
+            var settledDebitResult: MinutesManager.DebitMinutesResult?
+            var uploadedAudioPath: String?
+
             do {
                 // Use the chunked transcription method
                 let transcript = try await TranscriptionRouter.shared.transcribeAudioFromURL(
@@ -1430,15 +1443,14 @@ struct CreateMeetingView: View {
                 } else {
                     debitResult = .failed(message: "Unable to associate the transcription with a minutes debit.")
                 }
+                settledDebitResult = debitResult
 
                 // Track successful transcription
                 await UsageTracker.shared.trackMeetingCreated(transcribed: true, meetingSeconds: duration)
-                
+
                 await MainActor.run {
                     updateMeetingWithTranscript(transcript: transcript)
                 }
-                
-                var uploadedAudioPath: String?
 
                 // Local-model transcriptions do not need a durable remote audio file.
                 if !localTranscriptionManager.isLocalModeEnabled, let meeting = createdMeeting {
@@ -1555,7 +1567,20 @@ struct CreateMeetingView: View {
 
                     // Preserve a completed transcript if only the later AI analysis failed.
                     if let meeting = createdMeeting {
-                        if meeting.hasTranscriptContent {
+                        let unavailableReason = meeting.hasTranscriptContent
+                            ? MeetingAnalysisRouter.shared.unavailableReason(for: error)
+                            : nil
+
+                        if let unavailableReason {
+                            // Apple Intelligence unavailable: transcript-only outcome, not an error.
+                            finishAsTranscriptOnly(
+                                meeting,
+                                reason: unavailableReason,
+                                duration: cachedAudioDuration,
+                                debitResult: settledDebitResult,
+                                audioStoragePath: uploadedAudioPath
+                            )
+                        } else if meeting.hasTranscriptContent {
                             let analysisError = MeetingAnalysisRouter.shared.failureDescription(for: error)
                             meeting.setProcessingError("Transcript saved, but AI analysis failed. \(analysisError)")
                             meeting.shortSummary = "AI overview unavailable"
@@ -1568,7 +1593,7 @@ struct CreateMeetingView: View {
                         }
 
                         // Save the audio file path for retry
-                        if let audioURL = importedAudioURL {
+                        if unavailableReason == nil, let audioURL = importedAudioURL {
                             meeting.localAudioPath = audioURL.path
                         }
 
@@ -2022,6 +2047,10 @@ struct CreateMeetingView: View {
         }
         
         Task {
+            // Kept outside the `do` so a transcript-only finish can still settle the debit and keep the audio link.
+            var settledDebitResult: MinutesManager.DebitMinutesResult?
+            var uploadedAudioPath: String?
+
             do {
                 let transcript = try await TranscriptionRouter.shared.transcribeAudioFromURL(
                     audioURL: recordingURL,
@@ -2064,15 +2093,14 @@ struct CreateMeetingView: View {
                 } else {
                     debitResult = .failed(message: "Unable to associate the transcription with a minutes debit.")
                 }
+                settledDebitResult = debitResult
 
                 // Track successful transcription
                 await UsageTracker.shared.trackMeetingCreated(transcribed: true, meetingSeconds: duration)
-                
+
                 await MainActor.run {
                     updateMeetingWithTranscript(transcript: transcript)
                 }
-                
-                var uploadedAudioPath: String?
 
                 // Local-model transcriptions do not need a durable remote audio file.
                 if !localTranscriptionManager.isLocalModeEnabled, let meeting = createdMeeting {
@@ -2145,7 +2173,20 @@ struct CreateMeetingView: View {
 
                     // Preserve a completed transcript if only the later AI analysis failed.
                     if let meeting = createdMeeting {
-                        if meeting.hasTranscriptContent {
+                        let unavailableReason = meeting.hasTranscriptContent
+                            ? MeetingAnalysisRouter.shared.unavailableReason(for: error)
+                            : nil
+
+                        if let unavailableReason {
+                            // Apple Intelligence unavailable: transcript-only outcome, not an error.
+                            finishAsTranscriptOnly(
+                                meeting,
+                                reason: unavailableReason,
+                                duration: recordingDuration,
+                                debitResult: settledDebitResult,
+                                audioStoragePath: uploadedAudioPath
+                            )
+                        } else if meeting.hasTranscriptContent {
                             let analysisError = MeetingAnalysisRouter.shared.failureDescription(for: error)
                             meeting.setProcessingError("Transcript saved, but AI analysis failed. \(analysisError)")
                             meeting.shortSummary = "AI overview unavailable"
@@ -2158,7 +2199,9 @@ struct CreateMeetingView: View {
                         }
 
                         // Save the recorded audio file path for retry
-                        meeting.localAudioPath = recordingURL.path
+                        if unavailableReason == nil {
+                            meeting.localAudioPath = recordingURL.path
+                        }
 
                         do {
                             try modelContext.save()
@@ -2276,6 +2319,60 @@ struct CreateMeetingView: View {
         }
     }
     
+    /// Completes the meeting with its transcript only because Apple Intelligence cannot analyze
+    /// (free promise: transcript only). Not an error and no new Minutes are charged here; the
+    /// transcription debit already ran on the cloud path, so only its outcome is recorded.
+    private func finishAsTranscriptOnly(
+        _ meeting: Meeting,
+        reason: AnalysisUnavailableReason,
+        duration: TimeInterval,
+        debitResult: MinutesManager.DebitMinutesResult?,
+        audioStoragePath: String?
+    ) {
+        meeting.markAnalysisUnavailable(reason)
+
+        if let debitResult {
+            if debitResult.didDebitImmediately {
+                meeting.markMinutesDebitSettled()
+            } else {
+                meeting.markMinutesDebitPending(message: debitResult.userMessage)
+            }
+        }
+
+        // Mirror the success path: audio already in Supabase does not need a local copy.
+        if meeting.hasRecording,
+           let localPath = meeting.localAudioPath,
+           FileManager.default.fileExists(atPath: localPath) {
+            try? FileManager.default.removeItem(atPath: localPath)
+            meeting.localAudioPath = nil
+        }
+
+        Task {
+            await NotificationService.shared.sendProcessingCompleteNotification(
+                for: meeting.id,
+                meetingName: meeting.name,
+                transcriptOnly: true
+            )
+        }
+
+        // Push the completed state so a later pull-sync does not restore the processing state.
+        Task {
+            do {
+                try await SupabaseManager.shared.saveMeeting(meeting)
+                try await SupabaseManager.shared.saveCompletedTranscriptionJob(
+                    meetingId: meeting.id,
+                    audioStoragePath: audioStoragePath,
+                    duration: duration,
+                    transcript: meeting.audioTranscript,
+                    overview: "",
+                    summary: ""
+                )
+            } catch {
+                print("⚠️ Failed to sync transcript-only meeting to Supabase: \(error)")
+            }
+        }
+    }
+
     private func updateMeetingWithTranscript(transcript: String) {
         guard let meetingId = createdMeetingId else { return }
         

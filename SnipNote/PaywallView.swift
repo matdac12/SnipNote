@@ -20,6 +20,7 @@ struct PaywallView: View {
     @State private var isPurchasing = false
 
     var dismissible: Bool = true
+    var source: AnalyticsPaywallSource = .unknown
     var onPurchaseComplete: (() -> Void)?
 
     // Filter products to show only subscriptions (not consumable packs)
@@ -83,6 +84,7 @@ struct PaywallView: View {
                 }
             }
             .onAppear {
+                AnalyticsService.track(.paywallViewed(paywall: .subscription, source: source))
                 #if DEBUG
                 print("🧪 [PaywallView] onAppear - isLoading=\(store.isLoadingProducts), products=\(store.products.count), hasSub=\(store.hasActiveSubscription)")
                 #endif

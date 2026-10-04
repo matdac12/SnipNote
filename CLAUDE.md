@@ -640,3 +640,16 @@ enum TranscriptionError: LocalizedError {
 - Custom optimization settings (speed multiplier, compression quality)
 - Background upload progress UI (kept simple intentionally)
 - A/B testing infrastructure (premature at current scale)
+## Agent skills
+
+### Issue tracker
+
+Issues live in Linear (team Matdac6, project SnipNote). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.

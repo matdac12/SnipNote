@@ -53,6 +53,7 @@ struct SettingsView: View {
     @State private var showingAboutSheet = false
     @State private var showingPlanSettings = false
     @State private var showingTranscriptionSettings = false
+    @AppStorage(AnalyticsService.enabledDefaultsKey) private var analyticsEnabled = true
     
     var body: some View {
         NavigationStack {
@@ -159,10 +160,10 @@ struct SettingsView: View {
                            : "settings.account.deleteAccount.restoreFailure"))
         }
         .sheet(isPresented: $showingPaywall) {
-            PaywallView()
+            PaywallView(source: .settings)
         }
         .sheet(isPresented: $showingMinutesPaywall) {
-            MinutesPackPaywallView(onPurchaseComplete: {
+            MinutesPackPaywallView(source: .settings, onPurchaseComplete: {
                 Task { await minutesManager.refreshBalance() }
             })
         }
@@ -277,6 +278,15 @@ struct SettingsView: View {
             }
             .pickerStyle(.menu)
             .accessibilityIdentifier("settings.appearance")
+
+            Toggle(isOn: $analyticsEnabled) {
+                SettingsIconLabel(title: localized("settings.analytics.title"), systemImage: "chart.bar.fill", tint: .orange)
+            }
+            .accessibilityIdentifier("settings.analytics")
+            .onChange(of: analyticsEnabled) { _, isEnabled in
+                // A fresh anonymous ID if the user turns it back on later.
+                if !isEnabled { AnalyticsService.resetInstallID() }
+            }
         } header: {
             Text(localized("settings.section.preferences.title"))
         } footer: {
@@ -285,6 +295,7 @@ struct SettingsView: View {
                     Text("\(localized("settings.aiAnalysis.appleIntelligenceStatus")): \(meetingAnalysisManager.appleIntelligenceStatusText)")
                 }
                 Text(localized("settings.language.section.footer"))
+                Text(localized("settings.analytics.footer"))
             }
         }
     }

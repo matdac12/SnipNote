@@ -70,7 +70,7 @@ class NotificationService: ObservableObject {
     }
 
     /// Send notification when processing is complete
-    func sendProcessingCompleteNotification(for meetingId: UUID, meetingName: String) async {
+    func sendProcessingCompleteNotification(for meetingId: UUID, meetingName: String, transcriptOnly: Bool = false) async {
         // Only send if we have permission
         Task {
             let status = await checkNotificationPermission()
@@ -84,7 +84,10 @@ class NotificationService: ObservableObject {
 
             let content = UNMutableNotificationContent()
             content.title = "Transcription Ready!"
-            content.body = "'\(meetingName.isEmpty ? "Untitled Transcription" : meetingName)' is ready with its transcript and AI summary"
+            let displayName = meetingName.isEmpty ? "Untitled Transcription" : meetingName
+            content.body = transcriptOnly
+                ? "'\(displayName)' is ready with its transcript"
+                : "'\(displayName)' is ready with its transcript and AI summary"
             content.sound = .default
             content.categoryIdentifier = "MEETING_COMPLETE_NOTIFICATION"
             content.userInfo = ["meetingId": meetingId.uuidString, "navigateTo": "meeting"]

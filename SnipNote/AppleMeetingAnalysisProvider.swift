@@ -35,28 +35,30 @@ final class AppleMeetingAnalysisProvider: MeetingAnalysisProvider {
         #if canImport(FoundationModels)
         if #available(iOS 26.0, *) {
             let model = SystemLanguageModel.default
+            let availability = model.availability
+
+            // Availability comes before the language check: while Apple Intelligence is off or still
+            // preparing, `supportsLocale` can report false, which would hide the retry for a fixable state.
+            switch availability {
+            case .available:
+                break
+            case .unavailable(.deviceNotEligible):
+                throw MeetingAnalysisError.analysisUnavailable(.deviceNotEligible)
+            case .unavailable(.appleIntelligenceNotEnabled):
+                throw MeetingAnalysisError.analysisUnavailable(.appleIntelligenceNotEnabled)
+            case .unavailable(.modelNotReady):
+                throw MeetingAnalysisError.analysisUnavailable(.modelNotReady)
+            case .unavailable:
+                throw MeetingAnalysisError.analysisUnavailable(.unknown)
+            }
 
             if let languageCode = languageContext.languageCode {
                 let locale = Locale(identifier: AnalysisLanguageResolver.localeIdentifier(for: languageCode))
                 if !model.supportsLocale(locale) {
-                    let languageName = languageContext.languageDisplayName ?? languageCode.uppercased()
-                    throw MeetingAnalysisError.appleIntelligenceUnavailable("Apple Intelligence does not support \(languageName) for this analysis.")
+                    throw MeetingAnalysisError.analysisUnavailable(.unsupportedLanguage)
                 }
             } else if !model.supportsLocale() {
-                throw MeetingAnalysisError.unsupportedLanguage
-            }
-
-            switch model.availability {
-            case .available:
-                break
-            case .unavailable(.deviceNotEligible):
-                throw MeetingAnalysisError.appleIntelligenceUnavailable("This device does not support Apple Intelligence.")
-            case .unavailable(.appleIntelligenceNotEnabled):
-                throw MeetingAnalysisError.appleIntelligenceUnavailable("Apple Intelligence is turned off in Settings.")
-            case .unavailable(.modelNotReady):
-                throw MeetingAnalysisError.appleIntelligenceUnavailable("Apple Intelligence is not ready yet. Try again in a moment.")
-            case .unavailable(let reason):
-                throw MeetingAnalysisError.appleIntelligenceUnavailable("Apple Intelligence is unavailable: \(String(describing: reason)).")
+                throw MeetingAnalysisError.analysisUnavailable(.unsupportedLanguage)
             }
 
             let session = LanguageModelSession(model: model, instructions: instructions)
@@ -69,9 +71,9 @@ final class AppleMeetingAnalysisProvider: MeetingAnalysisProvider {
 
             return content
         }
-        throw MeetingAnalysisError.appleIntelligenceUnsupportedInThisBuild
+        throw MeetingAnalysisError.analysisUnavailable(.osUpdateRequired)
         #else
-        throw MeetingAnalysisError.appleIntelligenceUnsupportedInThisBuild
+        throw MeetingAnalysisError.analysisUnavailable(.unknown)
         #endif
     }
 }

@@ -855,7 +855,7 @@ struct CreateMeetingView: View {
 
             let requiredMinutes = max(1, Int(ceil(cachedAudioDuration / 60.0)))
             // Only show minutes warning for short audio (≤5min) that will use on-device processing
-            if cachedAudioDuration <= 300 && minutesManager.currentBalance < requiredMinutes {
+            if !localTranscriptionManager.isLocalModeEnabled && cachedAudioDuration <= 300 && minutesManager.currentBalance < requiredMinutes {
                 Text("This audio requires \(requiredMinutes) minutes. You have \(minutesManager.currentBalance) minutes remaining.")
                     .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(theme.warningColor)
@@ -916,7 +916,7 @@ struct CreateMeetingView: View {
             .frame(height: 60)
 
             let requiredMinutes = max(1, Int(ceil(recordingDuration / 60.0)))
-            if recordingDuration > 0 && minutesManager.currentBalance < requiredMinutes {
+            if !localTranscriptionManager.isLocalModeEnabled && recordingDuration > 0 && minutesManager.currentBalance < requiredMinutes {
                 Text("This recording will require \(requiredMinutes) minutes. You have \(minutesManager.currentBalance) minutes remaining.")
                     .font(.system(.callout, design: theme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
                     .foregroundColor(theme.warningColor)
@@ -1219,7 +1219,8 @@ struct CreateMeetingView: View {
         }
 
         // Check if user has sufficient minutes (estimate 1 minute minimum)
-        if minutesManager.currentBalance <= 0 {
+        // Local transcription is free, so no balance is required
+        if !localTranscriptionManager.isLocalModeEnabled && minutesManager.currentBalance <= 0 {
             showingInsufficientMinutesAlert = true
             return
         }
@@ -1308,7 +1309,7 @@ struct CreateMeetingView: View {
     private func processOnDevice(audioURL: URL) {
         // Check if user has sufficient minutes for imported audio
         let requiredMinutes = max(1, Int(ceil(cachedAudioDuration / 60.0)))
-        if minutesManager.currentBalance < requiredMinutes {
+        if !localTranscriptionManager.isLocalModeEnabled && minutesManager.currentBalance < requiredMinutes {
             estimatedMinutesNeeded = requiredMinutes
             showingInsufficientMinutesAlert = true
             return
@@ -1948,7 +1949,7 @@ struct CreateMeetingView: View {
 
         // Check if user has sufficient minutes for recorded audio
         let requiredMinutes = max(1, Int(ceil(recordingDuration / 60.0)))
-        if minutesManager.currentBalance < requiredMinutes {
+        if !localTranscriptionManager.isLocalModeEnabled && minutesManager.currentBalance < requiredMinutes {
             estimatedMinutesNeeded = requiredMinutes
             showingInsufficientMinutesAlert = true
             audioRecorder.deleteRecording(at: recordingURL)
@@ -2375,8 +2376,8 @@ struct CreateMeetingView: View {
             return
         }
 
-        // Check if user has minutes to start recording (minimum 1 minute)
-        if minutesManager.currentBalance <= 0 {
+        // Check if user has minutes to start recording (minimum 1 minute); local transcription is free
+        if !localTranscriptionManager.isLocalModeEnabled && minutesManager.currentBalance <= 0 {
             showingInsufficientMinutesAlert = true
             return
         }

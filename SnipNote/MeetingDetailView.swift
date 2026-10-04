@@ -1442,18 +1442,19 @@ struct MeetingDetailView: View {
             return
         }
 
-        let requiredMinutes = max(1, Int(ceil(meeting.billingDuration / 60.0)))
-        if minutesManager.currentBalance < requiredMinutes {
-            print("⚠️ Cannot retry: insufficient minutes. Required: \(requiredMinutes), Available: \(minutesManager.currentBalance)")
-            meeting.setProcessingError("Insufficient minutes for retry. Required: \(requiredMinutes) minutes.")
-            return
-        }
-
         let shouldUsePersistentLocalRetry: Bool
         if let backend = meeting.transcriptionBackend {
             shouldUsePersistentLocalRetry = backend == .local
         } else {
             shouldUsePersistentLocalRetry = LocalTranscriptionManager.shared.isLocalModeEnabled
+        }
+
+        // Local transcription is free; only cloud retries need a minutes balance
+        let requiredMinutes = max(1, Int(ceil(meeting.billingDuration / 60.0)))
+        if !shouldUsePersistentLocalRetry && minutesManager.currentBalance < requiredMinutes {
+            print("⚠️ Cannot retry: insufficient minutes. Required: \(requiredMinutes), Available: \(minutesManager.currentBalance)")
+            meeting.setProcessingError("Insufficient minutes for retry. Required: \(requiredMinutes) minutes.")
+            return
         }
 
         isRetrying = true

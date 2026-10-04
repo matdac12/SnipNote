@@ -246,7 +246,7 @@ struct SettingsView: View {
             transcriptionMenu
 
             Picker(selection: Binding(
-                get: { meetingAnalysisManager.selectedProvider },
+                get: { meetingAnalysisManager.effectiveProvider },
                 set: { meetingAnalysisManager.setSelectedProvider($0) }
             )) {
                 ForEach(MeetingAnalysisProviderType.allCases) { provider in
@@ -256,6 +256,7 @@ struct SettingsView: View {
                 SettingsIconLabel(title: localized("settings.aiAnalysis.short"), systemImage: "sparkles", tint: .purple)
             }
             .pickerStyle(.menu)
+            .disabled(!storeManager.canUseCloudAnalysis)
             .accessibilityIdentifier("settings.aiAnalysis.provider")
 
             Picker(selection: languageSelection) {
@@ -280,7 +281,7 @@ struct SettingsView: View {
             Text(localized("settings.section.preferences.title"))
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
-                if meetingAnalysisManager.selectedProvider == .appleIntelligence {
+                if meetingAnalysisManager.effectiveProvider == .appleIntelligence {
                     Text("\(localized("settings.aiAnalysis.appleIntelligenceStatus")): \(meetingAnalysisManager.appleIntelligenceStatusText)")
                 }
                 Text(localized("settings.language.section.footer"))

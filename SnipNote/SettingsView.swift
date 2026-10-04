@@ -51,526 +51,67 @@ struct SettingsView: View {
     @State private var showingRestoreAlert = false
     @State private var restoredSuccessfully = false
     @State private var showingAboutSheet = false
+    @State private var showingPlanSettings = false
+    @State private var showingTranscriptionSettings = false
     
     var body: some View {
-        VStack(spacing: 0) {
-             HStack(spacing: 12) {
-                 let title = localized("settings.title")
-                 Text(title)
-                     .themedTitle()
+        NavigationStack {
+            List {
+                passSection
+                planSection
+                preferencesSection
+                accountSection
 
-                 Spacer()
-
-                 Picker("", selection: languageSelection) {
-                     Text(localized("language.option.short.english")).tag("en")
-                     Text(localized("language.option.short.italian")).tag("it")
-                 }
-                 .pickerStyle(.segmented)
-                 .frame(width: 140)
-                 .labelsHidden()
-             }
-             .padding()
-             .background(themeManager.currentTheme.materialStyle)
-             .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 2)
-            
-             ScrollView {
-                 VStack(alignment: .leading, spacing: 20) {
-                     Spacer().frame(height: 8) // Add some top spacing
-                    
-                     // SUBSCRIPTION STATUS SECTION
-                     VStack(alignment: .leading, spacing: 16) {
-                         HStack {
-                             Text(localized("settings.section.subscription.title").uppercased())
-                                 .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-
-                             Spacer()
-
-                             // Refresh button
-                             Button(action: {
-                                 Task {
-                                     await storeManager.loadProducts()
-                                     await storeManager.updateSubscriptionStatus()
-                                 }
-                             }) {
-                                 Image(systemName: "arrow.clockwise")
-                                     .font(.caption)
-                                     .foregroundColor(themeManager.currentTheme.accentColor)
-                             }
-                         }
-
-                         VStack(spacing: 12) {
-                             HStack {
-                                 VStack(alignment: .leading, spacing: 4) {
-                                     HStack(spacing: 8) {
-                                         Text(storeManager.hasActiveSubscription ? localized("settings.subscription.plan.pro") : localized("settings.subscription.plan.free"))
-                                             .themedBody()
-                                             .fontWeight(.bold)
-
-                                         if storeManager.hasActiveSubscription {
-                                             ProBadge()
-                                         }
-                                     }
-
-                                     if storeManager.hasActiveSubscription {
-                                         Text(localized("settings.subscription.plan.unlimited"))
-                                             .themedCaption()
-                                     } else {
-                                          Text("Free Tier - Minutes-based usage")
-                                             .themedCaption()
-                                     }
-
-                                     // Minutes balance display
-                                     HStack(spacing: 4) {
-                                         Image(systemName: "clock.fill")
-                                             .font(.caption)
-                                             .foregroundColor(minutesManager.currentBalance > 0 ? themeManager.currentTheme.accentColor : themeManager.currentTheme.warningColor)
-
-                                         Text(minutesManager.formattedBalance)
-                                             .themedCaption()
-                                             .foregroundColor(minutesManager.currentBalance > 0 ? themeManager.currentTheme.textColor : themeManager.currentTheme.warningColor)
-                                     }
-                                 }
-
-                                 Spacer()
-
-                                 if !storeManager.hasActiveSubscription {
-                                     Button(localized("settings.subscription.upgrade")) {
-                                         showingPaywall = true
-                                     }
-                                     .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                                     .foregroundColor(.white)
-                                     .padding(.horizontal, 16)
-                                     .padding(.vertical, 8)
-                                     .background(themeManager.currentTheme.accentColor)
-                                     .cornerRadius(themeManager.currentTheme.cornerRadius)
-                                 }
-                             }
-                         }
-                         .padding()
-                         .background(themeManager.currentTheme.materialStyle)
-                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                     }
-                     .padding(.horizontal, 10)
-                     .padding(.vertical, 12)
-                     .background(
-                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                     )
-                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-
-                     // MINUTES PACKS SECTION
-                     // Always show - allow users to buy extra minutes even with subscriptions
-                         VStack(alignment: .leading, spacing: 16) {
-                             Text(storeManager.hasActiveSubscription ? "EXTRA MINUTES" : "NEED MORE MINUTES?")
-                                 .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-
-                             VStack(spacing: 12) {
-                                 HStack {
-                                     VStack(alignment: .leading, spacing: 4) {
-                                         Text(storeManager.hasActiveSubscription ? "Buy Extra Minutes" : "Buy Minutes Packs")
-                                             .themedBody()
-                                             .fontWeight(.bold)
-
-                                         Text("Get instant minutes that never expire")
-                                             .themedCaption()
-                                     }
-
-                                     Spacer()
-
-                                     Button("Buy Packs") {
-                                         showingMinutesPaywall = true
-                                     }
-                                     .font(.system(.body, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                                     .foregroundColor(.white)
-                                     .padding(.horizontal, 16)
-                                     .padding(.vertical, 8)
-                                     .background(minutesManager.currentBalance <= 0 ? themeManager.currentTheme.warningColor : themeManager.currentTheme.accentColor)
-                                     .cornerRadius(themeManager.currentTheme.cornerRadius)
-                                 }
-                             }
-                             .padding()
-                             .background(themeManager.currentTheme.materialStyle)
-                             .cornerRadius(themeManager.currentTheme.cornerRadius)
-                             .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                         }
-                         .padding(.horizontal, 10)
-                         .padding(.vertical, 12)
-                         .background(
-                             RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                                 .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                         )
-                         .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-
-                     VStack(alignment: .leading, spacing: 16) {
-                         Text(localized("settings.localTranscription.sectionTitle").uppercased())
-                             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-
-                         VStack(spacing: 16) {
-                             HStack {
-                                 VStack(alignment: .leading, spacing: 4) {
-                                     Text(localized("settings.localTranscription.backendTitle"))
-                                         .themedBody()
-                                         .fontWeight(.bold)
-
-                                     Text(localTranscriptionManager.isLocalModeEnabled
-                                          ? localized("settings.localTranscription.backendDescription.local")
-                                          : localized("settings.localTranscription.backendDescription.cloud"))
-                                         .themedCaption()
-                                 }
-
-                                 Spacer()
-
-                                 Picker(localized("settings.localTranscription.backendTitle"), selection: Binding(
-                                     get: { localTranscriptionManager.transcriptionMode },
-                                     set: { localTranscriptionManager.setTranscriptionMode($0) }
-                                 )) {
-                                     ForEach(TranscriptionMode.allCases) { mode in
-                                         Text(mode.displayName).tag(mode)
-                                     }
-                                 }
-                                 .pickerStyle(.segmented)
-                                 .accessibilityIdentifier("settings.transcription.mode")
-                                 .frame(width: 150)
-                             }
-
-                             if !localTranscriptionManager.isLocalModeEnabled {
-                                 VStack(alignment: .leading, spacing: 12) {
-                                     Text(localized("settings.cloudTranscription.provider.title"))
-                                         .font(.subheadline)
-                                         .bold()
-                                         .foregroundStyle(themeManager.currentTheme.textColor)
-                                     CloudTranscriptionProviderPickerView(selectedProvider: $cloudTranscriptionSettings.selectedProvider)
-                                     Text(localized("settings.cloudTranscription.provider.description"))
-                                         .themedCaption()
-                                 }
-                             }
-
-                             if localTranscriptionManager.isLocalModeEnabled {
-                                 VStack(alignment: .leading, spacing: 10) {
-                                     Text(localized("settings.localTranscription.availableModels"))
-                                         .themedCaption()
-                                         .fontWeight(.semibold)
-
-                                     ForEach(LocalTranscriptionModel.allCases) { model in
-                                         LocalModelCard(
-                                             model: model,
-                                             isSelected: localTranscriptionManager.selectedModel == model,
-                                             isBusy: localTranscriptionManager.isBusy(model),
-                                             status: localTranscriptionManager.modelStatuses[model] ?? .checking,
-                                             onSelect: {
-                                                 localTranscriptionManager.setSelectedModel(model)
-                                             },
-                                             onDownload: {
-                                                 Task {
-                                                     await localTranscriptionManager.download(model)
-                                                 }
-                                             },
-                                             onDelete: {
-                                                 Task {
-                                                     await localTranscriptionManager.delete(model)
-                                                 }
-                                             }
-                                         )
-                                     }
-
-                                     Text(localized("settings.localTranscription.installHint"))
-                                         .themedCaption()
-                                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                                 }
-                             }
-                         }
-                         .padding()
-                         .background(themeManager.currentTheme.materialStyle)
-                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                     }
-                     .padding(.horizontal, 10)
-                     .padding(.vertical, 12)
-                     .background(
-                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                     )
-                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-
-                     VStack(alignment: .leading, spacing: 16) {
-                         Text(localized("settings.section.aiAnalysis.title").uppercased())
-                             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-
-                         VStack(spacing: 16) {
-                             HStack {
-                                 VStack(alignment: .leading, spacing: 4) {
-                                     Text(localized("settings.aiAnalysis.provider"))
-                                         .themedBody()
-                                         .fontWeight(.bold)
-
-                                     Text(localized("settings.aiAnalysis.providerDescription"))
-                                         .themedCaption()
-                                 }
-
-                                 Spacer()
-
-                                 Picker(localized("settings.aiAnalysis.provider"), selection: Binding(
-                                     get: { meetingAnalysisManager.effectiveProvider },
-                                     set: { meetingAnalysisManager.setSelectedProvider($0) }
-                                 )) {
-                                     ForEach(MeetingAnalysisProviderType.allCases) { provider in
-                                         Text(provider.displayName).tag(provider)
-                                     }
-                                 }
-                                 .pickerStyle(.segmented)
-                                 .frame(width: 220)
-                                 .disabled(!storeManager.canUseCloudAnalysis)
-                             }
-
-                             Text("\(localized("settings.aiAnalysis.appleIntelligenceStatus")): \(meetingAnalysisManager.appleIntelligenceStatusText)")
-                                 .themedCaption()
-                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                         }
-                         .padding()
-                         .background(themeManager.currentTheme.materialStyle)
-                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                     }
-                     .padding(.horizontal, 10)
-                     .padding(.vertical, 12)
-                     .background(
-                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                     )
-                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-
-                     // APPEARANCE SECTION
-                     VStack(alignment: .leading, spacing: 16) {
-                         Text(localized("settings.section.appearance.title").uppercased())
-                             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-
-                         VStack(spacing: 12) {
-                             HStack {
-                                 Text(localized("settings.appearance.theme"))
-                                     .themedBody()
-                                     .fontWeight(.bold)
-
-                                 Spacer()
-
-                                 Picker(localized("settings.appearance.theme"), selection: $themeManager.themeType) {
-                                     ForEach(ThemeType.allCases, id: \.self) { theme in
-                                         Text(theme.rawValue)
-                                             .tag(theme)
-                                     }
-                                 }
-                                 .pickerStyle(SegmentedPickerStyle())
-                                 .frame(width: 200)
-                             }
-
-                             Text(themeDescriptionText)
-                                 .themedCaption()
-                                 .frame(maxWidth: .infinity, alignment: .leading)
-                         }
-                         .padding()
-                         .background(themeManager.currentTheme.materialStyle)
-                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                     }
-                     .padding(.horizontal, 10)
-                     .padding(.vertical, 12)
-                     .background(
-                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                     )
-                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-
-                     VStack(alignment: .leading, spacing: 16) {
-                         HStack {
-                             Text(localized("settings.section.usage.title").uppercased())
-                                 .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-
-                             Spacer()
-
-                             if isLoadingStats {
-                                 ProgressView()
-                                     .scaleEffect(0.7)
-                             }
-                         }
-
-                         VStack(spacing: 12) {
-                             if let usage = userUsage {
-                                 StatRow(label: localized("settings.usage.meetingsCreated"), value: "\(usage.totalMeetings)")
-                                 StatRow(label: localized("settings.usage.meetingsTranscribed"), value: "\(usage.totalMeetingsTranscribed)")
-                                 StatRow(label: localized("settings.usage.totalRecordingTime"), value: usage.formattedMeetingTime)
-                                 StatRow(label: localized("settings.usage.aiSummaries"), value: "\(usage.totalAiSummaries)")
-                             } else {
-                                 HStack {
-                                     Spacer()
-                                     Text(localized("settings.usage.loading"))
-                                         .themedBody()
-                                         .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                                     Spacer()
-                                 }
-                             }
-                         }
-                         .padding()
-                         .background(themeManager.currentTheme.materialStyle)
-                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                     }
-                     .padding(.horizontal, 10)
-                     .padding(.vertical, 12)
-                     .background(
-                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                     )
-                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-                    
-                     VStack(alignment: .leading, spacing: 16) {
-                         Text(localized("settings.section.account.title").uppercased())
-                             .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .bold))
-                             .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-
-                         VStack(spacing: 12) {
-                             if let email = authManager.currentUser?.email {
-                                 HStack {
-                                     Text(localized("settings.account.email"))
-                                         .themedBody()
-
-                                     Spacer()
-
-                                     Text(email)
-                                         .themedBody()
-                                         .fontWeight(.bold)
-                                         .foregroundColor(themeManager.currentTheme.accentColor)
-                                 }
-                             }
-
-                             // Manage Subscription button (for pro users)
-                             if storeManager.hasActiveSubscription {
-                                 Button(action: manageSubscription) {
-                                     HStack {
-                                         Image(systemName: "creditcard")
-                                         Text(localized("settings.account.manageSubscription"))
-                                             .themedBody()
-                                             .fontWeight(.bold)
-                                     }
-                                     .frame(maxWidth: .infinity)
-                                     .padding()
-                                     .background(themeManager.currentTheme.accentColor.opacity(0.2))
-                                     .foregroundColor(themeManager.currentTheme.accentColor)
-                                     .cornerRadius(themeManager.currentTheme.cornerRadius)
-                                 }
-                             }
-
-                             Button(action: { showingLogoutConfirmation = true }) {
-                                 HStack {
-                                     Image(systemName: "rectangle.portrait.and.arrow.right")
-                                     Text(localized("settings.account.logoutButton").uppercased())
-                                         .themedBody()
-                                         .fontWeight(.bold)
-                                 }
-                                 .frame(maxWidth: .infinity)
-                                 .padding()
-                                 .background(themeManager.currentTheme.destructiveColor.opacity(0.2))
-                                 .foregroundColor(themeManager.currentTheme.destructiveColor)
-                                 .cornerRadius(themeManager.currentTheme.cornerRadius)
-                             }
-
-                             // Delete Account button
-                             Button(action: { showingDeleteAccountAlert = true }) {
-                                 HStack {
-                                     Image(systemName: "trash")
-                                     Text(localized("settings.account.deleteAccount"))
-                                         .themedBody()
-                                         .fontWeight(.bold)
-                                 }
-                                 .frame(maxWidth: .infinity)
-                                 .padding()
-                                 .background(Color.red.opacity(0.15))
-                                 .foregroundColor(.red)
-                                 .cornerRadius(themeManager.currentTheme.cornerRadius)
-                             }
-                         }
-                         .padding()
-                         .background(themeManager.currentTheme.materialStyle)
-                         .cornerRadius(themeManager.currentTheme.cornerRadius)
-                         .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                     }
-                     .padding(.horizontal, 10)
-                     .padding(.vertical, 12)
-                     .background(
-                         RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                             .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                     )
-                     .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-                    
-                     // ABOUT SECTION
-                     Button(action: { showingAboutSheet = true }) {
-                         HStack(spacing: 14) {
-                             // App icon
-                             if let uiImage = UIImage(named: "AppIcon") ?? Bundle.main.icon {
-                                 Image(uiImage: uiImage)
-                                     .resizable()
-                                     .frame(width: 50, height: 50)
-                                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                                     .overlay(
-                                         RoundedRectangle(cornerRadius: 12)
-                                             .stroke(themeManager.currentTheme.secondaryTextColor.opacity(0.2), lineWidth: 0.5)
-                                     )
-                             } else {
-                                 RoundedRectangle(cornerRadius: 12)
-                                     .fill(themeManager.currentTheme.accentColor.gradient)
-                                     .frame(width: 50, height: 50)
-                                     .overlay(
-                                         Image(systemName: "waveform")
-                                             .font(.system(size: 24, weight: .semibold))
-                                             .foregroundColor(.white)
-                                     )
-                             }
-
-                             VStack(alignment: .leading, spacing: 4) {
-                                 Text("SnipNote")
-                                     .font(.system(.headline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default, weight: .semibold))
-                                     .foregroundColor(themeManager.currentTheme.textColor)
-
-                                 Text(localized("settings.about.subtitle"))
-                                     .font(.system(.subheadline, design: themeManager.currentTheme.useMonospacedFont ? .monospaced : .default))
-                                     .foregroundColor(themeManager.currentTheme.secondaryTextColor)
-                             }
-
-                             Spacer()
-
-                             Image(systemName: "chevron.right")
-                                 .font(.system(size: 14, weight: .semibold))
-                                 .foregroundColor(themeManager.currentTheme.secondaryTextColor.opacity(0.6))
-                         }
-                         .padding(16)
-                         .background(
-                             RoundedRectangle(cornerRadius: themeManager.currentTheme.cornerRadius + 6)
-                                 .fill(themeManager.currentTheme.secondaryBackgroundColor.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.45 : 0.18))
-                         )
-                         .shadow(color: Color.black.opacity(themeManager.currentTheme.colorScheme == .dark ? 0.4 : 0.12), radius: 8, x: 0, y: 4)
-                     }
-                     .buttonStyle(.plain)
+                Section {
+                    Button(role: .destructive) {
+                        showingLogoutConfirmation = true
+                    } label: {
+                        Text(localized("settings.account.logoutButton"))
+                            .frame(maxWidth: .infinity)
+                    }
                 }
-                 .padding()
-             }
-             .background(
-                 LinearGradient(
-                     colors: [
-                         themeManager.currentTheme.secondaryBackgroundColor.opacity(0.15),
-                         themeManager.currentTheme.backgroundColor
-                     ],
-                     startPoint: .top,
-                     endPoint: .bottom
-                 )
-             )
+
+                Section {
+                    Button(role: .destructive) {
+                        showingDeleteAccountAlert = true
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isDeletingAccount {
+                                ProgressView()
+                            } else {
+                                Text(localized("settings.account.deleteAccount"))
+                            }
+                            Spacer()
+                        }
+                    }
+                    .disabled(isDeletingAccount)
+                }
+            }
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(.compact)
+            .tint(themeManager.currentTheme.accentColor)
+            .navigationTitle(localized("settings.title"))
+            .navigationDestination(isPresented: $showingPlanSettings) {
+                PlanSettingsView(
+                    isPro: storeManager.hasActiveSubscription,
+                    plan: activePlan,
+                    balance: minutesManager.currentBalance,
+                    onManageSubscription: manageSubscription,
+                    onShowPlans: { showingPaywall = true },
+                    onShowMinutePacks: { showingMinutesPaywall = true },
+                    onRestore: { await restorePurchases() },
+                    onRefresh: { await refreshSubscriptionAndBalance() }
+                )
+            }
+            .navigationDestination(isPresented: $showingTranscriptionSettings) {
+                TranscriptionSettingsView()
+            }
+            .refreshable {
+                await refreshSubscriptionAndBalance()
+                fetchUsageStats()
+            }
         }
-        .themedBackground()
         .alert(localized("settings.notifications.logout.title"), isPresented: $showingLogoutConfirmation) {
             Button(localized("settings.notifications.logout.confirm"), role: .destructive) {
                 Task {
@@ -610,6 +151,13 @@ struct SettingsView: View {
         } message: {
             Text(deleteErrorMessage)
         }
+        .alert(localized("settings.account.deleteAccount.restoreTitle"), isPresented: $showingRestoreAlert) {
+            Button(localized("settings.account.deleteAccount.errorDismiss")) { }
+        } message: {
+            Text(localized(restoredSuccessfully
+                           ? "settings.account.deleteAccount.restoreSuccess"
+                           : "settings.account.deleteAccount.restoreFailure"))
+        }
         .sheet(isPresented: $showingPaywall) {
             PaywallView()
         }
@@ -628,22 +176,283 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Sections
+
+    private var passSection: some View {
+        Section {
+            MembershipPassView(
+                isPro: storeManager.hasActiveSubscription,
+                plan: activePlan,
+                balance: minutesManager.currentBalance,
+                email: authManager.currentUser?.email,
+                usage: userUsage
+            )
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+
+            HStack(spacing: 8) {
+                passActionButton(
+                    title: "+ " + localized("settings.pass.buyMinutes"),
+                    foreground: .white,
+                    background: minutesManager.currentBalance <= 0 ? themeManager.currentTheme.warningColor : themeManager.currentTheme.accentColor
+                ) {
+                    showingMinutesPaywall = true
+                }
+                .accessibilityIdentifier("settings.pass.buyMinutes")
+
+                passActionButton(
+                    title: localized(storeManager.hasActiveSubscription ? "settings.pass.managePlan" : "settings.pass.upgrade"),
+                    foreground: themeManager.currentTheme.textColor,
+                    background: Color(uiColor: .secondarySystemGroupedBackground)
+                ) {
+                    if storeManager.hasActiveSubscription {
+                        showingPlanSettings = true
+                    } else {
+                        showingPaywall = true
+                    }
+                }
+                .accessibilityIdentifier("settings.pass.plan")
+            }
+            .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 0, trailing: 0))
+            .listRowBackground(Color.clear)
+        }
+    }
+
+    private var planSection: some View {
+        Section {
+            Button {
+                showingPlanSettings = true
+            } label: {
+                navigationRow(value: storeManager.hasActiveSubscription
+                              ? (activePlan.map { localized($0.nameKey) } ?? "Pro")
+                              : localized("settings.pass.planType.free")) {
+                    SettingsIconLabel(title: localized("settings.plan.subscription"), systemImage: "creditcard.fill", tint: themeManager.currentTheme.accentColor)
+                }
+            }
+            Button {
+                showingMinutesPaywall = true
+            } label: {
+                navigationRow(value: localized("settings.plan.minutePacks.value")) {
+                    SettingsIconLabel(title: localized("settings.plan.minutePacks"), systemImage: "clock.fill", tint: .orange)
+                }
+            }
+        } header: {
+            Text(localized("settings.section.planBilling.title"))
+        }
+    }
+
+    private var preferencesSection: some View {
+        Section {
+            transcriptionMenu
+
+            Picker(selection: Binding(
+                get: { meetingAnalysisManager.effectiveProvider },
+                set: { meetingAnalysisManager.setSelectedProvider($0) }
+            )) {
+                ForEach(MeetingAnalysisProviderType.allCases) { provider in
+                    Text(aiProviderName(provider)).tag(provider)
+                }
+            } label: {
+                SettingsIconLabel(title: localized("settings.aiAnalysis.short"), systemImage: "sparkles", tint: .purple)
+            }
+            .pickerStyle(.menu)
+            .disabled(!storeManager.canUseCloudAnalysis)
+            .accessibilityIdentifier("settings.aiAnalysis.provider")
+
+            Picker(selection: languageSelection) {
+                Text(localized("language.option.english")).tag("en")
+                Text(localized("language.option.italian")).tag("it")
+            } label: {
+                SettingsIconLabel(title: localized("settings.language.section.title"), systemImage: "globe", tint: .green)
+            }
+            .pickerStyle(.menu)
+            .accessibilityIdentifier("settings.language")
+
+            Picker(selection: $themeManager.themeType) {
+                ForEach(ThemeType.allCases, id: \.self) { theme in
+                    Text(theme.rawValue).tag(theme)
+                }
+            } label: {
+                SettingsIconLabel(title: localized("settings.section.appearance.title"), systemImage: "moon.fill", tint: .gray)
+            }
+            .pickerStyle(.menu)
+            .accessibilityIdentifier("settings.appearance")
+        } header: {
+            Text(localized("settings.section.preferences.title"))
+        } footer: {
+            VStack(alignment: .leading, spacing: 4) {
+                if meetingAnalysisManager.effectiveProvider == .appleIntelligence {
+                    Text("\(localized("settings.aiAnalysis.appleIntelligenceStatus")): \(meetingAnalysisManager.appleIntelligenceStatusText)")
+                }
+                Text(localized("settings.language.section.footer"))
+            }
+        }
+    }
+
+    private var transcriptionMenu: some View {
+        Menu {
+            Picker(localized("settings.transcription.title"), selection: transcriptionChoice) {
+                Section(TranscriptionMode.cloud.displayName) {
+                    ForEach(CloudTranscriptionProvider.allCases) { provider in
+                        Text(provider.displayName).tag(TranscriptionChoice.cloud(provider))
+                    }
+                }
+                if !installedModels.isEmpty {
+                    Section(localized("settings.transcription.menu.local")) {
+                        ForEach(installedModels) { model in
+                            Text(model.displayName).tag(TranscriptionChoice.local(model))
+                        }
+                    }
+                }
+            }
+            .pickerStyle(.inline)
+
+            Section {
+                Button {
+                    showingTranscriptionSettings = true
+                } label: {
+                    Label(localized("settings.transcription.menu.manage"), systemImage: "slider.horizontal.3")
+                }
+                .accessibilityIdentifier("settings.transcription.manage")
+            }
+        } label: {
+            HStack {
+                SettingsIconLabel(title: localized("settings.transcription.title"), systemImage: "waveform", tint: .blue)
+                Spacer()
+                Text(transcriptionSummary)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .accessibilityIdentifier("settings.transcription.menu")
+    }
+
+    private var accountSection: some View {
+        Section {
+            if let email = authManager.currentUser?.email {
+                LabeledContent {
+                    Text(email)
+                        .foregroundStyle(themeManager.currentTheme.accentColor)
+                        .lineLimit(1)
+                } label: {
+                    SettingsIconLabel(title: localized("settings.account.email"), systemImage: "envelope.fill", tint: .gray)
+                }
+            }
+            Button {
+                showingAboutSheet = true
+            } label: {
+                navigationRow(value: appVersion) {
+                    SettingsIconLabel(title: localized("settings.account.about"), systemImage: "info.circle.fill", tint: .cyan)
+                }
+            }
+        } header: {
+            Text(localized("settings.section.account.title"))
+        }
+    }
+
+    // MARK: - Row helpers
+
+    private func navigationRow<RowLabel: View>(value: String?, @ViewBuilder label: () -> RowLabel) -> some View {
+        HStack {
+            label()
+            Spacer()
+            if let value {
+                Text(value)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+    }
+
+    private func passActionButton(title: String, foreground: Color, background: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(foreground)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(background, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - State helpers
+
+    private enum TranscriptionChoice: Hashable {
+        case cloud(CloudTranscriptionProvider)
+        case local(LocalTranscriptionModel)
+    }
+
+    private var transcriptionChoice: Binding<TranscriptionChoice> {
+        Binding(
+            get: {
+                localTranscriptionManager.isLocalModeEnabled
+                    ? .local(localTranscriptionManager.selectedModel)
+                    : .cloud(cloudTranscriptionSettings.selectedProvider)
+            },
+            set: { choice in
+                switch choice {
+                case .cloud(let provider):
+                    cloudTranscriptionSettings.selectedProvider = provider
+                    localTranscriptionManager.setTranscriptionMode(.cloud)
+                case .local(let model):
+                    localTranscriptionManager.setSelectedModel(model)
+                    localTranscriptionManager.setTranscriptionMode(.local)
+                }
+            }
+        )
+    }
+
+    private var installedModels: [LocalTranscriptionModel] {
+        LocalTranscriptionModel.allCases.filter { localTranscriptionManager.modelStatuses[$0]?.isInstalled == true }
+    }
+
+    private var transcriptionSummary: String {
+        if localTranscriptionManager.isLocalModeEnabled {
+            return "\(TranscriptionMode.local.displayName) · \(localTranscriptionManager.selectedModel.displayName)"
+        }
+        return "\(TranscriptionMode.cloud.displayName) · \(cloudTranscriptionSettings.selectedProvider.displayName)"
+    }
+
+    private func aiProviderName(_ provider: MeetingAnalysisProviderType) -> String {
+        switch provider {
+        case .openAI:
+            return provider.displayName
+        case .appleIntelligence:
+            return localized("settings.aiAnalysis.option.apple")
+        }
+    }
+
+    private var activePlan: ProPlan? {
+        ProPlan(productIDs: storeManager.purchasedSubscriptions)
+    }
+
+    private var appVersion: String? {
+        guard let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else { return nil }
+        return "v\(version)"
+    }
+
+    private func refreshSubscriptionAndBalance() async {
+        await storeManager.loadProducts()
+        await storeManager.updateSubscriptionStatus()
+        _ = await minutesManager.refreshBalance()
+    }
+
     private var languageSelection: Binding<String> {
         Binding(
             get: { localizationManager.languageCode },
             set: { localizationManager.setLanguage(code: $0) }
         )
-    }
-
-    private var themeDescriptionText: String {
-        switch themeManager.themeType {
-        case .system:
-            return localized("settings.appearance.systemDescription")
-        case .light:
-            return localized("settings.appearance.lightDescription")
-        case .dark:
-            return localized("settings.appearance.darkDescription")
-        }
     }
 
     private func localized(_ key: String) -> String {
@@ -671,6 +480,7 @@ struct SettingsView: View {
     private func restorePurchases() async {
         do {
             try await storeManager.restorePurchases()
+            await refreshSubscriptionAndBalance()
             await MainActor.run {
                 restoredSuccessfully = true
                 showingRestoreAlert = true
@@ -760,26 +570,6 @@ struct SettingsView: View {
                 }
             }
             #endif
-        }
-    }
-}
-
-struct StatRow: View {
-    let label: String
-    let value: String
-    @EnvironmentObject var themeManager: ThemeManager
-    
-    var body: some View {
-        HStack {
-            Text(label)
-                .themedBody()
-            
-            Spacer()
-            
-            Text(value)
-                .themedBody()
-                .fontWeight(.bold)
-                .foregroundColor(themeManager.currentTheme.accentColor)
         }
     }
 }

@@ -438,12 +438,12 @@ class SupabaseManager {
     // MARK: - Subscription Functions
 
     /// Validate and sync StoreKit transaction with server with retry logic
-    func validateTransaction(_ transaction: Transaction) async throws {
-        try await validateTransactionWithRetry(transaction, maxRetries: 3)
+    func validateTransaction(_ transaction: Transaction, signedTransaction: String) async throws {
+        try await validateTransactionWithRetry(transaction, signedTransaction: signedTransaction, maxRetries: 3)
     }
 
     /// Internal method with retry logic and enhanced error handling
-    private func validateTransactionWithRetry(_ transaction: Transaction, maxRetries: Int) async throws {
+    private func validateTransactionWithRetry(_ transaction: Transaction, signedTransaction: String, maxRetries: Int) async throws {
         var lastError: Error?
 
         for attempt in 1...maxRetries {
@@ -467,7 +467,7 @@ class SupabaseManager {
                     isUpgraded: transaction.isUpgraded,
                     subscriptionGroupId: transaction.subscriptionGroupID,
                     environment: transaction.environment.rawValue,
-                    signedTransactionInfo: transaction.jsonRepresentation.base64EncodedString()
+                    signedTransactionInfo: signedTransaction
                 )
 
                 let requestData = ValidationRequest(

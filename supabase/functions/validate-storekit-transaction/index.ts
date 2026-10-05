@@ -2,6 +2,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
+import { verifyAppleTransaction } from '../_shared/apple_jws.ts'
+import { APPLE_ROOT_CA_G3_BASE64 } from '../_shared/apple_root.ts'
+
+const BUNDLE_ID = 'com.mattianalytics.snipnote'
+const rootCertDER = Uint8Array.from(atob(APPLE_ROOT_CA_G3_BASE64), (c) => c.charCodeAt(0))
 
 interface TransactionData {
   transactionId: string
@@ -128,24 +133,67 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Trust only what Apple signed: every field below comes from the verified payload, not the request body
+    let verified
+    try {
+      verified = await verifyAppleTransaction(transactionData.signedTransactionInfo, { rootCertDER })
+    } catch (verifyError) {
+      console.error('Transaction verification failed:', (verifyError as Error).message)
+      return new Response(
+        JSON.stringify({ error: 'Transaction could not be verified' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      )
+    }
+    if (verified.bundleId !== BUNDLE_ID) {
+      return new Response(
+        JSON.stringify({ error: 'Wrong bundle' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      )
+    }
+    const verifiedData = {
+      transactionId: String(verified.transactionId),
+      originalTransactionId: String(verified.originalTransactionId),
+      productId: verified.productId,
+      purchaseDate: new Date(verified.purchaseDate).toISOString(),
+      expiresDate: verified.expiresDate ? new Date(verified.expiresDate).toISOString() : undefined,
+      isUpgraded: verified.isUpgraded === true,
+      subscriptionGroupId: verified.subscriptionGroupId as string | undefined,
+      environment: (verified.environment as string).toLowerCase(),
+    }
+
     console.log(`Validating StoreKit transaction for user: ${userId}`)
-    console.log(`Transaction ID: ${transactionData.transactionId}`)
-    console.log(`Product ID: ${transactionData.productId}`)
-    console.log(`Environment: ${transactionData.environment}`)
+    console.log(`Transaction ID: ${verifiedData.transactionId}`)
+    console.log(`Product ID: ${verifiedData.productId}`)
+    console.log(`Environment: ${verifiedData.environment}`)
 
     // Get user email for subscription record
     const userEmail = user.email || null
 
     // Check if this is a subscription product
-    const isSubscription = transactionData.productId.includes('pro_weekly') ||
-                          transactionData.productId.includes('pro_monthly') ||
-                          transactionData.productId.includes('pro_annual')
+    const isSubscription = verifiedData.productId.includes('pro_weekly') ||
+                          verifiedData.productId.includes('pro_monthly') ||
+                          verifiedData.productId.includes('pro_annual')
 
     if (isSubscription) {
       // Handle subscription validation
-      const expiresAt = transactionData.expiresDate ? new Date(transactionData.expiresDate) : null
-      const purchaseDate = new Date(transactionData.purchaseDate)
+      const expiresAt = verifiedData.expiresDate ? new Date(verifiedData.expiresDate) : null
+      const purchaseDate = new Date(verifiedData.purchaseDate)
       const isActive = expiresAt ? expiresAt > new Date() : true
+
+      // A valid receipt can be replayed by another account: refuse if this subscription belongs to someone else
+      const { data: owner } = await supabaseClient
+        .from('subscriptions')
+        .select('user_id')
+        .eq('original_transaction_id', verifiedData.originalTransactionId)
+        .neq('user_id', userId)
+        .limit(1)
+        .maybeSingle()
+      if (owner) {
+        return new Response(
+          JSON.stringify({ error: 'Subscription belongs to another account' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 409 }
+        )
+      }
 
       // Insert or update subscription record
       const { error: subscriptionError } = await supabaseClient
@@ -153,16 +201,16 @@ Deno.serve(async (req) => {
         .upsert({
           user_id: userId,
           user_email: userEmail,
-          original_transaction_id: transactionData.originalTransactionId,
-          transaction_id: transactionData.transactionId,
-          product_identifier: transactionData.productId,
-          subscription_group_id: transactionData.subscriptionGroupId,
+          original_transaction_id: verifiedData.originalTransactionId,
+          transaction_id: verifiedData.transactionId,
+          product_identifier: verifiedData.productId,
+          subscription_group_id: verifiedData.subscriptionGroupId,
           purchase_date: purchaseDate.toISOString(),
           expires_at: expiresAt?.toISOString(),
           is_active: isActive,
-          auto_renew_status: !transactionData.isUpgraded, // If upgraded, auto-renew is typically false
+          auto_renew_status: !verifiedData.isUpgraded, // If upgraded, auto-renew is typically false
           store: 'app_store',
-          environment: transactionData.environment,
+          environment: verifiedData.environment,
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'user_id'
@@ -182,10 +230,10 @@ Deno.serve(async (req) => {
         )
       }
 
-      console.log(`✅ Subscription validated and updated: ${transactionData.productId}, active: ${isActive}`)
+      console.log(`✅ Subscription validated and updated: ${verifiedData.productId}, active: ${isActive}`)
 
       // Send Telegram notification (non-blocking)
-      sendTelegramNotification(transactionData.productId, transactionData.environment)
+      sendTelegramNotification(verifiedData.productId, verifiedData.environment)
     }
 
     // For both subscriptions and consumables, we don't need to credit minutes here
@@ -197,7 +245,7 @@ Deno.serve(async (req) => {
         success: true,
         message: 'Transaction validated successfully',
         isSubscription,
-        environment: transactionData.environment
+        environment: verifiedData.environment
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -210,7 +258,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        details: error.message
+        details: (error as Error).message
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

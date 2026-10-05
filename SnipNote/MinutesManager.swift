@@ -127,71 +127,31 @@ class MinutesManager: ObservableObject {
         }
     }
 
-    /// Credit minutes from purchases or subscriptions
-    func creditMinutes(
-        amount: Int,
-        reason: String,
-        appleTransactionID: String? = nil,
-        metadata: [String: Any]? = nil
-    ) async -> Bool {
-        guard amount > 0 else {
-            print("❌ [MinutesManager] Invalid credit amount: \(amount)")
-            return false
-        }
-
+    /// Credit minutes for a StoreKit purchase. The server verifies Apple's signature on the signed
+    /// transaction and decides the amount from the product; the client never sends an amount.
+    func creditPurchase(signedTransaction: String, transactionID: String) async -> Bool {
         // CRITICAL: Check local duplicate - treat as benign success (prevents user lock-out)
-        if let transactionID = appleTransactionID,
-           ProcessedTransactions.shared.isProcessed(transactionID) {
+        if ProcessedTransactions.shared.isProcessed(transactionID) {
             print("✅ [MinutesManager] Transaction already processed locally - treating as success: \(transactionID)")
             await refreshBalance()  // Get latest balance from server
             return true  // Benign duplicate - prevents user lock-out after app reinstall
         }
 
         do {
-            let params = CreditMinutesParams(
-                p_amount: amount,
-                p_reason: reason,
-                p_apple_transaction_id: appleTransactionID,
-                p_metadata: metadata
+            let session = try await SupabaseManager.shared.client.auth.session
+            let response: CreditPurchaseResponse = try await SupabaseManager.shared.client.functions.invoke(
+                "credit-storekit-transaction",
+                options: FunctionInvokeOptions(
+                    headers: ["Authorization": "Bearer \(session.accessToken)"],
+                    body: CreditPurchaseRequest(signedTransaction: signedTransaction)
+                )
             )
-
-            let response = try await SupabaseManager.shared.client
-                .rpc("credit_minutes", params: params)
-                .execute()
-
-            let data = response.data
-            if let newBalance = try? JSONDecoder().decode(Int.self, from: data) {
-                currentBalance = max(0, newBalance)
-                print("✅ [MinutesManager] Credited \(amount) minutes. Reason: \(reason). New balance: \(currentBalance)")
-                return true
-            } else {
-                print("❌ [MinutesManager] Failed to decode credit response")
-                return false
-            }
+            // A transaction the server already credited to this Account answers 200 with the balance
+            currentBalance = max(0, response.balance)
+            print("✅ [MinutesManager] Credited \(response.credited) minutes for \(transactionID). New balance: \(currentBalance)")
+            return true
         } catch {
-            // CRITICAL: Handle duplicate errors as success to prevent user lock-out
-            let errorString = String(describing: error).lowercased()
-
-            if let transactionID = appleTransactionID {
-                // Check for duplicate-related error messages from Supabase
-                if errorString.contains("duplicate") ||
-                   errorString.contains("already") ||
-                   errorString.contains("conflict") ||
-                   errorString.contains("unique") ||
-                   errorString.contains("23505") ||  // PostgreSQL unique violation code
-                   errorString.contains("constraint") {
-
-                    print("✅ [MinutesManager] Supabase duplicate detected - treating as success: \(transactionID)")
-                    print("🔍 [MinutesManager] Duplicate error details: \(error)")
-
-                    // Refresh balance to ensure we have correct state from server
-                    await refreshBalance()
-
-                    return true  // Transaction was already processed on server - this is fine
-                }
-            }
-
-            print("❌ [MinutesManager] Failed to credit minutes: \(error)")
+            print("❌ [MinutesManager] Failed to credit purchase \(transactionID): \(error)")
             lastError = error.localizedDescription
             return false
         }
@@ -260,53 +220,6 @@ class MinutesManager: ObservableObject {
         return .failed(message: errorMessage)
     }
 
-    // MARK: - Subscription Helpers
-
-    /// Credit minutes based on subscription product
-    func creditForSubscription(_ product: Product, transactionID: String) async -> Bool {
-        let (amount, reason) = getMinutesForProduct(product.id)
-        guard amount > 0 else {
-            print("❌ [MinutesManager] Unknown product: \(product.id)")
-            return false
-        }
-
-        let metadata = [
-            "product_id": product.id,
-            "product_name": product.displayName,
-            "price": product.displayPrice
-        ]
-
-        return await creditMinutes(
-            amount: amount,
-            reason: reason,
-            appleTransactionID: transactionID,
-            metadata: metadata
-        )
-    }
-
-    /// Credit minutes based on consumable pack product
-    func creditForPack(_ product: Product, transactionID: String) async -> Bool {
-        let (amount, reason) = getMinutesForProduct(product.id)
-        guard amount > 0 else {
-            print("❌ [MinutesManager] Unknown pack: \(product.id)")
-            return false
-        }
-
-        let metadata = [
-            "product_id": product.id,
-            "product_name": product.displayName,
-            "price": product.displayPrice,
-            "type": "consumable_pack"
-        ]
-
-        return await creditMinutes(
-            amount: amount,
-            reason: reason,
-            appleTransactionID: transactionID,
-            metadata: metadata
-        )
-    }
-
     // MARK: - Validation Helpers
 
     /// Check if user has sufficient minutes for a recording
@@ -333,54 +246,17 @@ class MinutesManager: ObservableObject {
     }
 
     // MARK: - Private Helpers
-
-    private func getMinutesForProduct(_ productID: String) -> (amount: Int, reason: String) {
-        switch productID {
-        case "snipnote_pro_weekly03":
-            return (200, "weekly_allowance")
-        case "snipnote_pro_monthly03":
-            return (800, "monthly_allowance")
-        case "snipnote_pro_annual03":
-            return (9600, "annual_allowance")
-        case "com.snipnote.packs.minutes100":
-            return (100, "pack_100")
-        case "com.snipnote.packs.minutes500":
-            return (500, "pack_500")
-        case "com.snipnote.packs.minutes1000":
-            return (1000, "pack_1000")
-        default:
-            return (0, "unknown")
-        }
-    }
 }
 
-// MARK: - RPC Parameter Structs
+// MARK: - Edge Function Payloads
 
-struct CreditMinutesParams: Encodable {
-    let p_amount: Int
-    let p_reason: String
-    let p_apple_transaction_id: String?
-    let p_metadata: [String: Any]?
+struct CreditPurchaseRequest: Encodable {
+    let signedTransaction: String
+}
 
-    enum CodingKeys: String, CodingKey {
-        case p_amount
-        case p_reason
-        case p_apple_transaction_id
-        case p_metadata
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(p_amount, forKey: .p_amount)
-        try container.encode(p_reason, forKey: .p_reason)
-        try container.encodeIfPresent(p_apple_transaction_id, forKey: .p_apple_transaction_id)
-
-        if let metadata = p_metadata {
-            let jsonData = try JSONSerialization.data(withJSONObject: metadata)
-            let jsonString = String(data: jsonData, encoding: .utf8)
-            try container.encodeIfPresent(jsonString, forKey: .p_metadata)
-        }
-    }
+struct CreditPurchaseResponse: Decodable {
+    let balance: Int
+    let credited: Int
 }
 
 struct DebitMinutesParams: Encodable {

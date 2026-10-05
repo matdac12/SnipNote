@@ -176,7 +176,7 @@ class StoreManager: ObservableObject {
             await updateSubscriptionStatus()
 
             // Try to credit minutes BEFORE finishing transaction
-            let credited = await handleMinutesForTransaction(transaction, product: product)
+            let credited = await handleMinutesForTransaction(transaction, product: product, signedTransaction: verification.jwsRepresentation)
 
             // CRITICAL: Only finish transaction if crediting succeeded
             if credited {
@@ -189,7 +189,7 @@ class StoreManager: ObservableObject {
                 ))
 
                 // Sync transaction to Supabase after successful credit
-                let syncSuccess = await syncTransactionToSupabase(transaction)
+                let syncSuccess = await syncTransactionToSupabase(transaction, signedTransaction: verification.jwsRepresentation)
                 if !syncSuccess {
                     print("⚠️ [StoreKit] Supabase sync failed but transaction already credited and finished")
                 }
@@ -256,14 +256,14 @@ class StoreManager: ObservableObject {
             guard let self else { return }
             for await update in Transaction.updates {
                 if case .verified(let transaction) = update {
-                    await self.processTransactionUpdate(transaction)
+                    await self.processTransactionUpdate(transaction, signedTransaction: update.jwsRepresentation)
                 }
             }
         }
     }
 
     /// Credits Minutes for a verified transaction and finishes it only once the credit succeeded.
-    private func processTransactionUpdate(_ transaction: Transaction) async {
+    private func processTransactionUpdate(_ transaction: Transaction, signedTransaction: String) async {
         await updateSubscriptionStatus()
 
         // Get product - check cache first, then load on-demand if needed
@@ -288,7 +288,7 @@ class StoreManager: ObservableObject {
         // Only process if we have the product
         var credited = false
         if let product = product {
-            credited = await handleMinutesForTransaction(transaction, product: product)
+            credited = await handleMinutesForTransaction(transaction, product: product, signedTransaction: signedTransaction)
         } else {
             print("❌ [StoreKit] Cannot process transaction - product unavailable: \(transaction.productID)")
         }
@@ -296,7 +296,7 @@ class StoreManager: ObservableObject {
         // CRITICAL: Only finish transaction if we successfully credited minutes
         if credited {
             await transaction.finish()
-            _ = await syncTransactionToSupabase(transaction)
+            _ = await syncTransactionToSupabase(transaction, signedTransaction: signedTransaction)
             print("✅ [StoreKit] Transaction update finished successfully: \(transaction.id) product=\(transaction.productID)")
         } else {
             print("⚠️ [StoreKit] Transaction update NOT finished - will retry: \(transaction.id) product=\(transaction.productID)")
@@ -312,7 +312,7 @@ class StoreManager: ObservableObject {
 
         for await unfinished in Transaction.unfinished {
             if case .verified(let transaction) = unfinished {
-                await processTransactionUpdate(transaction)
+                await processTransactionUpdate(transaction, signedTransaction: unfinished.jwsRepresentation)
             }
         }
         await syncAllTransactionsToSupabase()
@@ -378,7 +378,7 @@ class StoreManager: ObservableObject {
 
     // MARK: - Minutes Management
 
-    private func handleMinutesForTransaction(_ transaction: Transaction, product: Product) async -> Bool {
+    private func handleMinutesForTransaction(_ transaction: Transaction, product: Product, signedTransaction: String) async -> Bool {
         let transactionID = String(transaction.id)
 
         // A Guest has no Account to credit. Leave the transaction unfinished: StoreKit delivers it
@@ -408,24 +408,12 @@ class StoreManager: ObservableObject {
         // CRITICAL: Mark as in-flight BEFORE any async work to prevent race conditions
         ProcessedTransactions.shared.markAsInFlight(transactionID)
 
-        var success = false
-
-        if product.type == .autoRenewable {
-            // Handle subscription renewal
-            success = await MinutesManager.shared.creditForSubscription(product, transactionID: transactionID)
-            if success {
-                print("✅ [StoreKit] Successfully credited subscription minutes for \(product.id)")
-            } else {
-                print("❌ [StoreKit] Failed to credit subscription minutes for \(product.id)")
-            }
-        } else if product.type == .consumable {
-            // Handle consumable pack purchase
-            success = await MinutesManager.shared.creditForPack(product, transactionID: transactionID)
-            if success {
-                print("✅ [StoreKit] Successfully credited pack minutes for \(product.id)")
-            } else {
-                print("❌ [StoreKit] Failed to credit pack minutes for \(product.id)")
-            }
+        // The server verifies Apple's signature and decides the amount from the product
+        let success = await MinutesManager.shared.creditPurchase(signedTransaction: signedTransaction, transactionID: transactionID)
+        if success {
+            print("✅ [StoreKit] Successfully credited minutes for \(product.id)")
+        } else {
+            print("❌ [StoreKit] Failed to credit minutes for \(product.id)")
         }
 
         if success { markAsPaid() }
@@ -438,12 +426,12 @@ class StoreManager: ObservableObject {
 
     // MARK: - Supabase Sync
 
-    private func syncTransactionToSupabase(_ transaction: Transaction) async -> Bool {
+    private func syncTransactionToSupabase(_ transaction: Transaction, signedTransaction: String) async -> Bool {
         guard SupabaseManager.shared.client.auth.currentUser != nil else { return false }
         let transactionID = String(transaction.id)
 
         do {
-            try await SupabaseManager.shared.validateTransaction(transaction)
+            try await SupabaseManager.shared.validateTransaction(transaction, signedTransaction: signedTransaction)
             print("✅ [StoreKit] Successfully synced transaction to Supabase: \(transaction.id)")
 
             // Remove from failed queue if it was there
@@ -511,7 +499,7 @@ class StoreManager: ObservableObject {
                String(transaction.originalID) == transactionData.originalTransactionID {
 
                 // Retry the Supabase validation
-                let success = await syncTransactionToSupabase(transaction)
+                let success = await syncTransactionToSupabase(transaction, signedTransaction: latestTransaction.jwsRepresentation)
 
                 if success {
                     print("✅ [StoreKit] Successfully retried transaction: \(transactionData.transactionID)")
@@ -536,7 +524,7 @@ class StoreManager: ObservableObject {
         for await result in Transaction.currentEntitlements {
             if case .verified(let transaction) = result,
                transaction.productType == .autoRenewable {
-                _ = await syncTransactionToSupabase(transaction)
+                _ = await syncTransactionToSupabase(transaction, signedTransaction: result.jwsRepresentation)
             }
         }
     }

@@ -4,24 +4,23 @@ import FluidAudio
 import Foundation
 import UIKit
 
-/// Companion side of the SnipNote keyboard (personal test feature).
+/// Companion side of the SnipNote keyboard.
 ///
 /// A session keeps the microphone running so iOS lets SnipNote stay alive in the background;
 /// idle audio is discarded. Each Start/Stop from the keyboard captures one utterance, which is
 /// transcribed with the installed Parakeet model and handed to the keyboard as one final text.
+/// A session nobody dictates into for `idleLimit` ends by itself, so the microphone is not left on.
 @MainActor
 final class DictationSessionController: ObservableObject {
   static let shared = DictationSessionController()
 
   @Published private(set) var state = DictationCompanionState()
-  @Published private(set) var lastTimings: String?
-  @Published private(set) var utteranceCount = 0
-  /// Which model is in memory and how long it took to load, for the Dictation screen.
-  @Published private(set) var modelLoadInfo: String?
 
   private static let sampleRate: Double = 16_000
   private static let maxUtteranceSeconds: Double = 120
   private static let handledCommandsLimit = 40
+  /// An armed session with no dictation for this long ends by itself.
+  static let idleLimit: TimeInterval = 15 * 60
 
   private let engine = AVAudioEngine()
   private let buffer = UtteranceBuffer()
@@ -36,6 +35,8 @@ final class DictationSessionController: ObservableObject {
   private var transcriptionTask: Task<Void, Never>?
   private var notificationTokens: [NSObjectProtocol] = []
   private var stopTappedAt: Date?
+  /// Last time the session was armed or a dictation started or ended; drives `idleLimit`.
+  private var lastActivityAt = Date()
 
   private init() {
     // A previous run may have died with a stale "armed" file; the keyboard must not trust it.
@@ -72,7 +73,7 @@ final class DictationSessionController: ObservableObject {
           _ = try await modelTask.value
         } catch {
           guard let self, self.state.sessionID == sessionID, self.isSessionActive else { return }
-          self.interrupt(reason: "Could not load the model: \(error.localizedDescription)")
+          self.interrupt(reason: Self.text("dictation.error.modelLoad", error.localizedDescription))
         }
       }
 
@@ -89,6 +90,7 @@ final class DictationSessionController: ObservableObject {
       }
       state.session = .armed
       state.message = nil
+      lastActivityAt = Date()
       publish()
       print("✅ [Dictation] Session armed \(sessionID): capture started in \(Self.ms(since: armStart)) ms")
     } catch {
@@ -100,12 +102,13 @@ final class DictationSessionController: ObservableObject {
     }
   }
 
-  func endSession() async {
+  /// `message` explains an end the user did not ask for, such as the idle limit.
+  func endSession(message: String? = nil) async {
     print("🛑 [Dictation] Ending session")
     let pending = state.result
     await teardown()
     // A completed result stays available for explicit Insert; in-flight work is dropped.
-    state = DictationCompanionState(result: pending)
+    state = DictationCompanionState(message: message, result: pending)
     publish()
   }
 
@@ -142,7 +145,6 @@ final class DictationSessionController: ObservableObject {
     let previous = loaded
     loaded = nil
     pendingModel = model
-    modelLoadInfo = "Loading \(model.displayName)…"
     return Task { [weak self] in
       if let previous {
         await previous.service.finishSession(previous.asr)
@@ -156,14 +158,12 @@ final class DictationSessionController: ObservableObject {
         // A failed load must not be reused by the next session.
         self?.modelTask = nil
         self?.pendingModel = nil
-        self?.modelLoadInfo = nil
         throw error
       }
       let ms = Self.ms(since: started)
       let result = LoadedModel(model: model, service: service, asr: asr)
       print("🎙️ [Dictation] Parakeet \(model.rawValue) loaded in \(ms) ms")
       self?.loaded = result
-      self?.modelLoadInfo = "\(model.displayName) loaded in \(ms) ms"
       return result
     }
   }
@@ -177,7 +177,6 @@ final class DictationSessionController: ObservableObject {
     self.loaded = nil
     modelTask = nil
     pendingModel = nil
-    modelLoadInfo = nil
     Task { await loaded.service.finishSession(loaded.asr) }
   }
 
@@ -244,7 +243,7 @@ final class DictationSessionController: ObservableObject {
       MainActor.assumeIsolated { self?.handleConfigurationChange() }
     })
     notificationTokens.append(center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
-      MainActor.assumeIsolated { self?.interrupt(reason: "Audio services were reset") }
+      MainActor.assumeIsolated { self?.interrupt(reason: Self.text("dictation.error.audioReset")) }
     })
   }
 
@@ -254,7 +253,7 @@ final class DictationSessionController: ObservableObject {
     switch type {
     case .began:
       print("⚠️ [Dictation] Audio interruption began")
-      if state.utterance == .recording { failUtterance("Interrupted while recording") }
+      if state.utterance == .recording { failUtterance(Self.text("dictation.error.interruptedWhileRecording")) }
     case .ended:
       print("🔄 [Dictation] Audio interruption ended, trying to resume capture")
       do {
@@ -262,7 +261,7 @@ final class DictationSessionController: ObservableObject {
         try installTapAndStart()
         print("✅ [Dictation] Capture resumed after interruption")
       } catch {
-        interrupt(reason: "Could not resume after interruption: \(error.localizedDescription)")
+        interrupt(reason: Self.text("dictation.error.resumeFailed", error.localizedDescription))
       }
     @unknown default:
       break
@@ -273,11 +272,11 @@ final class DictationSessionController: ObservableObject {
   private func handleConfigurationChange() {
     guard state.session == .armed else { return }
     print("🔄 [Dictation] Audio route changed, restarting capture")
-    if state.utterance == .recording { failUtterance("Audio route changed while recording") }
+    if state.utterance == .recording { failUtterance(Self.text("dictation.error.routeChanged")) }
     do {
       try installTapAndStart()
     } catch {
-      interrupt(reason: "Could not restart capture: \(error.localizedDescription)")
+      interrupt(reason: Self.text("dictation.error.restartFailed", error.localizedDescription))
     }
   }
 
@@ -337,6 +336,7 @@ final class DictationSessionController: ObservableObject {
     state.interactionID = interactionID
     state.utterance = .recording
     state.message = nil
+    lastActivityAt = Date()
     buffer.start()
     startLevelTimer()
   }
@@ -372,7 +372,7 @@ final class DictationSessionController: ObservableObject {
           self.finishUtterance(text: "", utteranceID: utteranceID, interactionID: interactionID,
                                audioSeconds: seconds, transcribeMs: Self.ms(since: started))
         } else {
-          self.failUtterance("Transcription failed: \(error.localizedDescription)")
+          self.failUtterance(Self.text("dictation.error.transcriptionFailed", error.localizedDescription))
         }
       }
     }
@@ -381,9 +381,9 @@ final class DictationSessionController: ObservableObject {
   private func finishUtterance(text: String, utteranceID: UUID, interactionID: UUID, audioSeconds: Double, transcribeMs: Int) {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
     let stopToResult = stopTappedAt.map { Self.ms(since: $0) } ?? 0
-    lastTimings = String(format: "%.1f s audio · transcribe %d ms · Stop→result %d ms", audioSeconds, transcribeMs, stopToResult)
-    print("✅ [Dictation] \(lastTimings ?? "") · \(trimmed.count) chars")
-    utteranceCount += 1
+    print(String(format: "✅ [Dictation] %.1f s audio · transcribe %d ms · Stop→result %d ms · %d chars",
+                 audioSeconds, transcribeMs, stopToResult, trimmed.count))
+    lastActivityAt = Date()
     state.utterance = .idle
     state.utteranceID = nil
     if !trimmed.isEmpty {
@@ -397,6 +397,7 @@ final class DictationSessionController: ObservableObject {
     transcriptionTask = nil
     buffer.stopAndClear()
     stopLevelTimer()
+    lastActivityAt = Date()
     state.utterance = .idle
     state.utteranceID = nil
     state.level = 0
@@ -407,6 +408,7 @@ final class DictationSessionController: ObservableObject {
     print("❌ [Dictation] \(message)")
     buffer.stopAndClear()
     stopLevelTimer()
+    lastActivityAt = Date()
     state.utterance = .failed
     state.utteranceID = nil
     state.level = 0
@@ -429,9 +431,19 @@ final class DictationSessionController: ObservableObject {
         guard let self else { return }
         // Also a fallback in case a Darwin hint was missed.
         self.handleKeyboardCommands()
+        if self.isIdleTooLong {
+          print("⏱️ [Dictation] No dictation for \(Int(Self.idleLimit / 60)) min, ending session")
+          Task { await self.endSession(message: Self.text("dictation.session.endedIdle", Int(Self.idleLimit / 60))) }
+          return
+        }
         self.publish()
       }
     }
+  }
+
+  private var isIdleTooLong: Bool {
+    state.session == .armed && (state.utterance == .idle || state.utterance == .failed)
+      && Date().timeIntervalSince(lastActivityAt) >= Self.idleLimit
   }
 
   private func startLevelTimer() {
@@ -467,6 +479,10 @@ final class DictationSessionController: ObservableObject {
   private nonisolated static func ms(since date: Date) -> Int {
     Int(Date().timeIntervalSince(date) * 1_000)
   }
+
+  private nonisolated static func text(_ key: String, _ arguments: CVarArg...) -> String {
+    LocalizationManager.localizedAppString(key, arguments: arguments)
+  }
 }
 
 enum DictationSessionError: LocalizedError {
@@ -476,9 +492,9 @@ enum DictationSessionError: LocalizedError {
 
   var errorDescription: String? {
     switch self {
-    case .microphoneDenied: "Microphone access is off. Turn it on in Settings > SnipNote."
-    case .modelMissing: "Download a Parakeet model in Settings > Transcription first."
-    case .audioUnavailable: "No microphone input is available."
+    case .microphoneDenied: LocalizationManager.localizedAppString("dictation.error.microphoneDenied")
+    case .modelMissing: LocalizationManager.localizedAppString("dictation.error.modelMissing")
+    case .audioUnavailable: LocalizationManager.localizedAppString("dictation.error.noInput")
     }
   }
 }

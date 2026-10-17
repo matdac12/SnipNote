@@ -48,6 +48,10 @@ class StoreManager: ObservableObject {
     private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "SnipNote", category: "StoreKit")
 
     private init() {
+#if DEBUG
+        // App Store screenshots: no StoreKit traffic, which on a simulator asks for an Apple Account.
+        if ScreenshotSeed.isActive { return }
+#endif
         // Listen for transaction updates
         updatesTask = listenForTransactions()
 
@@ -61,6 +65,10 @@ class StoreManager: ObservableObject {
 
     // MARK: - Loading
     func loadProducts() async {
+#if DEBUG
+        // The simulator has no products; the empty-result fallback would ask for an Apple Account.
+        if ScreenshotSeed.isActive { return }
+#endif
         guard !isLoadingProducts else { return }
         isLoadingProducts = true
         loadingError = nil
@@ -219,6 +227,9 @@ class StoreManager: ObservableObject {
 
     // MARK: - Status
     func updateSubscriptionStatus() async {
+#if DEBUG
+        if ScreenshotSeed.isActive { return }
+#endif
         var active: Set<String> = []
         for await result in Transaction.currentEntitlements {
             if case .verified(let transaction) = result,

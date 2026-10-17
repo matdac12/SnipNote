@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// Personal test screen for the SnipNote keyboard: arm the microphone session here, then
-/// dictate from the keyboard in any app. Strings are verbatim on purpose (not localized yet).
+/// Settings screen for the SnipNote keyboard: arm the microphone session here, then dictate
+/// from the keyboard in any app.
 struct DictationSessionView: View {
   @ObservedObject private var controller = DictationSessionController.shared
   @ObservedObject private var localTranscription = LocalTranscriptionManager.shared
+  @EnvironmentObject private var localizationManager: LocalizationManager
 
   var body: some View {
     List {
@@ -20,17 +21,17 @@ struct DictationSessionView: View {
           Button(role: .destructive) {
             Task { await controller.endSession() }
           } label: {
-            Text(verbatim: "End session")
+            Text(localized("dictation.session.end"))
           }
         } else {
           Button {
             Task { await controller.startSession() }
           } label: {
-            Text(verbatim: "Start session")
+            Text(localized("dictation.session.start"))
           }
         }
       } footer: {
-        Text(verbatim: "Model: \(localTranscription.selectedModel.displayName). The microphone stays on while the session is armed; audio between dictations is discarded.")
+        Text(String(format: localized("dictation.session.footer"), localTranscription.selectedModel.displayName, Int(DictationSessionController.idleLimit / 60)))
       }
 
       if controller.state.result != nil {
@@ -38,47 +39,39 @@ struct DictationSessionView: View {
           Button(role: .destructive) {
             controller.discardPendingResult()
           } label: {
-            Text(verbatim: "Discard pending text")
+            Text(localized("dictation.pending.discard"))
           }
         } footer: {
-          Text(verbatim: "A transcript is waiting to be inserted from the keyboard.")
+          Text(localized("dictation.pending.footer"))
         }
       }
 
       Section {
-        LabeledContent { Text(verbatim: "\(controller.utteranceCount)") } label: { Text(verbatim: "Dictations this run") }
-        if let info = controller.modelLoadInfo {
-          Text(verbatim: info).font(.footnote.monospacedDigit())
-        }
-        if let timings = controller.lastTimings {
-          Text(verbatim: timings).font(.footnote.monospacedDigit())
-        }
+        Text(localized("dictation.setup.step1"))
+        Text(localized("dictation.setup.step2"))
+        Text(localized("dictation.setup.step3"))
       } header: {
-        Text(verbatim: "Measurements")
-      }
-
-      Section {
-        Text(verbatim: "1. Settings > General > Keyboard > Keyboards > Add New Keyboard > SnipNote.")
-        Text(verbatim: "2. Tap SnipNote in that list and turn on Allow Full Access (needed to talk to this app; the keyboard has no network code).")
-        Text(verbatim: "3. Tap Start session here, go to any app, switch to the SnipNote keyboard with the globe key, tap Start and Stop.")
-      } header: {
-        Text(verbatim: "Setup")
+        Text(localized("dictation.setup.header"))
       }
     }
-    .navigationTitle(Text(verbatim: "Dictation keyboard"))
+    .navigationTitle(localized("settings.dictation.title"))
+  }
+
+  private func localized(_ key: String) -> String {
+    localizationManager.localizedString(key)
   }
 
   private var statusText: String {
     switch controller.state.session {
-    case .inactive: "Not running"
-    case .preparing: "Preparing…"
-    case .interrupted: "Interrupted"
+    case .inactive: localized("dictation.status.notRunning")
+    case .preparing: localized("dictation.status.preparing")
+    case .interrupted: localized("dictation.status.interrupted")
     case .armed:
       switch controller.state.utterance {
-      case .idle: "Ready"
-      case .recording: "Recording"
-      case .transcribing: "Transcribing"
-      case .failed: "Ready (last dictation failed)"
+      case .idle: localized("dictation.status.ready")
+      case .recording: localized("dictation.status.recording")
+      case .transcribing: localized("dictation.status.transcribing")
+      case .failed: localized("dictation.status.readyAfterFailure")
       }
     }
   }
@@ -97,6 +90,7 @@ struct DictationSessionView: View {
 /// the user goes back with iOS's "◀ App" button. Closes itself when SnipNote leaves the screen.
 struct DictationLaunchView: View {
   @ObservedObject private var controller = DictationSessionController.shared
+  @EnvironmentObject private var localizationManager: LocalizationManager
   @Environment(\.dismiss) private var dismiss
   @Environment(\.scenePhase) private var scenePhase
 
@@ -117,7 +111,7 @@ struct DictationLaunchView: View {
       Button {
         dismiss()
       } label: {
-        Text(verbatim: "Close")
+        Text(localized("account.close"))
       }
       .padding(.bottom, 24)
     }
@@ -147,18 +141,22 @@ struct DictationLaunchView: View {
 
   private var title: String {
     switch controller.state.session {
-    case .armed: "Dictation ready"
-    case .interrupted: "Could not start"
-    default: "Starting…"
+    case .armed: localized("dictation.launch.ready.title")
+    case .interrupted: localized("dictation.launch.failed.title")
+    default: localized("dictation.launch.starting.title")
     }
   }
 
   private var detail: String {
     if controller.state.session == .interrupted {
-      return controller.state.message ?? "Try again from Settings > Dictation keyboard."
+      return controller.state.message ?? localized("dictation.launch.failed.detail")
     }
     return isReady
-      ? "Go back with ◀ at the top left, or swipe right along the bottom edge."
-      : "Starting the microphone."
+      ? localized("dictation.launch.ready.detail")
+      : localized("dictation.launch.starting.detail")
+  }
+
+  private func localized(_ key: String) -> String {
+    localizationManager.localizedString(key)
   }
 }

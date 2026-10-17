@@ -33,7 +33,7 @@ final class KeyboardViewController: UIInputViewController {
   private let cancelButton = UIButton(type: .system)
   private let resultRow = UIStackView()
   private let globeButton = KeyButton(symbol: "globe", special: true)
-  private let spaceButton = KeyButton(title: "space", special: false)
+  private let spaceButton = KeyButton(title: String(localized: "keyboard.key.space"), special: false)
   private let deleteButton = KeyButton(symbol: "delete.left", special: true)
   private let returnButton = KeyButton(symbol: "return", special: true)
   private var deleteRepeatTimer: Timer?
@@ -224,14 +224,16 @@ final class KeyboardViewController: UIInputViewController {
 
   private var currentLook: Look {
     if !hasFullAccess {
-      return .message(icon: "lock", title: nil, subtitle: "Allow Full Access for SnipNote in Settings › General › Keyboard", tappable: false)
+      return .message(icon: "lock", title: nil, subtitle: String(localized: "keyboard.fullAccessNeeded"), tappable: false)
     }
     if pendingResult != nil { return .textReady }
     if !isSessionArmed {
       if companion.isAlive && companion.session == .preparing {
-        return .message(icon: "mic", title: nil, subtitle: "Starting session…", tappable: false)
+        return .message(icon: "mic", title: nil, subtitle: String(localized: "keyboard.session.starting"), tappable: false)
       }
-      let subtitle = companion.session == .interrupted ? "Session interrupted · tap to restart" : "Tap to start a session"
+      let subtitle = companion.session == .interrupted
+        ? String(localized: "keyboard.session.interrupted")
+        : String(localized: "keyboard.session.tapToStart")
       return .message(icon: "mic", title: nil, subtitle: subtitle, tappable: true)
     }
     // Show the next state as soon as the tap is sent; the acknowledgment takes a few ms.
@@ -245,7 +247,7 @@ final class KeyboardViewController: UIInputViewController {
     case .idle: return .ready(note: nil)
     case .recording: return .recording
     case .transcribing: return .transcribing
-    case .failed: return .ready(note: "Couldn't transcribe")
+    case .failed: return .ready(note: String(localized: "keyboard.dictation.failed"))
     }
   }
 
@@ -267,7 +269,8 @@ final class KeyboardViewController: UIInputViewController {
       tappable = isTappable
     case let .ready(note):
       icon = "mic"
-      subtitle = note.map { "\($0) · tap to dictate" } ?? "Tap to dictate"
+      subtitle = note.map { String(format: String(localized: "keyboard.dictation.noteThenTap"), $0) }
+        ?? String(localized: "keyboard.dictation.tap")
       tappable = true
     case .recording:
       showWaveform = true
@@ -275,11 +278,11 @@ final class KeyboardViewController: UIInputViewController {
       tappable = true
       title = elapsedText
     case .transcribing:
-      title = "Transcribing"
+      title = String(localized: "keyboard.dictation.transcribing")
       showCancel = true
       shimmer = true
     case .textReady:
-      title = "Text ready"
+      title = String(localized: "keyboard.dictation.textReady")
     }
 
     if case .recording = look {
@@ -372,8 +375,8 @@ final class KeyboardViewController: UIInputViewController {
     titleRow.spacing = 6
     titleRow.alignment = .center
 
-    for (button, title, action) in [(UIButton(type: .system), "Discard", #selector(discardTapped)),
-                                    (UIButton(type: .system), "Insert", #selector(insertTapped))] {
+    for (button, title, action) in [(UIButton(type: .system), String(localized: "keyboard.result.discard"), #selector(discardTapped)),
+                                    (UIButton(type: .system), String(localized: "keyboard.result.insert"), #selector(insertTapped))] {
       var config = UIButton.Configuration.gray()
       config.title = title
       config.baseForegroundColor = .label

@@ -302,12 +302,12 @@ struct MeetingDetailView: View {
 
                     HStack(spacing: 16) {
                         if !meeting.location.isEmpty {
-                            Text("📍 \(meeting.location)")
+                            Label(meeting.location, systemImage: "mappin.and.ellipse")
                                 .font(.caption).foregroundStyle(theme.secondaryTextColor)
                         }
 
                         if meeting.duration > 0 {
-                            Text("⏱️ \(meeting.durationFormatted)")
+                            Label(meeting.durationFormatted, systemImage: "clock")
                                 .font(.caption).foregroundStyle(theme.secondaryTextColor)
                         }
                     }

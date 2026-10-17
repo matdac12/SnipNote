@@ -28,6 +28,10 @@ final class AccountSetup {
     /// Runs the setup for `userID`, or waits for the run already in progress. Safe to call from
     /// several places: each user is set up once until `reset()`.
     func run(userID: UUID, modelContext: ModelContext) async {
+#if DEBUG
+        // App Store screenshots: never push the sample meetings to an account.
+        if ScreenshotSeed.isActive { return }
+#endif
         if let current, current.userID == userID {
             await current.task.value
             return

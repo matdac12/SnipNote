@@ -356,18 +356,14 @@ struct SettingsView: View {
         .accessibilityIdentifier("settings.transcription.menu")
     }
 
-    /// Personal test feature, not localized yet.
     private var dictationKeyboardSection: some View {
         Section {
             NavigationLink {
                 DictationSessionView()
             } label: {
-                Label {
-                    Text(verbatim: "Dictation keyboard")
-                } icon: {
-                    Image(systemName: "keyboard")
-                }
+                SettingsIconLabel(title: localized("settings.dictation.title"), systemImage: "keyboard", tint: .indigo)
             }
+            .accessibilityIdentifier("settings.dictation")
         }
     }
 

@@ -56,6 +56,9 @@ class MinutesManager: ObservableObject {
         scheduledDebitRetryTask = nil
         launchTask = nil
         currentBalance = 0
+#if DEBUG
+        if ScreenshotSeed.isActive { currentBalance = ScreenshotSeed.balanceMinutes }
+#endif
         lastError = nil
         UserDefaults.standard.removeObject(forKey: "lastBalanceRefreshTime")
     }
@@ -63,6 +66,12 @@ class MinutesManager: ObservableObject {
     /// Refresh the current balance from Supabase
     @discardableResult
     func refreshBalance() async -> Bool {
+#if DEBUG
+        if ScreenshotSeed.isActive {
+            currentBalance = ScreenshotSeed.balanceMinutes
+            return true
+        }
+#endif
         guard let userID = SupabaseManager.shared.client.auth.currentUser?.id else {
             print("ℹ️ [MinutesManager] Skipping balance refresh - no authenticated session")
             return false

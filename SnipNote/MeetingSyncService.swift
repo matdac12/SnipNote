@@ -32,6 +32,9 @@ class MeetingSyncService: ObservableObject {
     /// that need the push to have happened (account setup) can retry instead of assuming it ran.
     @discardableResult
     func syncFromServer(modelContext: ModelContext) async throws -> Bool {
+#if DEBUG
+        if ScreenshotSeed.isActive { return false }
+#endif
         guard !isSyncing else {
             print("⚠️ [Sync] Already syncing, skipping...")
             return false

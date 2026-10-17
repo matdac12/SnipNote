@@ -60,14 +60,21 @@ struct SnipNoteApp: App {
             Meeting.self,
         ])
 #if DEBUG
-        let preview = ProcessInfo.processInfo.arguments.contains("--analysis-preview")
+        if ScreenshotSeed.isActive { ScreenshotSeed.prepareDefaults() }
+        let preview = ProcessInfo.processInfo.arguments.contains("--analysis-preview") || ScreenshotSeed.isActive
 #else
         let preview = false
 #endif
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: preview)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+#if DEBUG
+            if ScreenshotSeed.isActive {
+                MainActor.assumeIsolated { ScreenshotSeed.populate(container.mainContext) }
+            }
+#endif
+            return container
         } catch {
             print("❌ Failed to create ModelContainer: \(error)")
             // Create fallback in-memory container to prevent app crash
@@ -119,7 +126,9 @@ struct SnipNoteApp: App {
                 handleDeepLink(url)
             }
             .fullScreenCover(isPresented: $showingDictationLaunch) {
+                // Attached outside .environmentObject above, so the cover gets it explicitly.
                 DictationLaunchView()
+                    .environmentObject(localizationManager)
             }
             .onAppear {
                 AnalyticsService.track(.appOpened)

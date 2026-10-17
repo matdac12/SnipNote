@@ -207,6 +207,10 @@ final class LocalTranscriptionManager: ObservableObject {
             modelStatuses[model] = .checking
             let status = await service.status(for: model)
             modelStatuses[model] = status
+#if DEBUG
+            // App Store screenshots: no download banner and an enabled Record button.
+            if ScreenshotSeed.isActive { modelStatuses[model] = .installed }
+#endif
         }
     }
 

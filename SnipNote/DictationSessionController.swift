@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import Combine
 import FluidAudio
 import Foundation
@@ -185,7 +185,7 @@ final class DictationSessionController: ObservableObject {
 
   private func startCapture() throws {
     let session = AVAudioSession.sharedInstance()
-    try session.setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers, .allowBluetooth, .defaultToSpeaker])
+    try session.setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers, .allowBluetoothHFP, .defaultToSpeaker])
     try session.setActive(true)
     try installTapAndStart()
   }
@@ -218,6 +218,8 @@ final class DictationSessionController: ObservableObject {
       guard let output = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: capacity) else { return }
       var consumed = false
       var error: NSError?
+      // convert(to:error:withInputFrom:) calls this block synchronously, on this thread.
+      nonisolated(unsafe) let input = pcm
       converter.convert(to: output, error: &error) { _, status in
         if consumed {
           status.pointee = .noDataNow
@@ -225,7 +227,7 @@ final class DictationSessionController: ObservableObject {
         }
         consumed = true
         status.pointee = .haveData
-        return pcm
+        return input
       }
       guard error == nil, let channel = output.floatChannelData?[0] else { return }
       buffer.append(UnsafeBufferPointer(start: channel, count: Int(output.frameLength)))

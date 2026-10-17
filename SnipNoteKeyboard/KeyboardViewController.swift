@@ -56,9 +56,6 @@ final class KeyboardViewController: UIInputViewController {
       MainActor.assumeIsolated { self?.refresh() }
     }
     refresh()
-    HostAppResolver.harvest()
-    // The arbiter fills in ~200 ms after the keyboard appears.
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { HostAppResolver.harvest() }
   }
 
   override func viewDidDisappear(_ animated: Bool) {
@@ -72,7 +69,6 @@ final class KeyboardViewController: UIInputViewController {
 
   override func textDidChange(_ textInput: UITextInput?) {
     super.textDidChange(textInput)
-    HostAppResolver.harvest()
   }
 
   // MARK: - State
@@ -160,12 +156,7 @@ final class KeyboardViewController: UIInputViewController {
   /// Keyboards cannot start the microphone, so SnipNote opens, starts the session at once,
   /// and the user returns with iOS's back button. Same responder-chain route as SnipNoteShare.
   private func openSnipNoteAndStartSession() {
-    var components = URLComponents(string: "snipnote://dictation/start")
-    if let host = HostAppResolver.currentHost(for: self) {
-      components?.queryItems = [URLQueryItem(name: "return", value: host)]
-      print("↩️ [Keyboard] Host app: \(host)")
-    }
-    guard let url = components?.url else { return }
+    guard let url = URL(string: "snipnote://dictation/start") else { return }
     var responder: UIResponder? = self
     while let next = responder?.next {
       if let application = next as? UIApplication {

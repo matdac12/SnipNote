@@ -153,16 +153,7 @@ struct SnipNoteApp: App {
             if url.host == "dictation" {
                 // From the SnipNote keyboard: start the session at once, then the user goes back.
                 showingDictationLaunch = true
-                let host = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-                    .queryItems?.first { $0.name == "return" }?.value
-                Task {
-                    let controller = DictationSessionController.shared
-                    await controller.startSession()
-                    // Return only once the microphone runs; iOS won't start it from the background.
-                    if controller.state.session == .armed {
-                        DictationHostReturn.returnTo(host)
-                    }
-                }
+                Task { await DictationSessionController.shared.startSession() }
             } else if url.host == "import-shared-audio" {
                 // Triggered by Share Extension — read from shared container
                 print("🎵 Share Extension triggered, checking shared container...")

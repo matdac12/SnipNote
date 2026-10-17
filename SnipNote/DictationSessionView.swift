@@ -5,7 +5,6 @@ import SwiftUI
 struct DictationSessionView: View {
   @ObservedObject private var controller = DictationSessionController.shared
   @ObservedObject private var localTranscription = LocalTranscriptionManager.shared
-  @AppStorage(DictationHostReturn.methodKey) private var returnMethod = DictationHostReturn.Method.urlScheme.rawValue
 
   var body: some View {
     List {
@@ -56,20 +55,6 @@ struct DictationSessionView: View {
         }
       } header: {
         Text(verbatim: "Measurements")
-      }
-
-      Section {
-        Picker(selection: $returnMethod) {
-          ForEach(DictationHostReturn.Method.allCases) { method in
-            Text(verbatim: method.title).tag(method.rawValue)
-          }
-        } label: {
-          Text(verbatim: "Return method")
-        }
-      } header: {
-        Text(verbatim: "Back to the app after Start session")
-      } footer: {
-        Text(verbatim: "Used when the keyboard opens SnipNote. Only Notes is supported for now.")
       }
 
       Section {
@@ -173,7 +158,7 @@ struct DictationLaunchView: View {
       return controller.state.message ?? "Try again from Settings > Dictation keyboard."
     }
     return isReady
-      ? "Go back with the ◀ button at the top left of the screen."
+      ? "Go back with ◀ at the top left, or swipe right along the bottom edge."
       : "Starting the microphone."
   }
 }

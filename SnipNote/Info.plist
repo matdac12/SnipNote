@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.mattia.snipnote.transcription</string>
+	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -30,12 +34,9 @@
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
+		<string>audio</string>
 		<string>fetch</string>
 		<string>processing</string>
-	</array>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
-	<array>
-		<string>com.mattia.snipnote.transcription</string>
 	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>

@@ -36,6 +36,7 @@ struct SystemColorSchemeObserver<Content: View>: View {
 @main
 struct SnipNoteApp: App {
     @State private var sharedAudioImportRequest: SharedAudioImportRequest?
+    @State private var showingDictationLaunch = false
     @Environment(\.scenePhase) private var scenePhase
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var themeManager: ThemeManager
@@ -117,6 +118,9 @@ struct SnipNoteApp: App {
             .onOpenURL { url in
                 handleDeepLink(url)
             }
+            .fullScreenCover(isPresented: $showingDictationLaunch) {
+                DictationLaunchView()
+            }
             .onAppear {
                 AnalyticsService.track(.appOpened)
                 _ = StoreManager.shared
@@ -146,7 +150,11 @@ struct SnipNoteApp: App {
         print("📱 Deep link received: \(url)")
 
         if url.scheme == "snipnote" {
-            if url.host == "import-shared-audio" {
+            if url.host == "dictation" {
+                // From the SnipNote keyboard: start the session at once, then the user goes back.
+                showingDictationLaunch = true
+                Task { await DictationSessionController.shared.startSession() }
+            } else if url.host == "import-shared-audio" {
                 // Triggered by Share Extension — read from shared container
                 print("🎵 Share Extension triggered, checking shared container...")
                 checkForSharedAudio()

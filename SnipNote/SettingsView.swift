@@ -64,6 +64,7 @@ struct SettingsView: View {
                 passSection
                 planSection
                 preferencesSection
+                dictationKeyboardSection
                 accountSection
 
                 if authManager.isAuthenticated {
@@ -353,6 +354,21 @@ struct SettingsView: View {
             .contentShape(Rectangle())
         }
         .accessibilityIdentifier("settings.transcription.menu")
+    }
+
+    /// Personal test feature, not localized yet.
+    private var dictationKeyboardSection: some View {
+        Section {
+            NavigationLink {
+                DictationSessionView()
+            } label: {
+                Label {
+                    Text(verbatim: "Dictation keyboard")
+                } icon: {
+                    Image(systemName: "keyboard")
+                }
+            }
+        }
     }
 
     private var accountSection: some View {

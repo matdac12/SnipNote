@@ -11,6 +11,7 @@
 		4976E7522E240927000394DC /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 4976E7512E240927000394DC /* Supabase */; };
 		49FA00012FBD100100AA1101 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 49FA00032FBD100100AA1101 /* FluidAudio */; };
 		49FE080D2F5FFA680006B1D6 /* SnipNoteShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 49FE08032F5FFA680006B1D6 /* SnipNoteShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4DC1D1C7A000000000000001 /* SnipNoteKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4DC1D1C7A000000000000003 /* SnipNoteKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,6 +36,13 @@
 			remoteGlobalIDString = 49FE08022F5FFA680006B1D6;
 			remoteInfo = SnipNoteShare;
 		};
+		4DC1D1C7A000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4961E71E2E0D7A090099EE31 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4DC1D1C7A00000000000000A;
+			remoteInfo = SnipNoteKeyboard;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -45,6 +53,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				49FE080D2F5FFA680006B1D6 /* SnipNoteShare.appex in Embed Foundation Extensions */,
+				4DC1D1C7A000000000000001 /* SnipNoteKeyboard.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -57,6 +66,7 @@
 		4961E7352E0D7A0B0099EE31 /* SnipNoteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SnipNoteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4961E73F2E0D7A0B0099EE31 /* SnipNoteUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SnipNoteUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		49FE08032F5FFA680006B1D6 /* SnipNoteShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SnipNoteShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4DC1D1C7A000000000000003 /* SnipNoteKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SnipNoteKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -73,6 +83,13 @@
 				Info.plist,
 			);
 			target = 49FE08022F5FFA680006B1D6 /* SnipNoteShare */;
+		};
+		4DC1D1C7A000000000000004 /* Exceptions for "SnipNoteKeyboard" folder in "SnipNoteKeyboard" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4DC1D1C7A00000000000000A /* SnipNoteKeyboard */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -101,6 +118,19 @@
 				49FE08122F5FFA680006B1D6 /* Exceptions for "SnipNoteShare" folder in "SnipNoteShare" target */,
 			);
 			path = SnipNoteShare;
+			sourceTree = "<group>";
+		};
+		4DC1D1C7A000000000000005 /* SnipNoteKeyboard */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4DC1D1C7A000000000000004 /* Exceptions for "SnipNoteKeyboard" folder in "SnipNoteKeyboard" target */,
+			);
+			path = SnipNoteKeyboard;
+			sourceTree = "<group>";
+		};
+		4DC1D1C7A000000000000006 /* DictationShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = DictationShared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -137,6 +167,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4DC1D1C7A000000000000007 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -147,6 +184,8 @@
 				4961E7382E0D7A0B0099EE31 /* SnipNoteTests */,
 				4961E7422E0D7A0B0099EE31 /* SnipNoteUITests */,
 				49FE08042F5FFA680006B1D6 /* SnipNoteShare */,
+				4DC1D1C7A000000000000005 /* SnipNoteKeyboard */,
+				4DC1D1C7A000000000000006 /* DictationShared */,
 				4976E7502E240927000394DC /* Frameworks */,
 				4961E7272E0D7A090099EE31 /* Products */,
 			);
@@ -159,6 +198,7 @@
 				4961E7352E0D7A0B0099EE31 /* SnipNoteTests.xctest */,
 				4961E73F2E0D7A0B0099EE31 /* SnipNoteUITests.xctest */,
 				49FE08032F5FFA680006B1D6 /* SnipNoteShare.appex */,
+				4DC1D1C7A000000000000003 /* SnipNoteKeyboard.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -187,9 +227,11 @@
 			);
 			dependencies = (
 				49FE080C2F5FFA680006B1D6 /* PBXTargetDependency */,
+				4DC1D1C7A00000000000000B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				4961E7282E0D7A090099EE31 /* SnipNote */,
+				4DC1D1C7A000000000000006 /* DictationShared */,
 			);
 			name = SnipNote;
 			packageProductDependencies = (
@@ -268,6 +310,29 @@
 			productReference = 49FE08032F5FFA680006B1D6 /* SnipNoteShare.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		4DC1D1C7A00000000000000A /* SnipNoteKeyboard */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4DC1D1C7A00000000000000E /* Build configuration list for PBXNativeTarget "SnipNoteKeyboard" */;
+			buildPhases = (
+				4DC1D1C7A000000000000009 /* Sources */,
+				4DC1D1C7A000000000000007 /* Frameworks */,
+				4DC1D1C7A000000000000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4DC1D1C7A000000000000005 /* SnipNoteKeyboard */,
+				4DC1D1C7A000000000000006 /* DictationShared */,
+			);
+			name = SnipNoteKeyboard;
+			packageProductDependencies = (
+			);
+			productName = SnipNoteKeyboard;
+			productReference = 4DC1D1C7A000000000000003 /* SnipNoteKeyboard.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -291,6 +356,9 @@
 					};
 					49FE08022F5FFA680006B1D6 = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					4DC1D1C7A00000000000000A = {
+						CreatedOnToolsVersion = 26.6;
 					};
 				};
 			};
@@ -317,6 +385,7 @@
 				4961E7342E0D7A0B0099EE31 /* SnipNoteTests */,
 				4961E73E2E0D7A0B0099EE31 /* SnipNoteUITests */,
 				49FE08022F5FFA680006B1D6 /* SnipNoteShare */,
+				4DC1D1C7A00000000000000A /* SnipNoteKeyboard */,
 			);
 		};
 /* End PBXProject section */
@@ -344,6 +413,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		49FE08012F5FFA680006B1D6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4DC1D1C7A000000000000008 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -381,6 +457,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4DC1D1C7A000000000000009 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -398,6 +481,11 @@
 			isa = PBXTargetDependency;
 			target = 49FE08022F5FFA680006B1D6 /* SnipNoteShare */;
 			targetProxy = 49FE080B2F5FFA680006B1D6 /* PBXContainerItemProxy */;
+		};
+		4DC1D1C7A00000000000000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4DC1D1C7A00000000000000A /* SnipNoteKeyboard */;
+			targetProxy = 4DC1D1C7A000000000000002 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -737,6 +825,62 @@
 			};
 			name = Release;
 		};
+		4DC1D1C7A00000000000000C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SnipNoteKeyboard/SnipNoteKeyboard.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5K8R3X2322;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SnipNoteKeyboard/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SnipNote;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.9;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattianalytics.snipnote.SnipNoteKeyboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4DC1D1C7A00000000000000D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SnipNoteKeyboard/SnipNoteKeyboard.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5K8R3X2322;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SnipNoteKeyboard/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = SnipNote;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.9;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattianalytics.snipnote.SnipNoteKeyboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -781,6 +925,15 @@
 			buildConfigurations = (
 				49FE080F2F5FFA680006B1D6 /* Debug */,
 				49FE08102F5FFA680006B1D6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4DC1D1C7A00000000000000E /* Build configuration list for PBXNativeTarget "SnipNoteKeyboard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4DC1D1C7A00000000000000C /* Debug */,
+				4DC1D1C7A00000000000000D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

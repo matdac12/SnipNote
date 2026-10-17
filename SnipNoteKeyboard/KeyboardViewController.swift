@@ -16,17 +16,26 @@ final class KeyboardViewController: UIInputViewController {
   private var observer: DarwinObserver?
   private var pollTimer: Timer?
 
-  private let statusLabel = UILabel()
-  private let levelView = UIProgressView(progressViewStyle: .bar)
-  private let mainButton = UIButton(type: .system)
+  /// When recording started (from the Start tap), for the elapsed time.
+  private var recordingStartedAt: Date?
+  /// Drives the waveform and the elapsed time while recording; off otherwise.
+  private var recordingTimer: Timer?
+  private let haptics = UIImpactFeedbackGenerator(style: .light)
+
+  // B1 "Quiet" layout: the whole pad is the tap target; the only colour is a small red dot.
+  private let pad = UIView()
+  private lazy var padTap = UITapGestureRecognizer(target: self, action: #selector(padTapped))
+  private let iconView = UIImageView()
+  private let waveform = WaveformView()
+  private let recordingDot = UIView()
+  private let titleLabel = UILabel()
+  private let subtitleLabel = UILabel()
   private let cancelButton = UIButton(type: .system)
-  private let insertButton = UIButton(type: .system)
-  private let discardButton = UIButton(type: .system)
-  private let globeButton = UIButton(type: .system)
-  private let spaceButton = UIButton(type: .system)
-  private let deleteButton = UIButton(type: .system)
-  private let returnButton = UIButton(type: .system)
   private let resultRow = UIStackView()
+  private let globeButton = KeyButton(symbol: "globe", special: true)
+  private let spaceButton = KeyButton(title: "space", special: false)
+  private let deleteButton = KeyButton(symbol: "delete.left", special: true)
+  private let returnButton = KeyButton(symbol: "return", special: true)
   private var deleteRepeatTimer: Timer?
 
   override func viewDidLoad() {
@@ -47,11 +56,15 @@ final class KeyboardViewController: UIInputViewController {
       MainActor.assumeIsolated { self?.refresh() }
     }
     refresh()
+    HostAppResolver.harvest()
+    // The arbiter fills in ~200 ms after the keyboard appears.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { HostAppResolver.harvest() }
   }
 
   override func viewDidDisappear(_ animated: Bool) {
     super.viewDidDisappear(animated)
     isVisible = false
+    stopRecordingTimer()
     observer = nil
     pollTimer?.invalidate()
     pollTimer = nil
@@ -59,7 +72,7 @@ final class KeyboardViewController: UIInputViewController {
 
   override func textDidChange(_ textInput: UITextInput?) {
     super.textDidChange(textInput)
-    updateKeyColors()
+    HostAppResolver.harvest()
   }
 
   // MARK: - State
@@ -109,6 +122,7 @@ final class KeyboardViewController: UIInputViewController {
     if kind == .stop {
       stopSnapshot = (textDocumentProxy.documentIdentifier, textDocumentProxy.documentContextBeforeInput)
     }
+    if kind == .start { recordingStartedAt = Date() }
     keyboard.append(.init(id: UUID(), kind: kind, sessionID: sessionID, interactionID: interactionID, issuedAt: Date()))
     awaitingAckFor = kind
     saveKeyboard()
@@ -125,12 +139,42 @@ final class KeyboardViewController: UIInputViewController {
 
   // MARK: - Actions
 
-  @objc private func mainTapped() {
-    UIDevice.current.playInputClick()
-    switch companion.utterance {
-    case .recording: send(.stop)
-    default: send(.start)
+  @objc private func padTapped() {
+    guard isSessionArmed else {
+      openSnipNoteAndStartSession()
+      return
     }
+    guard awaitingAckFor == nil else { return }
+    switch companion.utterance {
+    case .recording:
+      haptics.impactOccurred()
+      send(.stop)
+    case .idle, .failed:
+      haptics.impactOccurred()
+      send(.start)
+    case .transcribing:
+      break
+    }
+  }
+
+  /// Keyboards cannot start the microphone, so SnipNote opens, starts the session at once,
+  /// and the user returns with iOS's back button. Same responder-chain route as SnipNoteShare.
+  private func openSnipNoteAndStartSession() {
+    var components = URLComponents(string: "snipnote://dictation/start")
+    if let host = HostAppResolver.currentHost(for: self) {
+      components?.queryItems = [URLQueryItem(name: "return", value: host)]
+      print("↩️ [Keyboard] Host app: \(host)")
+    }
+    guard let url = components?.url else { return }
+    var responder: UIResponder? = self
+    while let next = responder?.next {
+      if let application = next as? UIApplication {
+        application.open(url, options: [:], completionHandler: nil)
+        return
+      }
+      responder = next
+    }
+    print("❌ [Keyboard] Could not find UIApplication to open SnipNote")
   }
 
   @objc private func cancelTapped() { send(.cancel) }
@@ -177,143 +221,230 @@ final class KeyboardViewController: UIInputViewController {
 
   // MARK: - Rendering
 
-  private func render() {
-    let alive = companion.isAlive && companion.session == .armed
-    let pending = pendingResult
-    var status: String
-    var mainTitle = "Start"
-    var mainEnabled = false
-    var mainColor = UIColor.systemBlue
-    var showCancel = false
+  private var isSessionArmed: Bool { companion.isAlive && companion.session == .armed }
 
-    if !hasFullAccess {
-      status = "Turn on Allow Full Access for SnipNote in Settings > General > Keyboard."
-    } else if pending != nil {
-      status = "Text ready"
-    } else if !alive {
-      switch companion.session {
-      case .interrupted: status = "Session interrupted. Open SnipNote > Settings > Dictation keyboard."
-      case .preparing: status = "SnipNote is preparing…"
-      default: status = "Open SnipNote > Settings > Dictation keyboard > Start session."
-      }
-    } else if let waiting = awaitingAckFor {
-      status = waiting == .start ? "Starting…" : waiting == .stop ? "Stopping…" : "Cancelling…"
-      showCancel = waiting != .cancel
-    } else {
-      switch companion.utterance {
-      case .idle:
-        status = "Ready"
-        mainEnabled = true
-      case .recording:
-        status = "Recording"
-        mainTitle = "Stop"
-        mainColor = .systemRed
-        mainEnabled = true
-        showCancel = true
-      case .transcribing:
-        status = "Transcribing…"
-        showCancel = true
-      case .failed:
-        status = companion.message ?? "Last dictation failed"
-        mainEnabled = true
-      }
-    }
-
-    statusLabel.text = status
-    levelView.isHidden = !(alive && companion.utterance == .recording)
-    levelView.setProgress(companion.level, animated: true)
-    var config = mainButton.configuration ?? .filled()
-    config.title = mainTitle
-    config.baseBackgroundColor = mainColor
-    mainButton.configuration = config
-    mainButton.isEnabled = mainEnabled && hasFullAccess && pending == nil
-    cancelButton.isHidden = !showCancel || pending != nil
-    resultRow.isHidden = pending == nil
-    mainButton.isHidden = pending != nil
+  private enum Look {
+    case message(icon: String?, title: String?, subtitle: String, tappable: Bool)
+    case ready(note: String?)
+    case recording
+    case transcribing
+    case textReady
   }
 
-  private func updateKeyColors() {
-    let dark = textDocumentProxy.keyboardAppearance == .dark
-    view.tintColor = dark ? .white : .label
+  private var currentLook: Look {
+    if !hasFullAccess {
+      return .message(icon: "lock", title: nil, subtitle: "Allow Full Access for SnipNote in Settings › General › Keyboard", tappable: false)
+    }
+    if pendingResult != nil { return .textReady }
+    if !isSessionArmed {
+      if companion.isAlive && companion.session == .preparing {
+        return .message(icon: "mic", title: nil, subtitle: "Starting session…", tappable: false)
+      }
+      let subtitle = companion.session == .interrupted ? "Session interrupted · tap to restart" : "Tap to start a session"
+      return .message(icon: "mic", title: nil, subtitle: subtitle, tappable: true)
+    }
+    // Show the next state as soon as the tap is sent; the acknowledgment takes a few ms.
+    switch awaitingAckFor {
+    case .start: return .recording
+    case .stop: return .transcribing
+    case .cancel: return .ready(note: nil)
+    case .endSession, nil: break
+    }
+    switch companion.utterance {
+    case .idle: return .ready(note: nil)
+    case .recording: return .recording
+    case .transcribing: return .transcribing
+    case .failed: return .ready(note: "Couldn't transcribe")
+    }
+  }
+
+  private func render() {
+    let look = currentLook
+    var icon: String?
+    var title: String?
+    var subtitle: String?
+    var showWaveform = false
+    var showCancel = false
+    var tappable = false
+    var shimmer = false
+
+    switch look {
+    case let .message(messageIcon, messageTitle, messageSubtitle, isTappable):
+      icon = messageIcon
+      title = messageTitle
+      subtitle = messageSubtitle
+      tappable = isTappable
+    case let .ready(note):
+      icon = "mic"
+      subtitle = note.map { "\($0) · tap to dictate" } ?? "Tap to dictate"
+      tappable = true
+    case .recording:
+      showWaveform = true
+      showCancel = true
+      tappable = true
+      title = elapsedText
+    case .transcribing:
+      title = "Transcribing"
+      showCancel = true
+      shimmer = true
+    case .textReady:
+      title = "Text ready"
+    }
+
+    if case .recording = look {
+      if recordingStartedAt == nil { recordingStartedAt = Date() }
+      startRecordingTimer()
+    } else {
+      recordingStartedAt = nil
+      stopRecordingTimer()
+      waveform.reset()
+    }
+
+    iconView.image = icon.flatMap { UIImage(systemName: $0, withConfiguration: UIImage.SymbolConfiguration(pointSize: 22, weight: .light)) }
+    iconView.isHidden = icon == nil
+    waveform.isHidden = !showWaveform
+    recordingDot.isHidden = !showWaveform
+    titleLabel.text = title
+    titleLabel.isHidden = title == nil
+    subtitleLabel.text = subtitle
+    subtitleLabel.isHidden = subtitle == nil
+    cancelButton.isHidden = !showCancel
+    resultRow.isHidden = { if case .textReady = look { return false }; return true }()
+    padTap.isEnabled = tappable
+    setShimmer(shimmer)
+  }
+
+  private var elapsedText: String {
+    let seconds = Int(Date().timeIntervalSince(recordingStartedAt ?? Date()))
+    return String(format: "%d:%02d", seconds / 60, seconds % 60)
+  }
+
+  private func startRecordingTimer() {
+    guard recordingTimer == nil else { return }
+    recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+      MainActor.assumeIsolated {
+        guard let self else { return }
+        self.waveform.push(self.companion.level)
+        self.titleLabel.text = self.elapsedText
+      }
+    }
+  }
+
+  private func stopRecordingTimer() {
+    recordingTimer?.invalidate()
+    recordingTimer = nil
+  }
+
+  /// A gentle fade instead of a spinner while transcribing.
+  private func setShimmer(_ on: Bool) {
+    let key = "shimmer"
+    if on, titleLabel.layer.animation(forKey: key) == nil {
+      let pulse = CABasicAnimation(keyPath: "opacity")
+      pulse.fromValue = 1
+      pulse.toValue = 0.35
+      pulse.duration = 0.8
+      pulse.autoreverses = true
+      pulse.repeatCount = .infinity
+      titleLabel.layer.add(pulse, forKey: key)
+    } else if !on {
+      titleLabel.layer.removeAnimation(forKey: key)
+    }
   }
 
   private func buildLayout() {
-    let root = UIStackView()
-    root.axis = .vertical
-    root.spacing = 10
-    root.translatesAutoresizingMaskIntoConstraints = false
-    view.addSubview(root)
-    NSLayoutConstraint.activate([
-      root.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
-      root.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
-      root.topAnchor.constraint(equalTo: view.topAnchor, constant: 10),
-      root.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -8),
-      view.heightAnchor.constraint(equalToConstant: 250),
-    ])
+    view.heightAnchor.constraint(equalToConstant: 236).isActive = true
 
-    statusLabel.font = .preferredFont(forTextStyle: .subheadline)
-    statusLabel.textAlignment = .center
-    statusLabel.numberOfLines = 2
-    statusLabel.textColor = .secondaryLabel
-    levelView.trackTintColor = .tertiarySystemFill
-    levelView.progressTintColor = .systemRed
+    // Pad: everything above the bottom row; one tap starts or stops.
+    pad.translatesAutoresizingMaskIntoConstraints = false
+    // Keyboard extensions ignore touches on fully transparent areas; this stays invisible.
+    pad.backgroundColor = UIColor.black.withAlphaComponent(0.001)
+    // A gesture (not a control target) so taps on the centred text count too.
+    pad.addGestureRecognizer(padTap)
+    view.addSubview(pad)
 
-    var main = UIButton.Configuration.filled()
-    main.cornerStyle = .capsule
-    main.title = "Start"
-    main.buttonSize = .large
-    mainButton.configuration = main
-    mainButton.addTarget(self, action: #selector(mainTapped), for: .touchUpInside)
-    mainButton.heightAnchor.constraint(equalToConstant: 72).isActive = true
+    iconView.tintColor = .label
+    iconView.contentMode = .center
 
-    configure(cancelButton, title: "Cancel", style: .gray(), action: #selector(cancelTapped))
-    configure(insertButton, title: "Insert", style: .filled(), action: #selector(insertTapped))
-    configure(discardButton, title: "Discard", style: .gray(), action: #selector(discardTapped))
-    insertButton.heightAnchor.constraint(equalToConstant: 72).isActive = true
-    discardButton.heightAnchor.constraint(equalToConstant: 72).isActive = true
+    recordingDot.backgroundColor = .systemRed
+    recordingDot.layer.cornerRadius = 3.5
+    recordingDot.widthAnchor.constraint(equalToConstant: 7).isActive = true
+    recordingDot.heightAnchor.constraint(equalToConstant: 7).isActive = true
 
-    resultRow.addArrangedSubview(discardButton)
-    resultRow.addArrangedSubview(insertButton)
+    titleLabel.font = .monospacedDigitSystemFont(ofSize: 15, weight: .medium)
+    titleLabel.textColor = .label
+    subtitleLabel.font = .systemFont(ofSize: 13)
+    subtitleLabel.textColor = .secondaryLabel
+    subtitleLabel.textAlignment = .center
+    subtitleLabel.numberOfLines = 2
+
+    let titleRow = UIStackView(arrangedSubviews: [recordingDot, titleLabel])
+    titleRow.spacing = 6
+    titleRow.alignment = .center
+
+    for (button, title, action) in [(UIButton(type: .system), "Discard", #selector(discardTapped)),
+                                    (UIButton(type: .system), "Insert", #selector(insertTapped))] {
+      var config = UIButton.Configuration.gray()
+      config.title = title
+      config.baseForegroundColor = .label
+      config.cornerStyle = .medium
+      config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 22, bottom: 8, trailing: 22)
+      button.configuration = config
+      button.addTarget(self, action: action, for: .touchUpInside)
+      resultRow.addArrangedSubview(button)
+    }
     resultRow.spacing = 10
-    resultRow.distribution = .fillEqually
 
-    var globe = UIButton.Configuration.gray()
-    globe.image = UIImage(systemName: "globe")
-    globeButton.configuration = globe
+    let content = UIStackView(arrangedSubviews: [iconView, waveform, titleRow, subtitleLabel, resultRow])
+    content.axis = .vertical
+    content.alignment = .center
+    content.spacing = 9
+    content.isUserInteractionEnabled = true
+    content.translatesAutoresizingMaskIntoConstraints = false
+    pad.addSubview(content)
+    // Taps on the labels must reach the pad; only the result buttons handle their own.
+    for view in [iconView, waveform, titleRow, subtitleLabel] { view.isUserInteractionEnabled = false }
+
+    var cancel = UIButton.Configuration.gray()
+    cancel.image = UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
+    cancel.baseForegroundColor = .label
+    cancel.cornerStyle = .capsule
+    cancelButton.configuration = cancel
+    cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
+    cancelButton.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(cancelButton)
+
     globeButton.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
-
-    configure(spaceButton, title: "space", style: .gray(), action: #selector(spaceTapped))
-    var delete = UIButton.Configuration.gray()
-    delete.image = UIImage(systemName: "delete.left")
-    deleteButton.configuration = delete
+    spaceButton.addTarget(self, action: #selector(spaceTapped), for: .touchUpInside)
     deleteButton.addTarget(self, action: #selector(deleteDown), for: .touchDown)
     deleteButton.addTarget(self, action: #selector(deleteUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-    var ret = UIButton.Configuration.gray()
-    ret.image = UIImage(systemName: "return")
-    returnButton.configuration = ret
     returnButton.addTarget(self, action: #selector(returnTapped), for: .touchUpInside)
-
     let bottomRow = UIStackView(arrangedSubviews: [globeButton, spaceButton, deleteButton, returnButton])
-    bottomRow.spacing = 8
-    for button in [globeButton, deleteButton, returnButton] {
-      button.widthAnchor.constraint(equalToConstant: 56).isActive = true
-    }
-    bottomRow.heightAnchor.constraint(equalToConstant: 44).isActive = true
+    bottomRow.spacing = 6
+    bottomRow.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(bottomRow)
 
-    let spacer = UIView()
-    for subview in [statusLabel, levelView, mainButton, resultRow, cancelButton, spacer, bottomRow] {
-      root.addArrangedSubview(subview)
-    }
-    spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
-    updateKeyColors()
+    NSLayoutConstraint.activate([
+      pad.topAnchor.constraint(equalTo: view.topAnchor),
+      pad.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      pad.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      pad.bottomAnchor.constraint(equalTo: bottomRow.topAnchor, constant: -6),
+      content.centerXAnchor.constraint(equalTo: pad.centerXAnchor),
+      content.centerYAnchor.constraint(equalTo: pad.centerYAnchor),
+      content.leadingAnchor.constraint(greaterThanOrEqualTo: pad.leadingAnchor, constant: 24),
+      waveform.widthAnchor.constraint(equalToConstant: 168),
+      waveform.heightAnchor.constraint(equalToConstant: 30),
+      cancelButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 10),
+      cancelButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
+      cancelButton.widthAnchor.constraint(equalToConstant: 28),
+      cancelButton.heightAnchor.constraint(equalToConstant: 28),
+      bottomRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 4),
+      bottomRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -4),
+      bottomRow.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -6),
+      bottomRow.heightAnchor.constraint(equalToConstant: 42),
+      globeButton.widthAnchor.constraint(equalToConstant: 46),
+      deleteButton.widthAnchor.constraint(equalToConstant: 46),
+      returnButton.widthAnchor.constraint(equalToConstant: 88),
+    ])
     render()
-  }
-
-  private func configure(_ button: UIButton, title: String, style: UIButton.Configuration, action: Selector) {
-    var config = style
-    config.title = title
-    config.cornerStyle = .large
-    button.configuration = config
-    button.addTarget(self, action: action, for: .touchUpInside)
   }
 }

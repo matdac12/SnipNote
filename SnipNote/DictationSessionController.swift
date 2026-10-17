@@ -2,6 +2,7 @@ import AVFoundation
 import Combine
 import FluidAudio
 import Foundation
+import UIKit
 
 /// Companion side of the SnipNote keyboard (personal test feature).
 ///
@@ -15,6 +16,8 @@ final class DictationSessionController: ObservableObject {
   @Published private(set) var state = DictationCompanionState()
   @Published private(set) var lastTimings: String?
   @Published private(set) var utteranceCount = 0
+  /// Which model is in memory and how long it took to load, for the Dictation screen.
+  @Published private(set) var modelLoadInfo: String?
 
   private static let sampleRate: Double = 16_000
   private static let maxUtteranceSeconds: Double = 120
@@ -23,8 +26,10 @@ final class DictationSessionController: ObservableObject {
   private let engine = AVAudioEngine()
   private let buffer = UtteranceBuffer()
   private var converter: AVAudioConverter?
-  private var asr: AsrManager?
-  private var service: ParakeetTranscriptionService?
+  /// Kept after End session so the next session skips the ~10 s Core ML load, as long as
+  /// iOS keeps SnipNote in memory. Released on memory warnings or when the model changes.
+  private var loaded: LoadedModel?
+  private var modelTask: Task<LoadedModel, Error>?
   private var keyboardObserver: DarwinObserver?
   private var heartbeatTimer: Timer?
   private var levelTimer: Timer?
@@ -35,6 +40,9 @@ final class DictationSessionController: ObservableObject {
   private init() {
     // A previous run may have died with a stale "armed" file; the keyboard must not trust it.
     publish()
+    NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main) { [weak self] _ in
+      MainActor.assumeIsolated { self?.releaseModelIfIdle() }
+    }
   }
 
   var isSessionActive: Bool { state.session == .preparing || state.session == .armed }
@@ -52,14 +60,23 @@ final class DictationSessionController: ObservableObject {
         throw DictationSessionError.microphoneDenied
       }
       let model = LocalTranscriptionManager.shared.selectedModel
-      let service = ParakeetTranscriptionService.service(for: model)
-      guard await service.status() == .installed else { throw DictationSessionError.modelMissing }
-      let loadStart = Date()
-      let asr = try await service.makeSession()
-      self.service = service
-      self.asr = asr
-      print("🎙️ [Dictation] Parakeet \(model.rawValue) loaded in \(Self.ms(since: loadStart)) ms")
+      guard await ParakeetTranscriptionService.service(for: model).status() == .installed else {
+        throw DictationSessionError.modelMissing
+      }
+      // The microphone starts first; the model loads meanwhile. Only a Stop that arrives
+      // before loading finishes has to wait for it.
+      let modelTask = prepareModel(model)
+      self.modelTask = modelTask
+      Task { [weak self] in
+        do {
+          _ = try await modelTask.value
+        } catch {
+          guard let self, self.state.sessionID == sessionID, self.isSessionActive else { return }
+          self.interrupt(reason: "Could not load the model: \(error.localizedDescription)")
+        }
+      }
 
+      let armStart = Date()
       try startCapture()
       observeAudioSession()
       keyboardObserver = DarwinObserver(DictationBridge.keyboardChanged) { [weak self] in
@@ -73,7 +90,7 @@ final class DictationSessionController: ObservableObject {
       state.session = .armed
       state.message = nil
       publish()
-      print("✅ [Dictation] Session armed \(sessionID)")
+      print("✅ [Dictation] Session armed \(sessionID): capture started in \(Self.ms(since: armStart)) ms")
     } catch {
       print("❌ [Dictation] Session failed to start: \(error)")
       await teardown()
@@ -105,11 +122,63 @@ final class DictationSessionController: ObservableObject {
     engine.stop()
     buffer.stopAndClear()
     try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-    if let asr, let service {
-      await service.finishSession(asr)
+  }
+
+  // MARK: - Model
+
+  private struct LoadedModel {
+    let model: LocalTranscriptionModel
+    let service: ParakeetTranscriptionService
+    let asr: AsrManager
+  }
+
+  /// Reuses the model in memory when it is still the selected one; otherwise loads it.
+  private func prepareModel(_ model: LocalTranscriptionModel) -> Task<LoadedModel, Error> {
+    // Already loaded, or a load of the same model is still running.
+    if let modelTask, pendingModel == model {
+      print("♻️ [Dictation] Reusing \(model.rawValue) (\(loaded == nil ? "still loading" : "in memory"))")
+      return modelTask
     }
-    asr = nil
-    service = nil
+    let previous = loaded
+    loaded = nil
+    pendingModel = model
+    modelLoadInfo = "Loading \(model.displayName)…"
+    return Task { [weak self] in
+      if let previous {
+        await previous.service.finishSession(previous.asr)
+      }
+      let service = ParakeetTranscriptionService.service(for: model)
+      let started = Date()
+      let asr: AsrManager
+      do {
+        asr = try await service.makeSession()
+      } catch {
+        // A failed load must not be reused by the next session.
+        self?.modelTask = nil
+        self?.pendingModel = nil
+        self?.modelLoadInfo = nil
+        throw error
+      }
+      let ms = Self.ms(since: started)
+      let result = LoadedModel(model: model, service: service, asr: asr)
+      print("🎙️ [Dictation] Parakeet \(model.rawValue) loaded in \(ms) ms")
+      self?.loaded = result
+      self?.modelLoadInfo = "\(model.displayName) loaded in \(ms) ms"
+      return result
+    }
+  }
+
+  private var pendingModel: LocalTranscriptionModel?
+
+  /// Frees the model's memory when no session needs it.
+  private func releaseModelIfIdle() {
+    guard !isSessionActive, let loaded else { return }
+    print("🧹 [Dictation] Releasing \(loaded.model.rawValue) (memory warning)")
+    self.loaded = nil
+    modelTask = nil
+    pendingModel = nil
+    modelLoadInfo = nil
+    Task { await loaded.service.finishSession(loaded.asr) }
   }
 
   // MARK: - Capture
@@ -272,7 +341,7 @@ final class DictationSessionController: ObservableObject {
 
   private func stopUtterance() {
     guard state.utterance == .recording, let utteranceID = state.utteranceID,
-          let interactionID = state.interactionID, let asr else { return }
+          let interactionID = state.interactionID, let modelTask else { return }
     stopTappedAt = Date()
     let samples = buffer.stop()
     stopLevelTimer()
@@ -282,8 +351,13 @@ final class DictationSessionController: ObservableObject {
 
     let seconds = Double(samples.count) / Self.sampleRate
     transcriptionTask = Task { [weak self] in
-      let started = Date()
+      var started = Date()
       do {
+        let waitStart = Date()
+        let asr = try await modelTask.value.asr
+        let waitedMs = Self.ms(since: waitStart)
+        if waitedMs > 50 { print("⏳ [Dictation] Waited \(waitedMs) ms for the model to finish loading") }
+        started = Date()
         var decoderState = try TdtDecoderState()
         let result = try await asr.transcribe(
           ParakeetTranscriptionService.prepareChunkSamples(samples), decoderState: &decoderState, language: nil)
@@ -360,7 +434,7 @@ final class DictationSessionController: ObservableObject {
 
   private func startLevelTimer() {
     stopLevelTimer()
-    levelTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+    levelTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
       MainActor.assumeIsolated {
         guard let self, self.state.utterance == .recording else { return }
         if self.buffer.seconds(sampleRate: Self.sampleRate) >= Self.maxUtteranceSeconds {

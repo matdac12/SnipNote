@@ -5,6 +5,7 @@ import SwiftUI
 struct DictationSessionView: View {
   @ObservedObject private var controller = DictationSessionController.shared
   @ObservedObject private var localTranscription = LocalTranscriptionManager.shared
+  @AppStorage(DictationHostReturn.methodKey) private var returnMethod = DictationHostReturn.Method.urlScheme.rawValue
 
   var body: some View {
     List {
@@ -47,11 +48,28 @@ struct DictationSessionView: View {
 
       Section {
         LabeledContent { Text(verbatim: "\(controller.utteranceCount)") } label: { Text(verbatim: "Dictations this run") }
+        if let info = controller.modelLoadInfo {
+          Text(verbatim: info).font(.footnote.monospacedDigit())
+        }
         if let timings = controller.lastTimings {
           Text(verbatim: timings).font(.footnote.monospacedDigit())
         }
       } header: {
         Text(verbatim: "Measurements")
+      }
+
+      Section {
+        Picker(selection: $returnMethod) {
+          ForEach(DictationHostReturn.Method.allCases) { method in
+            Text(verbatim: method.title).tag(method.rawValue)
+          }
+        } label: {
+          Text(verbatim: "Return method")
+        }
+      } header: {
+        Text(verbatim: "Back to the app after Start session")
+      } footer: {
+        Text(verbatim: "Used when the keyboard opens SnipNote. Only Notes is supported for now.")
       }
 
       Section {
@@ -87,5 +105,75 @@ struct DictationSessionView: View {
     case .inactive: .gray
     case .interrupted: .red
     }
+  }
+}
+
+/// Shown when the keyboard opens SnipNote to start a session: the session starts at once and
+/// the user goes back with iOS's "◀ App" button. Closes itself when SnipNote leaves the screen.
+struct DictationLaunchView: View {
+  @ObservedObject private var controller = DictationSessionController.shared
+  @Environment(\.dismiss) private var dismiss
+  @Environment(\.scenePhase) private var scenePhase
+
+  var body: some View {
+    VStack(spacing: 20) {
+      Spacer()
+      Image(systemName: icon)
+        .font(.system(size: 56, weight: .semibold))
+        .foregroundStyle(color)
+        .symbolEffect(.pulse, isActive: controller.state.session == .preparing)
+      Text(verbatim: title).font(.title2.bold())
+      Text(verbatim: detail)
+        .font(.body)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 32)
+      Spacer()
+      Button {
+        dismiss()
+      } label: {
+        Text(verbatim: "Close")
+      }
+      .padding(.bottom, 24)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .background { dismiss() }
+    }
+  }
+
+  private var isReady: Bool { controller.state.session == .armed }
+
+  private var icon: String {
+    switch controller.state.session {
+    case .armed: "checkmark.circle.fill"
+    case .interrupted: "exclamationmark.triangle.fill"
+    default: "mic.circle.fill"
+    }
+  }
+
+  private var color: Color {
+    switch controller.state.session {
+    case .armed: .green
+    case .interrupted: .red
+    default: .orange
+    }
+  }
+
+  private var title: String {
+    switch controller.state.session {
+    case .armed: "Dictation ready"
+    case .interrupted: "Could not start"
+    default: "Starting…"
+    }
+  }
+
+  private var detail: String {
+    if controller.state.session == .interrupted {
+      return controller.state.message ?? "Try again from Settings > Dictation keyboard."
+    }
+    return isReady
+      ? "Go back with the ◀ button at the top left of the screen."
+      : "Starting the microphone."
   }
 }

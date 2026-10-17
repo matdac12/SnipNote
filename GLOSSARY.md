@@ -33,7 +33,7 @@ The one-time allotment of Minutes given to a new user so they can try Cloud mode
 _Avoid_: Free minutes, free tier
 
 **Pro**:
-An Account holder with a positive Minutes balance, whether the Minutes were bought or came from the Trial grant. Everyone who creates an Account starts as Pro. Pro gets cross-device sync, the web app and, once built, speaker labels. This definition is provisional until the Subscription and pack lineup is redesigned.
+An Account holder with a positive Minutes balance, whether the Minutes were bought or came from the Trial grant. Everyone who creates an Account starts as Pro. Pro gets speaker labels once built. Cross-device sync and the web app come with every Account and are never gated on Pro (decided 2026-10-17, MAT-1665 canceled). This definition is provisional until the Subscription and pack lineup is redesigned.
 _Avoid_: Premium, paid user
 
 **Subscription**:

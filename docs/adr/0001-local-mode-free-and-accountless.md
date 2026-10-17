@@ -16,7 +16,7 @@ We chose this over keeping a login wall so that "free" can be marketed honestly,
 ## Consequences
 
 - A Guest writes nothing to Supabase, so usage is measured with anonymous events (own events table), not accounts. Signed-in users' Local meetings currently still sync their text to Supabase; whether that stays free is a separate decision.
-- Cross-device sync, the web app and speaker labels are Pro extras, not part of the free-forever promise. Existing Accounts keep sync and web access for a grace period before gating starts.
+- Speaker labels are a Pro extra, not part of the free-forever promise. Cross-device sync and the web app come with every Account and are not gated on Pro (amended 2026-10-17: the earlier plan to gate them, with a grace period for existing Accounts, was dropped; MAT-1665 canceled).
 - Turning a Guest into an Account must not delete the Guest's local meetings: the current pull-sync deletes local meetings missing from the server, so local meetings must be pushed first or the deletion rule changed.
 - On devices without Apple Intelligence, Local mode gives a transcript only; summaries need Apple Intelligence. Marketing must say so.
 - Supersedes the earlier assumption that every user signs in at launch.

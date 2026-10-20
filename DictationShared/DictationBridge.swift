@@ -106,6 +106,8 @@ struct DictationCompanionState: Codable, Equatable {
   var heartbeat = Date()
   /// 0...1, updated a few times per second while recording.
   var level: Float = 0
+  /// Name of the headphones or external microphone listening; nil for the device's own microphone.
+  var microphoneName: String?
   var message: String?
   var result: DictationResult?
   /// Commands already applied, newest last (bounded). Lets the keyboard see acknowledgments.

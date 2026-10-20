@@ -21,6 +21,10 @@ final class KeyboardViewController: UIInputViewController {
   /// Drives the waveform and the elapsed time while recording; off otherwise.
   private var recordingTimer: Timer?
   private let haptics = UIImpactFeedbackGenerator(style: .light)
+  /// The last inserted dictation, removable with Undo for `undoWindow` seconds.
+  private var lastInsertion: (text: String, document: UUID?, expires: Date)?
+  private var undoTimer: Timer?
+  private static let undoWindow: TimeInterval = 5
 
   // B1 "Quiet" layout: the whole pad is the tap target; the only colour is a small red dot.
   private let pad = UIView()
@@ -31,6 +35,9 @@ final class KeyboardViewController: UIInputViewController {
   private let titleLabel = UILabel()
   private let subtitleLabel = UILabel()
   private let cancelButton = UIButton(type: .system)
+  private let endButton = UIButton(type: .system)
+  private let undoButton = UIButton(type: .system)
+  private let microphoneLabel = UILabel()
   private let resultRow = UIStackView()
   private let globeButton = KeyButton(symbol: "globe", special: true)
   private let spaceButton = KeyButton(title: String(localized: "keyboard.key.space"), special: false)
@@ -61,6 +68,7 @@ final class KeyboardViewController: UIInputViewController {
   override func viewDidDisappear(_ animated: Bool) {
     super.viewDidDisappear(animated)
     isVisible = false
+    clearUndo()
     stopRecordingTimer()
     observer = nil
     pollTimer?.invalidate()
@@ -75,7 +83,10 @@ final class KeyboardViewController: UIInputViewController {
 
   private func refresh() {
     companion = DictationBridge.read(DictationCompanionState.self, from: DictationBridge.companionFile) ?? DictationCompanionState()
-    if let pending = awaitingAckFor, companion.handledCommandIDs.contains(where: { id in keyboard.commands.contains { $0.id == id && $0.kind == pending } }) {
+    // End session resets the companion's acknowledgments; nothing is pending without a session.
+    if !isSessionArmed {
+      awaitingAckFor = nil
+    } else if let pending = awaitingAckFor, companion.handledCommandIDs.contains(where: { id in keyboard.commands.contains { $0.id == id && $0.kind == pending } }) {
       awaitingAckFor = nil
     }
     deliverResultIfPossible()
@@ -102,10 +113,41 @@ final class KeyboardViewController: UIInputViewController {
     claim(result)
     let before = textDocumentProxy.documentContextBeforeInput ?? ""
     let needsSpace = !before.isEmpty && !(before.last?.isWhitespace ?? true)
-    textDocumentProxy.insertText((needsSpace ? " " : "") + result.text)
+    let inserted = (needsSpace ? " " : "") + result.text
+    textDocumentProxy.insertText(inserted)
+    rememberInsertion(inserted)
     let latency = Int(Date().timeIntervalSince(result.createdAt) * 1_000)
     print("✅ [Keyboard] Inserted \(result.text.count) chars, \(latency) ms after result")
     stopSnapshot = nil
+  }
+
+  private func rememberInsertion(_ text: String) {
+    lastInsertion = (text, textDocumentProxy.documentIdentifier, Date().addingTimeInterval(Self.undoWindow))
+    undoTimer?.invalidate()
+    undoTimer = Timer.scheduledTimer(withTimeInterval: Self.undoWindow, repeats: false) { [weak self] _ in
+      MainActor.assumeIsolated {
+        self?.lastInsertion = nil
+        self?.render()
+      }
+    }
+  }
+
+  private var canUndo: Bool {
+    guard let lastInsertion else { return false }
+    return Date() < lastInsertion.expires && lastInsertion.document == textDocumentProxy.documentIdentifier
+  }
+
+  private func clearUndo() {
+    undoTimer?.invalidate()
+    undoTimer = nil
+    lastInsertion = nil
+  }
+
+  /// Typing with the keyboard's own keys ends the chance to undo.
+  private func dismissUndo() {
+    guard lastInsertion != nil else { return }
+    clearUndo()
+    render()
   }
 
   private func claim(_ result: DictationResult) {
@@ -118,7 +160,10 @@ final class KeyboardViewController: UIInputViewController {
     if kind == .stop {
       stopSnapshot = (textDocumentProxy.documentIdentifier, textDocumentProxy.documentContextBeforeInput)
     }
-    if kind == .start { recordingStartedAt = Date() }
+    if kind == .start {
+      recordingStartedAt = Date()
+      clearUndo()
+    }
     keyboard.append(.init(id: UUID(), kind: kind, sessionID: sessionID, interactionID: interactionID, issuedAt: Date()))
     awaitingAckFor = kind
     saveKeyboard()
@@ -170,6 +215,25 @@ final class KeyboardViewController: UIInputViewController {
 
   @objc private func cancelTapped() { send(.cancel) }
 
+  @objc private func endTapped() {
+    haptics.impactOccurred()
+    clearUndo()
+    send(.endSession)
+  }
+
+  /// Removes the last dictation, but only while the cursor is still right after it, so text
+  /// typed or moved since is never deleted. The proxy may see only the end of a long text.
+  @objc private func undoTapped() {
+    defer {
+      clearUndo()
+      render()
+    }
+    guard canUndo, let text = lastInsertion?.text,
+          (textDocumentProxy.documentContextBeforeInput ?? "").hasSuffix(String(text.suffix(24))) else { return }
+    haptics.impactOccurred()
+    for _ in 0..<text.count { textDocumentProxy.deleteBackward() }
+  }
+
   @objc private func insertTapped() {
     guard let result = pendingResult else { return }
     insert(result)
@@ -184,16 +248,19 @@ final class KeyboardViewController: UIInputViewController {
 
   @objc private func spaceTapped() {
     UIDevice.current.playInputClick()
+    dismissUndo()
     textDocumentProxy.insertText(" ")
   }
 
   @objc private func returnTapped() {
     UIDevice.current.playInputClick()
+    dismissUndo()
     textDocumentProxy.insertText("\n")
   }
 
   @objc private func deleteDown() {
     UIDevice.current.playInputClick()
+    dismissUndo()
     textDocumentProxy.deleteBackward()
     deleteRepeatTimer?.invalidate()
     deleteRepeatTimer = Timer.scheduledTimer(withTimeInterval: 0.45, repeats: false) { [weak self] _ in
@@ -241,7 +308,8 @@ final class KeyboardViewController: UIInputViewController {
     case .start: return .recording
     case .stop: return .transcribing
     case .cancel: return .ready(note: nil)
-    case .endSession, nil: break
+    case .endSession: return .message(icon: "mic", title: nil, subtitle: String(localized: "keyboard.session.tapToStart"), tappable: false)
+    case nil: break
     }
     switch companion.utterance {
     case .idle: return .ready(note: nil)
@@ -258,6 +326,8 @@ final class KeyboardViewController: UIInputViewController {
     var subtitle: String?
     var showWaveform = false
     var showCancel = false
+    var showEnd = false
+    var showMicrophone = false
     var tappable = false
     var shimmer = false
 
@@ -272,9 +342,12 @@ final class KeyboardViewController: UIInputViewController {
       subtitle = note.map { String(format: String(localized: "keyboard.dictation.noteThenTap"), $0) }
         ?? String(localized: "keyboard.dictation.tap")
       tappable = true
+      showEnd = true
+      showMicrophone = true
     case .recording:
       showWaveform = true
       showCancel = true
+      showMicrophone = true
       tappable = true
       title = elapsedText
     case .transcribing:
@@ -303,9 +376,29 @@ final class KeyboardViewController: UIInputViewController {
     subtitleLabel.text = subtitle
     subtitleLabel.isHidden = subtitle == nil
     cancelButton.isHidden = !showCancel
+    endButton.isHidden = !showEnd
+    undoButton.isHidden = !(showEnd && canUndo)
+    microphoneLabel.isHidden = !showMicrophone
+    if showMicrophone { microphoneLabel.attributedText = microphoneText }
     resultRow.isHidden = { if case .textReady = look { return false }; return true }()
     padTap.isEnabled = tappable
     setShimmer(shimmer)
+  }
+
+  /// Which microphone listens: headphones by name, or the device's own.
+  private var microphoneText: NSAttributedString {
+    let external = companion.microphoneName
+    let name = external ?? String(format: String(localized: "keyboard.microphone.device"), UIDevice.current.model)
+    let attributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 11), .foregroundColor: UIColor.tertiaryLabel]
+    let text = NSMutableAttributedString()
+    let symbol = UIImage(systemName: external == nil ? "iphone" : "headphones",
+                         withConfiguration: UIImage.SymbolConfiguration(pointSize: 10, weight: .regular))
+    if let symbol = symbol?.withTintColor(.tertiaryLabel, renderingMode: .alwaysOriginal) {
+      text.append(NSAttributedString(attachment: NSTextAttachment(image: symbol)))
+      text.append(NSAttributedString(string: " ", attributes: attributes))
+    }
+    text.append(NSAttributedString(string: name, attributes: attributes))
+    return text
   }
 
   private var elapsedText: String {
@@ -388,7 +481,9 @@ final class KeyboardViewController: UIInputViewController {
     }
     resultRow.spacing = 10
 
-    let content = UIStackView(arrangedSubviews: [iconView, waveform, titleRow, subtitleLabel, resultRow])
+    microphoneLabel.textAlignment = .center
+
+    let content = UIStackView(arrangedSubviews: [iconView, waveform, titleRow, subtitleLabel, microphoneLabel, resultRow])
     content.axis = .vertical
     content.alignment = .center
     content.spacing = 9
@@ -396,7 +491,7 @@ final class KeyboardViewController: UIInputViewController {
     content.translatesAutoresizingMaskIntoConstraints = false
     pad.addSubview(content)
     // Taps on the labels must reach the pad; only the result buttons handle their own.
-    for view in [iconView, waveform, titleRow, subtitleLabel] { view.isUserInteractionEnabled = false }
+    for view in [iconView, waveform, titleRow, subtitleLabel, microphoneLabel] { view.isUserInteractionEnabled = false }
 
     var cancel = UIButton.Configuration.gray()
     cancel.image = UIImage(systemName: "xmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
@@ -406,6 +501,25 @@ final class KeyboardViewController: UIInputViewController {
     cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
     cancelButton.translatesAutoresizingMaskIntoConstraints = false
     view.addSubview(cancelButton)
+
+    for (button, title, action) in [(endButton, String(localized: "keyboard.session.end"), #selector(endTapped)),
+                                    (undoButton, String(localized: "keyboard.result.undo"), #selector(undoTapped))] {
+      var config = UIButton.Configuration.gray()
+      config.title = title
+      config.baseForegroundColor = .label
+      config.cornerStyle = .capsule
+      config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12)
+      config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+        var outgoing = incoming
+        outgoing.font = .systemFont(ofSize: 13, weight: .medium)
+        return outgoing
+      }
+      button.configuration = config
+      button.addTarget(self, action: action, for: .touchUpInside)
+      button.translatesAutoresizingMaskIntoConstraints = false
+      view.addSubview(button)
+    }
+    endButton.accessibilityLabel = String(localized: "keyboard.session.end.accessibility")
 
     globeButton.addTarget(self, action: #selector(handleInputModeList(from:with:)), for: .allTouchEvents)
     spaceButton.addTarget(self, action: #selector(spaceTapped), for: .touchUpInside)
@@ -431,6 +545,12 @@ final class KeyboardViewController: UIInputViewController {
       cancelButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
       cancelButton.widthAnchor.constraint(equalToConstant: 28),
       cancelButton.heightAnchor.constraint(equalToConstant: 28),
+      endButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 10),
+      endButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
+      endButton.heightAnchor.constraint(equalToConstant: 28),
+      undoButton.topAnchor.constraint(equalTo: view.topAnchor, constant: 10),
+      undoButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
+      undoButton.heightAnchor.constraint(equalToConstant: 28),
       bottomRow.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 4),
       bottomRow.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -4),
       bottomRow.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -6),

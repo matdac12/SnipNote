@@ -191,6 +191,7 @@ final class DictationSessionController: ObservableObject {
     let session = AVAudioSession.sharedInstance()
     try session.setCategory(.playAndRecord, mode: .default, options: Self.categoryOptions)
     try session.setActive(true)
+    state.microphoneName = Self.externalMicrophoneName
     print("🎧 [Dictation] Session active · \(Self.routeDescription)")
     try installTapAndStart()
   }
@@ -211,6 +212,20 @@ final class DictationSessionController: ObservableObject {
     } catch {
       print("❌ [Dictation] Could not apply the microphone setting: \(error)")
     }
+  }
+
+  /// Shown by the keyboard so the user knows which microphone listens.
+  private static var externalMicrophoneName: String? {
+    guard let input = AVAudioSession.sharedInstance().currentRoute.inputs.first,
+          input.portType != .builtInMic else { return nil }
+    return input.portName
+  }
+
+  private func updateMicrophoneName() {
+    let name = Self.externalMicrophoneName
+    guard isSessionActive, name != state.microphoneName else { return }
+    state.microphoneName = name
+    publish()
   }
 
   /// Logged on route changes: current route, sample rate and app state.
@@ -323,9 +338,12 @@ final class DictationSessionController: ObservableObject {
       let info = note.userInfo
       MainActor.assumeIsolated { self?.handleInterruption(info) }
     })
-    notificationTokens.append(center.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { note in
+    notificationTokens.append(center.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] note in
       let reason = (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt) ?? 0
-      MainActor.assumeIsolated { print("🎧 [Dictation] Route change (reason \(reason)) · \(Self.routeDescription)") }
+      MainActor.assumeIsolated {
+        print("🎧 [Dictation] Route change (reason \(reason)) · \(Self.routeDescription)")
+        self?.updateMicrophoneName()
+      }
     })
     notificationTokens.append(center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
       MainActor.assumeIsolated { self?.interrupt(reason: Self.text("dictation.error.audioReset")) }

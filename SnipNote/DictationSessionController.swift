@@ -19,10 +19,16 @@ final class DictationSessionController: ObservableObject {
   private static let sampleRate: Double = 16_000
   private static let maxUtteranceSeconds: Double = 120
   private static let handledCommandsLimit = 40
+  private static let restartAttempts = 5
   /// An armed session with no dictation for this long ends by itself.
   static let idleLimit: TimeInterval = 15 * 60
+  /// UserDefaults key. On: dictate through Bluetooth headphones, whose audio drops to call
+  /// quality while a session runs. Off (default): iPhone microphone, headphones keep music quality.
+  static let headphoneMicrophoneKey = "dictation.useHeadphoneMicrophone"
 
-  private let engine = AVAudioEngine()
+  /// Replaced on every (re)start: see `installTapAndStart`.
+  private var engine = AVAudioEngine()
+  private var engineConfigurationToken: NSObjectProtocol?
   private let buffer = UtteranceBuffer()
   private var converter: AVAudioConverter?
   /// Kept after End session so the next session skips the ~10 s Core ML load, as long as
@@ -121,8 +127,7 @@ final class DictationSessionController: ObservableObject {
     keyboardObserver = nil
     notificationTokens.forEach { NotificationCenter.default.removeObserver($0) }
     notificationTokens.removeAll()
-    engine.inputNode.removeTap(onBus: 0)
-    engine.stop()
+    stopEngine()
     buffer.stopAndClear()
     try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
   }
@@ -184,25 +189,104 @@ final class DictationSessionController: ObservableObject {
 
   private func startCapture() throws {
     let session = AVAudioSession.sharedInstance()
-    try session.setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers, .allowBluetoothHFP, .defaultToSpeaker])
+    try session.setCategory(.playAndRecord, mode: .default, options: Self.categoryOptions)
     try session.setActive(true)
+    print("🎧 [Dictation] Session active · \(Self.routeDescription)")
     try installTapAndStart()
   }
 
+  private static var categoryOptions: AVAudioSession.CategoryOptions {
+    let bluetooth: AVAudioSession.CategoryOptions =
+      UserDefaults.standard.bool(forKey: headphoneMicrophoneKey) ? .allowBluetoothHFP : .allowBluetoothA2DP
+    return [.mixWithOthers, .defaultToSpeaker, bluetooth]
+  }
+
+  /// Applies the microphone setting to a running session. If the route changes, the engine's
+  /// configuration change restarts capture on the new microphone.
+  func applyMicrophoneSetting() {
+    guard isSessionActive else { return }
+    do {
+      try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: Self.categoryOptions)
+      print("🎧 [Dictation] Microphone setting applied · \(Self.routeDescription)")
+    } catch {
+      print("❌ [Dictation] Could not apply the microphone setting: \(error)")
+    }
+  }
+
+  /// Logged on route changes: current route, sample rate and app state.
+  private static var routeDescription: String {
+    let session = AVAudioSession.sharedInstance()
+    let inputs = session.currentRoute.inputs.map { "\($0.portType.rawValue)(\($0.portName))" }.joined(separator: ",")
+    let outputs = session.currentRoute.outputs.map { "\($0.portType.rawValue)(\($0.portName))" }.joined(separator: ",")
+    let appState = switch UIApplication.shared.applicationState {
+    case .active: "active"
+    case .inactive: "inactive"
+    case .background: "background"
+    @unknown default: "unknown"
+    }
+    return "in: [\(inputs)] out: [\(outputs)] · \(Int(session.sampleRate)) Hz · category \(session.category.rawValue) options \(session.categoryOptions.rawValue) · app \(appState)"
+  }
+
+  /// Starts a fresh engine on the current route. After a route change (AirPods switching to
+  /// their microphone) the old engine kept reporting the previous format; iOS then refused the
+  /// tap without throwing, and capture ran silent.
   private func installTapAndStart() throws {
+    stopEngine()
+    engine = AVAudioEngine()
+    engineConfigurationToken = NotificationCenter.default.addObserver(
+      forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main
+    ) { [weak self] _ in
+      MainActor.assumeIsolated { self?.handleConfigurationChange() }
+    }
     let input = engine.inputNode
-    input.removeTap(onBus: 0)
     let inputFormat = input.outputFormat(forBus: 0)
+    let hardwareFormat = input.inputFormat(forBus: 0)
+    // The hardware may still be switching; a tap in the old format would get no audio.
+    guard inputFormat.sampleRate == hardwareFormat.sampleRate else {
+      print("⏳ [Dictation] Route still settling: tap \(Int(inputFormat.sampleRate)) Hz, hardware \(Int(hardwareFormat.sampleRate)) Hz")
+      throw DictationSessionError.routeSettling
+    }
     guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0,
           let targetFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Self.sampleRate, channels: 1, interleaved: false),
           let converter = AVAudioConverter(from: inputFormat, to: targetFormat) else {
       throw DictationSessionError.audioUnavailable
     }
     self.converter = converter
+    print("🎧 [Dictation] Tap format \(inputFormat)")
     input.installTap(onBus: 0, bufferSize: 1_024, format: inputFormat,
                      block: Self.makeTapBlock(buffer: buffer, converter: converter, from: inputFormat, to: targetFormat))
     engine.prepare()
-    try engine.start()
+    do {
+      try engine.start()
+    } catch {
+      print("❌ [Dictation] engine.start failed: \(error) · \(Self.routeDescription)")
+      throw error
+    }
+    print("🎧 [Dictation] Engine running: \(engine.isRunning)")
+  }
+
+  private func stopEngine() {
+    if let engineConfigurationToken {
+      NotificationCenter.default.removeObserver(engineConfigurationToken)
+      self.engineConfigurationToken = nil
+    }
+    engine.inputNode.removeTap(onBus: 0)
+    engine.stop()
+  }
+
+  /// Retries while the new route settles, then gives up with a visible error.
+  private func restartCapture(attempt: Int = 1) {
+    do {
+      try installTapAndStart()
+    } catch DictationSessionError.routeSettling where attempt < Self.restartAttempts {
+      Task { [weak self] in
+        try? await Task.sleep(for: .milliseconds(300))
+        guard let self, self.state.session == .armed else { return }
+        self.restartCapture(attempt: attempt + 1)
+      }
+    } catch {
+      interrupt(reason: Self.text("dictation.error.restartFailed", error.localizedDescription))
+    }
   }
 
   /// Built outside the main actor: the tap runs on the audio thread.
@@ -239,8 +323,9 @@ final class DictationSessionController: ObservableObject {
       let info = note.userInfo
       MainActor.assumeIsolated { self?.handleInterruption(info) }
     })
-    notificationTokens.append(center.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
-      MainActor.assumeIsolated { self?.handleConfigurationChange() }
+    notificationTokens.append(center.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { note in
+      let reason = (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt) ?? 0
+      MainActor.assumeIsolated { print("🎧 [Dictation] Route change (reason \(reason)) · \(Self.routeDescription)") }
     })
     notificationTokens.append(center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
       MainActor.assumeIsolated { self?.interrupt(reason: Self.text("dictation.error.audioReset")) }
@@ -271,13 +356,9 @@ final class DictationSessionController: ObservableObject {
   /// Route changes (AirPods in/out) stop the engine; restart it with the new input format.
   private func handleConfigurationChange() {
     guard state.session == .armed else { return }
-    print("🔄 [Dictation] Audio route changed, restarting capture")
+    print("🔄 [Dictation] Audio route changed, restarting capture · \(Self.routeDescription)")
     if state.utterance == .recording { failUtterance(Self.text("dictation.error.routeChanged")) }
-    do {
-      try installTapAndStart()
-    } catch {
-      interrupt(reason: Self.text("dictation.error.restartFailed", error.localizedDescription))
-    }
+    restartCapture()
   }
 
   private func interrupt(reason: String) {
@@ -352,6 +433,9 @@ final class DictationSessionController: ObservableObject {
     publish()
 
     let seconds = Double(samples.count) / Self.sampleRate
+    let peak = samples.reduce(Float(0)) { max($0, abs($1)) }
+    print(String(format: "🎧 [Dictation] Utterance captured: %.2f s, peak %.4f, engine running %@ · %@",
+                 seconds, peak, engine.isRunning ? "yes" : "no", Self.routeDescription))
     transcriptionTask = Task { [weak self] in
       var started = Date()
       do {
@@ -489,12 +573,13 @@ enum DictationSessionError: LocalizedError {
   case microphoneDenied
   case modelMissing
   case audioUnavailable
+  case routeSettling
 
   var errorDescription: String? {
     switch self {
     case .microphoneDenied: LocalizationManager.localizedAppString("dictation.error.microphoneDenied")
     case .modelMissing: LocalizationManager.localizedAppString("dictation.error.modelMissing")
-    case .audioUnavailable: LocalizationManager.localizedAppString("dictation.error.noInput")
+    case .audioUnavailable, .routeSettling: LocalizationManager.localizedAppString("dictation.error.noInput")
     }
   }
 }

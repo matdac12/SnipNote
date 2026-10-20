@@ -6,6 +6,7 @@ struct DictationSessionView: View {
   @ObservedObject private var controller = DictationSessionController.shared
   @ObservedObject private var localTranscription = LocalTranscriptionManager.shared
   @EnvironmentObject private var localizationManager: LocalizationManager
+  @AppStorage(DictationSessionController.headphoneMicrophoneKey) private var useHeadphoneMicrophone = false
 
   var body: some View {
     List {
@@ -32,6 +33,13 @@ struct DictationSessionView: View {
         }
       } footer: {
         Text(String(format: localized("dictation.session.footer"), localTranscription.selectedModel.displayName, Int(DictationSessionController.idleLimit / 60)))
+      }
+
+      Section {
+        Toggle(localized("dictation.microphone.headphones"), isOn: $useHeadphoneMicrophone)
+          .onChange(of: useHeadphoneMicrophone) { controller.applyMicrophoneSetting() }
+      } footer: {
+        Text(localized("dictation.microphone.footer"))
       }
 
       if controller.state.result != nil {

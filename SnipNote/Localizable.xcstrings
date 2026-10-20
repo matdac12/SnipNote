@@ -1,91 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "account.close" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chiudi"
-          }
-        }
-      }
-    },
-    "account.error.confirmEmail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check your email to confirm your account, then sign in."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controlla la tua email per confermare l'account, poi accedi."
-          }
-        }
-      }
-    },
-    "account.reason.cloud" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cloud mode needs an account. New accounts get 30 free Cloud minutes to try it."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La modalità Cloud richiede un account. I nuovi account ricevono 30 minuti Cloud gratuiti per provarla."
-          }
-        }
-      }
-    },
-    "account.reason.signIn" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in to restore your Minutes balance and sync your meetings."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accedi per ripristinare il tuo saldo di minuti e sincronizzare le tue riunioni."
-          }
-        }
-      }
-    },
-    "settings.account.signIn" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sign in"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accedi"
-          }
-        }
-      }
-    },
     "" : {
 
     },
@@ -202,9 +117,6 @@
     "≈ %@€/min" : {
 
     },
-    "⏱️ %@" : {
-
-    },
     "✓ Completed" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -226,9 +138,6 @@
           }
         }
       }
-    },
-    "📍 %@" : {
-
     },
     "0.5×" : {
 
@@ -285,6 +194,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Info su SnipNote"
+          }
+        }
+      }
+    },
+    "account.close" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chiudi"
+          }
+        }
+      }
+    },
+    "account.error.confirmEmail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check your email to confirm your account, then sign in."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla la tua email per confermare l'account, poi accedi."
+          }
+        }
+      }
+    },
+    "account.reason.cloud" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cloud mode needs an account. New accounts get 30 free Cloud minutes to try it."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La modalità Cloud richiede un account. I nuovi account ricevono 30 minuti Cloud gratuiti per provarla."
+          }
+        }
+      }
+    },
+    "account.reason.signIn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to restore your Minutes balance and sync your meetings."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi per ripristinare il tuo saldo di minuti e sincronizzare le tue riunioni."
           }
         }
       }
@@ -1256,6 +1233,601 @@
     },
     "DEVELOPER" : {
 
+    },
+    "dictation.error.audioReset" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio services were reset."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I servizi audio sono stati reimpostati."
+          }
+        }
+      }
+    },
+    "dictation.error.interruptedWhileRecording" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrupted while recording."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrotta durante la registrazione."
+          }
+        }
+      }
+    },
+    "dictation.error.microphoneDenied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone access is off. Turn it on in Settings > SnipNote."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accesso al microfono è disattivato. Attivalo in Impostazioni > SnipNote."
+          }
+        }
+      }
+    },
+    "dictation.error.modelLoad" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not load the model: %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile caricare il modello: %@"
+          }
+        }
+      }
+    },
+    "dictation.error.modelMissing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download a Parakeet model in Settings > Transcription first."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarica prima un modello Parakeet in Impostazioni > Trascrizione."
+          }
+        }
+      }
+    },
+    "dictation.error.noInput" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No microphone is available."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun microfono disponibile."
+          }
+        }
+      }
+    },
+    "dictation.error.restartFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not restart the microphone: %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile riavviare il microfono: %@"
+          }
+        }
+      }
+    },
+    "dictation.error.resumeFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not resume after the interruption: %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile riprendere dopo l'interruzione: %@"
+          }
+        }
+      }
+    },
+    "dictation.error.routeChanged" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The audio device changed while recording."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il dispositivo audio è cambiato durante la registrazione."
+          }
+        }
+      }
+    },
+    "dictation.error.transcriptionFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcription failed: %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizione non riuscita: %@"
+          }
+        }
+      }
+    },
+    "dictation.launch.failed.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again from Settings > Dictation keyboard."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova da Impostazioni > Tastiera di dettatura."
+          }
+        }
+      }
+    },
+    "dictation.launch.failed.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not start"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avvio non riuscito"
+          }
+        }
+      }
+    },
+    "dictation.launch.ready.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go back with ◀ at the top left, or swipe right along the bottom edge."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torna indietro con ◀ in alto a sinistra, oppure scorri verso destra lungo il bordo inferiore."
+          }
+        }
+      }
+    },
+    "dictation.launch.ready.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation ready"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dettatura pronta"
+          }
+        }
+      }
+    },
+    "dictation.launch.starting.detail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting the microphone."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avvio del microfono."
+          }
+        }
+      }
+    },
+    "dictation.launch.starting.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avvio…"
+          }
+        }
+      }
+    },
+    "dictation.microphone.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off: SnipNote listens through the iPhone microphone, and music or podcasts in your headphones keep full quality. On: it listens through your AirPods or other Bluetooth headphones, but while a session is running their audio switches to call quality."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disattivato: SnipNote ascolta dal microfono dell'iPhone e musica o podcast nelle cuffie restano in piena qualità. Attivato: ascolta dagli AirPods o da altre cuffie Bluetooth, ma finché la sessione è attiva il loro audio passa a qualità chiamata."
+          }
+        }
+      }
+    },
+    "dictation.microphone.headphones" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use headphone microphone"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa il microfono delle cuffie"
+          }
+        }
+      }
+    },
+    "dictation.pending.discard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discard pending text"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scarta il testo in attesa"
+          }
+        }
+      }
+    },
+    "dictation.pending.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A transcript is waiting to be inserted from the keyboard."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una trascrizione è in attesa di essere inserita dalla tastiera."
+          }
+        }
+      }
+    },
+    "dictation.session.end" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End session"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termina sessione"
+          }
+        }
+      }
+    },
+    "dictation.session.endedIdle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The session ended after %d minutes without dictation."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La sessione è terminata dopo %d minuti senza dettature."
+          }
+        }
+      }
+    },
+    "dictation.session.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model: %1$@. The microphone stays on while the session is running, and audio between dictations is discarded. The session ends by itself after %2$d minutes without dictation."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modello: %1$@. Il microfono resta acceso finché la sessione è attiva e l'audio tra una dettatura e l'altra viene scartato. La sessione termina da sola dopo %2$d minuti senza dettature."
+          }
+        }
+      }
+    },
+    "dictation.session.start" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start session"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avvia sessione"
+          }
+        }
+      }
+    },
+    "dictation.setup.header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setup"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurazione"
+          }
+        }
+      }
+    },
+    "dictation.setup.step1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Open Settings > General > Keyboard > Keyboards > Add New Keyboard and choose SnipNote."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Apri Impostazioni > Generali > Tastiera > Tastiere > Aggiungi nuova tastiera e scegli SnipNote."
+          }
+        }
+      }
+    },
+    "dictation.setup.step2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Tap SnipNote in that list and turn on Allow Full Access. The keyboard needs it only to talk to this app; it has no network access."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Tocca SnipNote nell'elenco e attiva Consenti accesso completo. Alla tastiera serve solo per comunicare con questa app; non accede alla rete."
+          }
+        }
+      }
+    },
+    "dictation.setup.step3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. In any app, switch to the SnipNote keyboard with the globe key and tap it. SnipNote opens and starts the session; go back and tap to dictate, then tap again to insert the text."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. In qualsiasi app passa alla tastiera SnipNote con il tasto globo e toccala. SnipNote si apre e avvia la sessione; torna indietro e tocca per dettare, poi tocca di nuovo per inserire il testo."
+          }
+        }
+      }
+    },
+    "dictation.status.interrupted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrupted"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrotta"
+          }
+        }
+      }
+    },
+    "dictation.status.notRunning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not running"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non attiva"
+          }
+        }
+      }
+    },
+    "dictation.status.preparing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparazione…"
+          }
+        }
+      }
+    },
+    "dictation.status.ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronta"
+          }
+        }
+      }
+    },
+    "dictation.status.readyAfterFailure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready (the last dictation failed)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pronta (l'ultima dettatura non è riuscita)"
+          }
+        }
+      }
+    },
+    "dictation.status.recording" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recording"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrazione"
+          }
+        }
+      }
+    },
+    "dictation.status.transcribing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribing"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trascrizione"
+          }
+        }
+      }
     },
     "Dismiss Keyboard" : {
 
@@ -3205,6 +3777,23 @@
         }
       }
     },
+    "settings.account.signIn" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accedi"
+          }
+        }
+      }
+    },
     "settings.aiAnalysis.appleIntelligenceAvailable" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3473,6 +4062,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "xAI (Grok)"
+          }
+        }
+      }
+    },
+    "settings.dictation.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictation keyboard"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tastiera di dettatura"
           }
         }
       }
@@ -5958,584 +6564,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hai raggiunto il tuo limite gratuito di %lld trascrizioni. Passa a Pro per accesso illimitato."
-          }
-        }
-      }
-    },
-    "settings.dictation.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dictation keyboard"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tastiera di dettatura"
-          }
-        }
-      }
-    },
-    "dictation.status.notRunning" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not running"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non attiva"
-          }
-        }
-      }
-    },
-    "dictation.status.preparing" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preparing…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preparazione…"
-          }
-        }
-      }
-    },
-    "dictation.status.interrupted" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interrupted"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interrotta"
-          }
-        }
-      }
-    },
-    "dictation.status.ready" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ready"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pronta"
-          }
-        }
-      }
-    },
-    "dictation.status.recording" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recording"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registrazione"
-          }
-        }
-      }
-    },
-    "dictation.status.transcribing" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcribing"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione"
-          }
-        }
-      }
-    },
-    "dictation.status.readyAfterFailure" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ready (the last dictation failed)"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pronta (l'ultima dettatura non è riuscita)"
-          }
-        }
-      }
-    },
-    "dictation.session.start" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Start session"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avvia sessione"
-          }
-        }
-      }
-    },
-    "dictation.session.end" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "End session"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termina sessione"
-          }
-        }
-      }
-    },
-    "dictation.session.footer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Model: %1$@. The microphone stays on while the session is running, and audio between dictations is discarded. The session ends by itself after %2$d minutes without dictation."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Modello: %1$@. Il microfono resta acceso finché la sessione è attiva e l'audio tra una dettatura e l'altra viene scartato. La sessione termina da sola dopo %2$d minuti senza dettature."
-          }
-        }
-      }
-    },
-    "dictation.session.endedIdle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The session ended after %d minutes without dictation."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La sessione è terminata dopo %d minuti senza dettature."
-          }
-        }
-      }
-    },
-    "dictation.pending.discard" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Discard pending text"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scarta il testo in attesa"
-          }
-        }
-      }
-    },
-    "dictation.pending.footer" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A transcript is waiting to be inserted from the keyboard."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Una trascrizione è in attesa di essere inserita dalla tastiera."
-          }
-        }
-      }
-    },
-    "dictation.setup.header" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Setup"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configurazione"
-          }
-        }
-      }
-    },
-    "dictation.setup.step1" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1. Open Settings > General > Keyboard > Keyboards > Add New Keyboard and choose SnipNote."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1. Apri Impostazioni > Generali > Tastiera > Tastiere > Aggiungi nuova tastiera e scegli SnipNote."
-          }
-        }
-      }
-    },
-    "dictation.setup.step2" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2. Tap SnipNote in that list and turn on Allow Full Access. The keyboard needs it only to talk to this app; it has no network access."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2. Tocca SnipNote nell'elenco e attiva Consenti accesso completo. Alla tastiera serve solo per comunicare con questa app; non accede alla rete."
-          }
-        }
-      }
-    },
-    "dictation.setup.step3" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3. In any app, switch to the SnipNote keyboard with the globe key and tap it. SnipNote opens and starts the session; go back and tap to dictate, then tap again to insert the text."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3. In qualsiasi app passa alla tastiera SnipNote con il tasto globo e toccala. SnipNote si apre e avvia la sessione; torna indietro e tocca per dettare, poi tocca di nuovo per inserire il testo."
-          }
-        }
-      }
-    },
-    "dictation.launch.ready.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dictation ready"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dettatura pronta"
-          }
-        }
-      }
-    },
-    "dictation.launch.failed.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Could not start"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avvio non riuscito"
-          }
-        }
-      }
-    },
-    "dictation.launch.starting.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Starting…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avvio…"
-          }
-        }
-      }
-    },
-    "dictation.launch.failed.detail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Try again from Settings > Dictation keyboard."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riprova da Impostazioni > Tastiera di dettatura."
-          }
-        }
-      }
-    },
-    "dictation.launch.ready.detail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Go back with ◀ at the top left, or swipe right along the bottom edge."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Torna indietro con ◀ in alto a sinistra, oppure scorri verso destra lungo il bordo inferiore."
-          }
-        }
-      }
-    },
-    "dictation.launch.starting.detail" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Starting the microphone."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avvio del microfono."
-          }
-        }
-      }
-    },
-    "dictation.error.microphoneDenied" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Microphone access is off. Turn it on in Settings > SnipNote."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L'accesso al microfono è disattivato. Attivalo in Impostazioni > SnipNote."
-          }
-        }
-      }
-    },
-    "dictation.error.modelMissing" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Download a Parakeet model in Settings > Transcription first."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scarica prima un modello Parakeet in Impostazioni > Trascrizione."
-          }
-        }
-      }
-    },
-    "dictation.error.noInput" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No microphone is available."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessun microfono disponibile."
-          }
-        }
-      }
-    },
-    "dictation.error.modelLoad" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Could not load the model: %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossibile caricare il modello: %@"
-          }
-        }
-      }
-    },
-    "dictation.error.audioReset" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Audio services were reset."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "I servizi audio sono stati reimpostati."
-          }
-        }
-      }
-    },
-    "dictation.error.interruptedWhileRecording" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interrupted while recording."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interrotta durante la registrazione."
-          }
-        }
-      }
-    },
-    "dictation.error.routeChanged" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The audio device changed while recording."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il dispositivo audio è cambiato durante la registrazione."
-          }
-        }
-      }
-    },
-    "dictation.error.resumeFailed" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Could not resume after the interruption: %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossibile riprendere dopo l'interruzione: %@"
-          }
-        }
-      }
-    },
-    "dictation.error.restartFailed" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Could not restart the microphone: %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossibile riavviare il microfono: %@"
-          }
-        }
-      }
-    },
-    "dictation.error.transcriptionFailed" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcription failed: %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trascrizione non riuscita: %@"
           }
         }
       }
